@@ -15,9 +15,7 @@ export default async function Dashboard() {
         <img
           src={session.user.image}
           alt="Profile"
-          width={80}
-          height={80}
-          className="rounded-full mt-4"
+          className="w-20 h-20 rounded-full mt-4"
         />
       )}
     </div>
