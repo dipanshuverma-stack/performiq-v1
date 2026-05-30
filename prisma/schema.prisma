@@ -1,0 +1,46 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../app/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  createdAt DateTime @default(now())
+
+  profiles  ExamProfile[]
+}
+
+model ExamProfile {
+  id          String   @id @default(cuid())
+  userId      String
+
+  examName    String
+  phase       String
+
+  targetDate  DateTime
+  targetScore Int?
+
+  createdAt   DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+
+  mocks Mock[]
+}
+
+model Mock {
+  id            String   @id @default(cuid())
+  examProfileId String
+
+  title       String
+  totalScore  Float
+  accuracy    Float?
+  createdAt   DateTime @default(now())
+
+  profile ExamProfile @relation(fields: [examProfileId], references: [id])
+}
