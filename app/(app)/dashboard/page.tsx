@@ -28,19 +28,76 @@ export default async function Dashboard() {
     },
   });
 
+  const completedTasks = await prisma.task.count({
+    where: {
+      userId: user?.id,
+      completed: true,
+    },
+  });
+
+  const totalTasks = await prisma.task.count({
+    where: {
+      userId: user?.id,
+    },
+  });
+
+  const totalMocks = await prisma.mockTest.count({
+    where: {
+      userId: user?.id,
+    },
+  });
+
+  const averageAccuracyResult =
+    await prisma.mockTest.aggregate({
+      where: {
+        userId: user?.id,
+      },
+      _avg: {
+        accuracy: true,
+      },
+    });
+
+  const averageAccuracy =
+    averageAccuracyResult._avg.accuracy ?? 0;
+
+  const revisionDueToday =
+    await prisma.revision.count({
+      where: {
+        userId: user?.id,
+        nextRevision: {
+          lte: new Date(),
+        },
+      },
+    });
+
+  const latestMock =
+    await prisma.mockTest.findFirst({
+      where: {
+        userId: user?.id,
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+    });
+
   const totalTopics = 18;
 
   const progressPercentage =
     totalTopics > 0
-      ? Math.round((completedTopics / totalTopics) * 100)
+      ? Math.round(
+          (completedTopics / totalTopics) * 100
+        )
       : 0;
 
   const totalMinutes = studySessions.reduce(
-    (sum, studySession) => sum + studySession.duration,
+    (sum, studySession) =>
+      sum + studySession.duration,
     0
   );
 
-  const totalHours = (totalMinutes / 60).toFixed(1);
+  const totalHours = (
+    totalMinutes / 60
+  ).toFixed(1);
 
   return (
     <main className="min-h-screen bg-gray-50 p-6">
@@ -54,9 +111,11 @@ export default async function Dashboard() {
         </p>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4 mt-8">
           <div className="bg-white p-6 rounded-xl shadow">
-            <h3 className="font-semibold">Study Time</h3>
+            <h3 className="font-semibold">
+              Study Time
+            </h3>
             <p className="text-3xl font-bold mt-2">
               {totalHours}h
             </p>
@@ -64,7 +123,7 @@ export default async function Dashboard() {
 
           <div className="bg-white p-6 rounded-xl shadow">
             <h3 className="font-semibold">
-              Sessions Completed
+              Sessions
             </h3>
             <p className="text-3xl font-bold mt-2">
               {studySessions.length}
@@ -73,15 +132,42 @@ export default async function Dashboard() {
 
           <div className="bg-white p-6 rounded-xl shadow">
             <h3 className="font-semibold">
-              Topics Completed
+              Topics
             </h3>
             <p className="text-3xl font-bold mt-2">
-              {completedTopics} / {totalTopics}
+              {completedTopics}/{totalTopics}
+            </p>
+          </div>
+
+          <div className="bg-white p-6 rounded-xl shadow">
+            <h3 className="font-semibold">
+              Tasks
+            </h3>
+            <p className="text-3xl font-bold mt-2">
+              {completedTasks}/{totalTasks}
+            </p>
+          </div>
+
+          <div className="bg-white p-6 rounded-xl shadow">
+            <h3 className="font-semibold">
+              Mock Tests
+            </h3>
+            <p className="text-3xl font-bold mt-2">
+              {totalMocks}
+            </p>
+          </div>
+
+          <div className="bg-white p-6 rounded-xl shadow">
+            <h3 className="font-semibold">
+              Avg Accuracy
+            </h3>
+            <p className="text-3xl font-bold mt-2">
+              {averageAccuracy.toFixed(1)}%
             </p>
           </div>
         </div>
 
-        {/* Progress Bar */}
+        {/* Progress */}
         <div className="bg-white p-6 rounded-xl shadow mt-8">
           <div className="flex justify-between mb-3">
             <h2 className="font-semibold">
@@ -103,7 +189,19 @@ export default async function Dashboard() {
           </div>
 
           <p className="text-sm text-gray-500 mt-2">
-            {completedTopics} of {totalTopics} topics completed
+            {completedTopics} of {totalTopics} topics
+            completed
+          </p>
+        </div>
+
+        {/* Revisions Due Today */}
+        <div className="bg-white p-6 rounded-xl shadow mt-8">
+          <h2 className="font-semibold mb-2">
+            Revisions Due Today
+          </h2>
+
+          <p className="text-3xl font-bold">
+            {revisionDueToday}
           </p>
         </div>
 
@@ -154,6 +252,37 @@ export default async function Dashboard() {
               </div>
             ))}
           </div>
+        </div>
+
+        {/* Latest Mock Test */}
+        <div className="bg-white p-6 rounded-xl shadow mt-8">
+          <h2 className="text-xl font-semibold mb-4">
+            Latest Mock Test
+          </h2>
+
+          {latestMock ? (
+            <div className="space-y-2">
+              <p>
+                <strong>Exam:</strong>{" "}
+                {latestMock.exam}
+              </p>
+
+              <p>
+                <strong>Score:</strong>{" "}
+                {latestMock.score}/
+                {latestMock.totalQuestions}
+              </p>
+
+              <p>
+                <strong>Accuracy:</strong>{" "}
+                {latestMock.accuracy.toFixed(1)}%
+              </p>
+            </div>
+          ) : (
+            <p className="text-gray-500">
+              No mock tests recorded yet.
+            </p>
+          )}
         </div>
 
         {/* Upcoming Exams */}

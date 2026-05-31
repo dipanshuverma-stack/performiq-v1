@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 export default function AppLayout({
   children,
 }: {
@@ -11,25 +13,60 @@ export default function AppLayout({
         </h1>
 
         <nav className="space-y-4">
-          <a href="/dashboard" className="block">
+          <Link
+            href="/dashboard"
+            className="block hover:text-green-400"
+          >
             Dashboard
-          </a>
+          </Link>
 
-          <a href="/syllabus" className="block">
+          <Link
+            href="/syllabus"
+            className="block hover:text-green-400"
+          >
             Syllabus
-          </a>
+          </Link>
 
-          <a href="/tasks" className="block">
+          <Link
+            href="/tasks"
+            className="block hover:text-green-400"
+          >
             Tasks
-          </a>
+          </Link>
 
-          <a href="/revision" className="block">
+          <Link
+            href="/revision"
+            className="block hover:text-green-400"
+          >
             Revision
-          </a>
+          </Link>
 
-          <a href="/mocks" className="block">
+          <Link
+            href="/mocks"
+            className="block hover:text-green-400"
+          >
             Mock Tests
-          </a>
+          </Link>
+
+          <Link
+            href="/profile"
+            className="block hover:text-green-400"
+          >
+            
+            Profile
+          </Link>
+            <Link
+  href="/analytics"
+  className="block hover:text-green-400"
+>
+  Analytics
+              </Link>
+          <Link
+            href="/settings"
+            className="block hover:text-green-400"
+          >
+            Settings
+          </Link>
         </nav>
       </aside>
 

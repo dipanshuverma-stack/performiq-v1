@@ -19,6 +19,9 @@ model User {
 
   topicProgress TopicProgress[]
   studySessions StudySession[]
+  tasks         Task[]
+  revisions     Revision[]
+  mockTests     MockTest[]
 }
 
 model TopicProgress {
@@ -27,6 +30,81 @@ model TopicProgress {
   userId    String
   topicName String
   completed Boolean @default(false)
+
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model StudySession {
+  id String @id @default(cuid())
+
+  userId String
+
+  subject String
+  topic   String
+
+  duration Int
+
+  completed Boolean @default(false)
+
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model Task {
+  id String @id @default(cuid())
+
+  userId String
+
+  title String
+
+  completed Boolean @default(false)
+
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model Revision {
+  id String @id @default(cuid())
+
+  userId String
+
+  subject String
+  topic   String
+
+  revisionCount Int @default(0)
+
+  nextRevision DateTime
+
+  completed Boolean @default(false)
+
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model MockTest {
+  id String @id @default(cuid())
+
+  userId String
+
+  exam String
+
+  score          Int
+  totalQuestions Int
+
+  accuracy Float
 
   createdAt DateTime @default(now())
 
@@ -70,23 +148,4 @@ model VerificationToken {
   expires    DateTime
 
   @@unique([identifier, token])
-}
-
-model StudySession {
-  id String @id @default(cuid())
-
-  userId String
-
-  subject String
-  topic   String
-
-  duration Int
-
-  completed Boolean @default(false)
-
-  createdAt DateTime @default(now())
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId])
 }

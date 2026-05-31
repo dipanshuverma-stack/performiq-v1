@@ -1,72 +1,68 @@
+"use server";
+
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import { syllabus } from "@/lib/syllabus";
-import { completeTopic } from "@/app/actions/topic-progress";
+import { revalidatePath } from "next/cache";
 
-export default async function SyllabusPage() {
+export async function completeTopic(topicName: string) {
   const session = await auth();
+
+  if (!session?.user?.email) {
+    throw new Error("Unauthorized");
+  }
 
   const user = await prisma.user.findUnique({
     where: {
-      email: session?.user?.email ?? "",
+      email: session.user.email,
     },
   });
 
-  const progress = await prisma.topicProgress.findMany({
+  if (!user) {
+    throw new Error("User not found");
+  }
+
+  const existingTopic = await prisma.topicProgress.findFirst({
     where: {
-      userId: user?.id,
-      completed: true,
+      userId: user.id,
+      topicName,
     },
   });
 
-  const completedTopics = progress.map(
-    (item) => item.topicName
-  );
+  // Create topic progress only if it doesn't exist
+  if (!existingTopic) {
+    await prisma.topicProgress.create({
+      data: {
+        userId: user.id,
+        topicName,
+        completed: true,
+      },
+    });
+  }
 
-  return (
-    <div className="p-8">
-      <h1 className="text-3xl font-bold mb-8">
-        Banking PO Syllabus
-      </h1>
+  const existingRevision = await prisma.revision.findFirst({
+    where: {
+      userId: user.id,
+      topic: topicName,
+    },
+  });
 
-      {Object.entries(syllabus).map(([subject, topics]) => (
-        <div
-          key={subject}
-          className="bg-white rounded-xl p-6 shadow mb-6"
-        >
-          <h2 className="text-xl font-semibold mb-4 capitalize">
-            {subject}
-          </h2>
+  // Create revision schedule only if it doesn't exist
+  if (!existingRevision) {
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
 
-          <div className="grid gap-2">
-            {topics.map((topic) => {
-              const isCompleted =
-                completedTopics.includes(topic);
+    await prisma.revision.create({
+      data: {
+        userId: user.id,
+        subject: "Banking PO",
+        topic: topicName,
+        revisionCount: 0,
+        nextRevision: tomorrow,
+      },
+    });
+  }
 
-              return (
-                <form
-                  key={topic}
-                  action={async () => {
-                    "use server";
-                    await completeTopic(topic);
-                  }}
-                >
-                  <button
-                    type="submit"
-                    className={`w-full border rounded-lg p-3 text-left transition ${
-                      isCompleted
-                        ? "bg-green-100 border-green-500"
-                        : "hover:bg-gray-50"
-                    }`}
-                  >
-                    {isCompleted ? "✅" : "⬜"} {topic}
-                  </button>
-                </form>
-              );
-            })}
-          </div>
-        </div>
-      ))}
-    </div>
-  );
+  revalidatePath("/syllabus");
+  revalidatePath("/dashboard");
+  revalidatePath("/revision");
 }
