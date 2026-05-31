@@ -16,7 +16,24 @@ export default async function Dashboard() {
     where: {
       userId: user?.id,
     },
+    orderBy: {
+      createdAt: "desc",
+    },
   });
+
+  const completedTopics = await prisma.topicProgress.count({
+    where: {
+      userId: user?.id,
+      completed: true,
+    },
+  });
+
+  const totalTopics = 18;
+
+  const progressPercentage =
+    totalTopics > 0
+      ? Math.round((completedTopics / totalTopics) * 100)
+      : 0;
 
   const totalMinutes = studySessions.reduce(
     (sum, studySession) => sum + studySession.duration,
@@ -46,16 +63,48 @@ export default async function Dashboard() {
           </div>
 
           <div className="bg-white p-6 rounded-xl shadow">
-            <h3 className="font-semibold">Sessions Completed</h3>
+            <h3 className="font-semibold">
+              Sessions Completed
+            </h3>
             <p className="text-3xl font-bold mt-2">
               {studySessions.length}
             </p>
           </div>
 
           <div className="bg-white p-6 rounded-xl shadow">
-            <h3 className="font-semibold">Mock Tests</h3>
-            <p className="text-3xl font-bold mt-2">0</p>
+            <h3 className="font-semibold">
+              Topics Completed
+            </h3>
+            <p className="text-3xl font-bold mt-2">
+              {completedTopics} / {totalTopics}
+            </p>
           </div>
+        </div>
+
+        {/* Progress Bar */}
+        <div className="bg-white p-6 rounded-xl shadow mt-8">
+          <div className="flex justify-between mb-3">
+            <h2 className="font-semibold">
+              Overall Progress
+            </h2>
+
+            <span className="font-semibold">
+              {progressPercentage}%
+            </span>
+          </div>
+
+          <div className="w-full bg-gray-200 rounded-full h-4 overflow-hidden">
+            <div
+              className="bg-green-600 h-4 rounded-full transition-all duration-500"
+              style={{
+                width: `${progressPercentage}%`,
+              }}
+            />
+          </div>
+
+          <p className="text-sm text-gray-500 mt-2">
+            {completedTopics} of {totalTopics} topics completed
+          </p>
         </div>
 
         {/* Today's Study Plan */}
@@ -71,8 +120,14 @@ export default async function Dashboard() {
                 className="border rounded-lg p-4 flex justify-between items-center"
               >
                 <div>
-                  <p className="font-semibold">{item.subject}</p>
-                  <p className="text-gray-600">{item.topic}</p>
+                  <p className="font-semibold">
+                    {item.subject}
+                  </p>
+
+                  <p className="text-gray-600">
+                    {item.topic}
+                  </p>
+
                   <p className="text-sm text-gray-500">
                     {item.duration} min
                   </p>
