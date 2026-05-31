@@ -16,6 +16,22 @@ model User {
 
   accounts      Account[]
   sessions      Session[]
+
+  topicProgress TopicProgress[]
+}
+
+model TopicProgress {
+  id        String   @id @default(cuid())
+
+  userId    String
+  topicName String
+  completed Boolean  @default(false)
+
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
 
 model Account {
