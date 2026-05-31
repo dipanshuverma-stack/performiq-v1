@@ -4,28 +4,28 @@ export const syllabus = {
     "Number Series",
     "Quadratic Equation",
     "Data Interpretation",
-    "Arithmetic",
+    "Percentage",
+    "Profit & Loss",
   ],
 
   reasoning: [
     "Puzzle",
     "Seating Arrangement",
     "Syllogism",
-    "Inequality",
     "Blood Relation",
+    "Inequality",
   ],
 
   english: [
     "Reading Comprehension",
     "Cloze Test",
     "Error Detection",
-    "Para Jumbles",
+    "Para Jumble",
   ],
 
   currentAffairs: [
     "Banking Awareness",
-    "Economy",
-    "National Affairs",
-    "International Affairs",
+    "Current Affairs",
+    "Static GK",
   ],
 };

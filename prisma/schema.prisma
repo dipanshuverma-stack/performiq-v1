@@ -14,18 +14,19 @@ model User {
   emailVerified DateTime?
   image         String?
 
-  accounts      Account[]
-  sessions      Session[]
+  accounts Account[]
+  sessions Session[]
 
   topicProgress TopicProgress[]
+  studySessions StudySession[]
 }
 
 model TopicProgress {
-  id        String   @id @default(cuid())
+  id String @id @default(cuid())
 
   userId    String
   topicName String
-  completed Boolean  @default(false)
+  completed Boolean @default(false)
 
   createdAt DateTime @default(now())
 
@@ -69,4 +70,23 @@ model VerificationToken {
   expires    DateTime
 
   @@unique([identifier, token])
+}
+
+model StudySession {
+  id String @id @default(cuid())
+
+  userId String
+
+  subject String
+  topic   String
+
+  duration Int
+
+  completed Boolean @default(false)
+
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }

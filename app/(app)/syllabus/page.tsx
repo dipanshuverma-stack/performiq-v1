@@ -1,4 +1,5 @@
 import { syllabus } from "@/lib/syllabus";
+import { completeTopic } from "@/app/actions/topic-progress";
 
 export default function SyllabusPage() {
   return (
@@ -18,12 +19,20 @@ export default function SyllabusPage() {
 
           <div className="grid gap-2">
             {topics.map((topic) => (
-              <div
+              <form
                 key={topic}
-                className="border rounded-lg p-3"
+                action={async () => {
+                  "use server";
+                  await completeTopic(topic);
+                }}
               >
-                {topic}
-              </div>
+                <button
+                  type="submit"
+                  className="w-full border rounded-lg p-3 text-left hover:bg-gray-50"
+                >
+                  ✅ {topic}
+                </button>
+              </form>
             ))}
           </div>
         </div>
