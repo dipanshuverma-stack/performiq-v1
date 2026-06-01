@@ -47,20 +47,63 @@ export default function AppLayout({
           >
             Mock Tests
           </Link>
+         
+          <Link
+  href="/mocks"
+  className="block hover:text-green-400"
+>
+  Mock Tests
+</Link>
+
+<Link
+  href="/practice"
+  className="block hover:text-green-400"
+>
+  Practice Timer
+</Link>
+
+<Link
+  href="/mistakes"
+  className="block hover:text-green-400"
+>
+  Mistake Journal
+</Link>
+
+          <Link
+            href="/mistakes"
+            className="block hover:text-green-400"
+          >
+            Mistake Journal
+          </Link>
+
+          <Link
+            href="/progress"
+            className="block hover:text-green-400"
+          >
+            Progress
+          </Link>
+         
+         <Link
+  href="/notifications"
+  className="block hover:text-green-400"
+>
+  Notifications
+</Link> 
+
+          <Link
+            href="/analytics"
+            className="block hover:text-green-400"
+          >
+            Analytics
+          </Link>
 
           <Link
             href="/profile"
             className="block hover:text-green-400"
           >
-            
             Profile
           </Link>
-            <Link
-  href="/analytics"
-  className="block hover:text-green-400"
->
-  Analytics
-              </Link>
+
           <Link
             href="/settings"
             className="block hover:text-green-400"

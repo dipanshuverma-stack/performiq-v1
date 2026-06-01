@@ -191,10 +191,36 @@ export async function createMockTest(
   }
 
   if (subjectPerformances.length > 0) {
-    await prisma.mockSubjectPerformance.createMany({
-      data: subjectPerformances,
-    });
+  await prisma.mockSubjectPerformance.createMany({
+    data: subjectPerformances,
+  });
+
+  // Auto-create revision tasks for weak subjects
+  for (const subject of subjectPerformances) {
+    if (subject.score < 20) {
+      const existingRevision =
+        await prisma.revision.findFirst({
+          where: {
+            userId: user.id,
+            subject: subject.subject,
+          },
+        });
+
+      if (!existingRevision) {
+        await prisma.revision.create({
+  data: {
+    userId: user.id,
+    subject: subject.subject,
+    topic: `${subject.subject} Improvement`,
+    nextRevision: new Date(
+      Date.now() + 24 * 60 * 60 * 1000
+    ),
+  },
+});
+      }
+    }
   }
+}
 
   revalidatePath("/mocks");
   revalidatePath("/dashboard");

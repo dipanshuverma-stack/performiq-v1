@@ -1,44 +1,92 @@
 import { prisma } from "@/lib/prisma";
 
-export async function getReadiness(
+export async function getReadinessScore(
   userId: string
 ) {
-  const mockCount =
-    await prisma.mockTest.count({
+  const [
+    topicTotal,
+    topicCompleted,
+    mocks,
+    revisions,
+    mistakes,
+  ] = await Promise.all([
+    prisma.topicProgress.count({
       where: { userId },
-    });
+    }),
 
-  const completedTopics =
-    await prisma.topicProgress.count({
+    prisma.topicProgress.count({
       where: {
         userId,
         completed: true,
       },
-    });
+    }),
 
-  const studySessions =
-    await prisma.studySession.count({
+    prisma.mockTest.findMany({
       where: { userId },
-    });
+      select: {
+        accuracy: true,
+      },
+    }),
 
-  const accuracy =
-    (
-      await prisma.mockTest.aggregate({
-        where: { userId },
-        _avg: {
-          accuracy: true,
-        },
-      })
-    )._avg.accuracy ?? 0;
+    prisma.revision.count({
+      where: {
+        userId,
+      },
+    }),
 
-  const readiness =
-    accuracy * 0.5 +
-    Math.min(mockCount, 20) * 1 +
-    Math.min(completedTopics, 100) * 0.2 +
-    Math.min(studySessions, 100) * 0.1;
+    prisma.mistakeEntry.count({
+      where: {
+        userId,
+        resolved: false,
+      },
+    }),
+  ]);
 
-  return Math.min(
-    Number(readiness.toFixed(1)),
-    100
+  const completionScore =
+    topicTotal > 0
+      ? (topicCompleted / topicTotal) * 40
+      : 0;
+
+  const avgAccuracy =
+    mocks.length > 0
+      ? mocks.reduce(
+          (sum, mock) =>
+            sum + mock.accuracy,
+          0
+        ) / mocks.length
+      : 0;
+
+  const mockScore =
+    (avgAccuracy / 100) * 30;
+
+  const revisionScore =
+    revisions > 0 ? 20 : 0;
+
+  const mistakePenalty =
+    Math.min(mistakes, 10);
+
+  const readiness = Math.max(
+    0,
+    Math.round(
+      completionScore +
+        mockScore +
+        revisionScore -
+        mistakePenalty
+    )
   );
+
+  return {
+    readiness,
+
+    completionScore:
+      Math.round(completionScore),
+
+    mockScore:
+      Math.round(mockScore),
+
+    revisionScore,
+
+    unresolvedMistakes:
+      mistakes,
+  };
 }
