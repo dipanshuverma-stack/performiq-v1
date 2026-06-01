@@ -2,6 +2,8 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { dailyPlan } from "@/lib/daily-plan";
 import { startStudySession } from "@/app/actions/study-session";
+import { getReadiness } from "@/lib/analytics/readiness";
+import { getActiveExam } from "@/lib/exams/get-active-exam";
 
 export default async function Dashboard() {
   const session = await auth();
@@ -11,6 +13,21 @@ export default async function Dashboard() {
       email: session?.user?.email ?? "",
     },
   });
+  const readiness = user
+    ? await getReadiness(user.id)
+    : 0;
+
+  const activeExam = user
+    ? await getActiveExam(user.id)
+    : null;
+  
+  const daysremaining = activeExam
+    ? Math.ceil(
+        (activeExam.targetDate.getTime() -
+          Date.now()) /
+          (1000 * 60 * 60 * 24)
+      )
+    : null;
 
   const studySessions = await prisma.studySession.findMany({
     where: {
@@ -107,8 +124,45 @@ export default async function Dashboard() {
         </h1>
 
         <p className="text-gray-600 mt-2">
-          Preparing for SBI PO • IBPS PO • RRB PO
+          {activeExam
+            ? `Preparing for ${activeExam.name}`
+            : "No active exam selected"}
         </p>
+        <div className="bg-white rounded-xl shadow p-6 mt-4">
+          <h2 className="text-2xl font-bold">
+            {activeExam?.name ??
+              "No Active Exam"}
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+            <div>
+              <p className="text-sm text-gray-500">
+                Readiness
+              </p>
+
+              <p className="text-3xl font-bold text-blue-600">
+                {readiness}%
+              </p>
+            </div>
+            <div>
+              <p className="text-sm text-gray-500">
+                Days Remaining
+              </p>
+              <p className="text-3xl font-bold">
+                {daysremaining ?? "-"}
+              </p>
+            </div>
+            <div>
+              <p className="text-sm text-gray-500">
+                Exam Type
+              </p>
+              <p className="text-3xl font-bold">
+                {activeExam?.examType ?? 
+                "-"}
+              </p>
+            </div>
+          </div>
+       </div>
+        
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4 mt-8">

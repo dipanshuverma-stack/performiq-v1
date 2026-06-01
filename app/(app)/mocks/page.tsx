@@ -1,6 +1,6 @@
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import { createMockTest } from "@/app/actions/mock-test";
+import MockForm from "@/components/mock/mock-form";
 
 export default async function MocksPage() {
   const session = await auth();
@@ -32,13 +32,16 @@ export default async function MocksPage() {
 
   const bestAccuracy =
     mocks.length > 0
-      ? Math.max(
-          ...mocks.map((mock) => mock.accuracy)
-        )
+      ? Math.max(...mocks.map((m) => m.accuracy))
       : 0;
 
-  const latestMock =
-    mocks.length > 0 ? mocks[0] : null;
+  const prelimsMocks = mocks.filter(
+    (m) => m.mockType === "PRELIMS"
+  ).length;
+
+  const mainsMocks = mocks.filter(
+    (m) => m.mockType === "MAINS"
+  ).length;
 
   return (
     <div className="p-8">
@@ -46,13 +49,11 @@ export default async function MocksPage() {
         Mock Tests
       </h1>
 
-      {/* Analytics */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-8">
         <div className="bg-white p-6 rounded-xl shadow">
           <h3 className="font-semibold">
             Total Mocks
           </h3>
-
           <p className="text-3xl font-bold mt-2">
             {totalMocks}
           </p>
@@ -62,7 +63,6 @@ export default async function MocksPage() {
           <h3 className="font-semibold">
             Avg Accuracy
           </h3>
-
           <p className="text-3xl font-bold mt-2">
             {averageAccuracy.toFixed(1)}%
           </p>
@@ -72,7 +72,6 @@ export default async function MocksPage() {
           <h3 className="font-semibold">
             Best Accuracy
           </h3>
-
           <p className="text-3xl font-bold mt-2 text-green-600">
             {bestAccuracy.toFixed(1)}%
           </p>
@@ -80,55 +79,29 @@ export default async function MocksPage() {
 
         <div className="bg-white p-6 rounded-xl shadow">
           <h3 className="font-semibold">
-            Latest Score
+            Prelims
           </h3>
-
           <p className="text-3xl font-bold mt-2">
-            {latestMock
-              ? `${latestMock.score}/${latestMock.totalQuestions}`
-              : "-"}
+            {prelimsMocks}
+          </p>
+        </div>
+
+        <div className="bg-white p-6 rounded-xl shadow">
+          <h3 className="font-semibold">
+            Mains
+          </h3>
+          <p className="text-3xl font-bold mt-2">
+            {mainsMocks}
           </p>
         </div>
       </div>
 
-      {/* Add Mock Form */}
-      <form
-        action={createMockTest}
-        className="bg-white p-6 rounded-xl shadow mb-8 space-y-4"
-      >
-        <input
-          name="exam"
-          placeholder="Exam Name (SBI PO)"
-          className="w-full border rounded-lg px-4 py-2"
-        />
+      <MockForm />
 
-        <input
-          type="number"
-          name="score"
-          placeholder="Correct Answers"
-          className="w-full border rounded-lg px-4 py-2"
-        />
-
-        <input
-          type="number"
-          name="totalQuestions"
-          placeholder="Total Questions"
-          className="w-full border rounded-lg px-4 py-2"
-        />
-
-        <button
-          type="submit"
-          className="bg-black text-white px-4 py-2 rounded-lg"
-        >
-          Save Mock Test
-        </button>
-      </form>
-
-      {/* Mock History */}
       <div className="bg-white rounded-xl shadow overflow-hidden">
         <div className="p-6 border-b">
           <h2 className="text-xl font-semibold">
-            Mock Test History
+            Mock History
           </h2>
         </div>
 
@@ -144,15 +117,27 @@ export default async function MocksPage() {
                 className="p-4 flex justify-between items-center"
               >
                 <div>
-                  <h3 className="font-semibold">
-                    {mock.exam}
-                  </h3>
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-semibold">
+                      {mock.exam}
+                    </h3>
+
+                    <span className="text-xs bg-gray-100 px-2 py-1 rounded">
+                      {mock.mockType}
+                    </span>
+                  </div>
 
                   <p className="text-sm text-gray-500">
                     {new Date(
                       mock.createdAt
                     ).toLocaleDateString()}
                   </p>
+
+                  {mock.title && (
+                    <p className="text-sm text-gray-600">
+                      {mock.title}
+                    </p>
+                  )}
                 </div>
 
                 <div className="text-right">
