@@ -7,19 +7,20 @@ export async function getPracticeAccuracyTrend(
     await prisma.practiceSession.findMany({
       where: { userId },
       orderBy: {
-        createdAt: "asc",
+        createdAt: "desc",
       },
+      take: 30,
       select: {
         accuracy: true,
       },
     });
 
-  return sessions.map(
-    (session, index) => ({
+  return sessions
+    .reverse()
+    .map((session, index) => ({
       session: index + 1,
       accuracy: session.accuracy,
-    })
-  );
+    }));
 }
 
 export async function getPracticeQpmTrend(
@@ -29,17 +30,18 @@ export async function getPracticeQpmTrend(
     await prisma.practiceSession.findMany({
       where: { userId },
       orderBy: {
-        createdAt: "asc",
+        createdAt: "desc",
       },
+      take: 30,
       select: {
         qpm: true,
       },
     });
 
-  return sessions.map(
-    (session, index) => ({
+  return sessions
+    .reverse()
+    .map((session, index) => ({
       session: index + 1,
       qpm: session.qpm,
-    })
-  );
+    }));
 }

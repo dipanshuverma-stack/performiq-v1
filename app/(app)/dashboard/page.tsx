@@ -78,9 +78,14 @@ export default async function Dashboard() {
     revisionRemaining,
     unreadNotifications,
   ] = await Promise.all([
-    prisma.studySession.findMany({
+    prisma.studySession.aggregate({
       where: { userId },
-      orderBy: { createdAt: "desc" },
+      _sum: {
+        duration: true,
+      },
+      _count: {
+        id: true,
+      },
     }),
     prisma.topicProgress.count({
       where: { userId, completed: true },
@@ -127,8 +132,9 @@ export default async function Dashboard() {
     revisionRemaining
   );
 
-  const totalMinutes = studySessions.reduce((sum, session) => sum + session.duration, 0);
+  const totalMinutes = studySessions._sum.duration ?? 0;
   const totalHours = (totalMinutes / 60).toFixed(1);
+  const totalSessions = studySessions._count.id;
 
   return (
     <main className="min-h-screen bg-gray-50 p-6">
@@ -327,7 +333,7 @@ export default async function Dashboard() {
           </div>
           <div className="bg-white p-6 rounded-xl shadow border border-gray-100">
             <h3 className="font-semibold text-gray-700">Sessions</h3>
-            <p className="text-3xl font-bold mt-2 text-gray-900">{studySessions.length}</p>
+            <p className="text-3xl font-bold mt-2 text-gray-900">{totalSessions}</p>
           </div>
           <div className="bg-white p-6 rounded-xl shadow border border-gray-100">
             <h3 className="font-semibold text-gray-700">Topics</h3>
