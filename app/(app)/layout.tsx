@@ -16,6 +16,7 @@ export default function AppLayout({
         <nav className="space-y-4">
           <Link
             href="/dashboard"
+            prefetch={false}
             className="block hover:text-green-400"
           >
             Dashboard
@@ -23,6 +24,7 @@ export default function AppLayout({
 
           <Link
             href="/syllabus"
+            prefetch={false}
             className="block hover:text-green-400"
           >
             Syllabus
@@ -30,6 +32,7 @@ export default function AppLayout({
 
           <Link
             href="/tasks"
+            prefetch={false}
             className="block hover:text-green-400"
           >
             Tasks
@@ -37,6 +40,7 @@ export default function AppLayout({
 
           <Link
             href="/revision"
+            prefetch={false}
             className="block hover:text-green-400"
           >
             Revision
@@ -44,34 +48,31 @@ export default function AppLayout({
 
           <Link
             href="/mocks"
+            prefetch={false}
             className="block hover:text-green-400"
           >
             Mock Tests
           </Link>
 
           <Link
-  href="/daily-plan"
-  className="block hover:text-green-400"
->
-  Daily Plan
-</Link>
-
-<Link
-  href="/coach"
-  className="block hover:text-green-400"
->
-  Study Coach
-</Link>
-
-          <Link
-            href="/exam-mode"
+            href="/daily-plan"
+            prefetch={false}
             className="block hover:text-green-400"
           >
-            Exam Mode
+            Daily Plan
+          </Link>
+
+          <Link
+            href="/coach"
+            prefetch={false}
+            className="block hover:text-green-400"
+          >
+            Study Coach
           </Link>
 
           <Link
             href="/practice"
+            prefetch={false}
             className="block hover:text-green-400"
           >
             Practice Timer
@@ -79,6 +80,7 @@ export default function AppLayout({
 
           <Link
             href="/practice/history"
+            prefetch={false}
             className="block hover:text-green-400"
           >
             Practice History
@@ -86,6 +88,7 @@ export default function AppLayout({
 
           <Link
             href="/practice/analytics"
+            prefetch={false}
             className="block hover:text-green-400"
           >
             Practice Analytics
@@ -93,6 +96,7 @@ export default function AppLayout({
 
           <Link
             href="/revision/intelligence"
+            prefetch={false}
             className="block hover:text-green-400"
           >
             Smart Revision
@@ -100,6 +104,7 @@ export default function AppLayout({
 
           <Link
             href="/mistakes"
+            prefetch={false}
             className="block hover:text-green-400"
           >
             Mistake Journal
@@ -107,13 +112,15 @@ export default function AppLayout({
 
           <Link
             href="/progress"
+            prefetch={false}
             className="block hover:text-green-400"
           >
             Progress
           </Link>
-         
+          
           <Link
             href="/notifications"
+            prefetch={false}
             className="block hover:text-green-400"
           >
             Notifications
@@ -121,6 +128,7 @@ export default function AppLayout({
 
           <Link
             href="/analytics"
+            prefetch={false}
             className="block hover:text-green-400"
           >
             Analytics
@@ -128,6 +136,7 @@ export default function AppLayout({
 
           <Link
             href="/profile"
+            prefetch={false}
             className="block hover:text-green-400"
           >
             Profile
@@ -135,6 +144,7 @@ export default function AppLayout({
 
           <Link
             href="/settings"
+            prefetch={false}
             className="block hover:text-green-400"
           >
             Settings
