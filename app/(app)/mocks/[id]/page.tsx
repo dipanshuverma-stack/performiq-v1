@@ -218,77 +218,70 @@ export default async function MockDetailsPage({
           </div>
         ) : (
           <div className="grid md:grid-cols-2 gap-4">
-            {mock.subjectPerformances.map(
-              (subject) => (
-                <div
-                  key={subject.id}
-                  className={`border rounded-xl p-4 ${
-                    strongestSubject?.id ===
-                    subject.id
-                      ? "border-green-400 bg-green-50"
-                      : weakestSubject?.id ===
-                        subject.id
-                      ? "border-red-400 bg-red-50"
-                      : ""
-                  }`}
-                >
-                  <div className="flex justify-between items-center mb-3">
-                    <h3 className="font-semibold text-lg">
-                      {subject.subject}
-                    </h3>
+            {mock.subjectPerformances.map((subject) => (
+              <div
+                key={subject.id}
+                className={`border rounded-xl p-4 ${
+                  strongestSubject?.id === subject.id
+                    ? "border-green-400 bg-green-50"
+                    : weakestSubject?.id === subject.id
+                    ? "border-red-400 bg-red-50"
+                    : ""
+                }`}
+              >
+                <div className="flex justify-between items-center mb-3">
+                  <h3 className="font-semibold text-lg">
+                    {subject.subject}
+                  </h3>
 
-                    <span className="text-2xl font-bold">
-                      {subject.score}
-                    </span>
+                  <span className="text-2xl font-bold">
+                    {subject.score}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3 text-sm">
+                  <div>
+                    <p className="text-gray-500">
+                      Accuracy
+                    </p>
+
+                    <p className="font-semibold">
+                      {subject.accuracy.toFixed(1)}%
+                    </p>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-3 text-sm">
-                    <div>
-                      <p className="text-gray-500">
-                        Accuracy
-                      </p>
+                  <div>
+                    <p className="text-gray-500">
+                      Attempted
+                    </p>
 
-                      <p className="font-semibold">
-                        {subject.accuracy.toFixed(
-                          1
-                        )}
-                        %
-                      </p>
-                    </div>
+                    <p className="font-semibold">
+                      {subject.attempted}
+                    </p>
+                  </div>
 
-                    <div>
-                      <p className="text-gray-500">
-                        Attempted
-                      </p>
+                  <div>
+                    <p className="text-gray-500">
+                      Correct
+                    </p>
 
-                      <p className="font-semibold">
-                        {subject.attempted}
-                      </p>
-                    </div>
+                    <p className="font-semibold text-green-600">
+                      {subject.correct}
+                    </p>
+                  </div>
 
-                    <div>
-                      <p className="text-gray-500">
-                        Correct
-                      </p>
+                  <div>
+                    <p className="text-gray-500">
+                      Incorrect
+                    </p>
 
-                      <p className="font-semibold text-green-600">
-                        {subject.correct}
-                      </p>
-                    </div>
-
-                    <div>
-                      <p className="text-gray-500">
-                        Incorrect
-                      </p>
-
-                      <p className="font-semibold text-red-600">
-                        {subject.incorrect}
-                      </p>
-                    </div>
+                    <p className="font-semibold text-red-600">
+                      {subject.incorrect}
+                    </p>
                   </div>
                 </div>
-              )
-            )}
+              </div>
+            ))}
           </div>
         )}
       </div>
@@ -299,13 +292,18 @@ export default async function MockDetailsPage({
           Topic Performance
         </h2>
 
-        <div className="text-gray-500">
-          Coming in Phase 2:
-          Topic Intelligence,
-          Strong Topics,
-          Weak Topics,
-          Most Improved Topics,
-          Most Neglected Topics
+        <div className="bg-blue-50 border rounded-xl p-6">
+          <h3 className="font-semibold mb-2">
+            🚀 Coming Soon
+          </h3>
+
+          <ul className="space-y-2 text-gray-600">
+            <li>• Topic Intelligence</li>
+            <li>• Strongest Topics</li>
+            <li>• Weakest Topics</li>
+            <li>• Most Improved Topics</li>
+            <li>• Most Neglected Topics</li>
+          </ul>
         </div>
       </div>
 

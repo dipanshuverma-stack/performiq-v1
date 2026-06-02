@@ -37,20 +37,52 @@ export default async function PracticeAnalyticsPage() {
     );
   }
 
-  const accuracyTrend =
-  await getPracticeAccuracyTrend(
+  const accuracyTrend = await getPracticeAccuracyTrend(
     user.id
   );
 
-const qpmTrend =
-  await getPracticeQpmTrend(
+  const qpmTrend = await getPracticeQpmTrend(
     user.id
   );
 
-  const analytics =
-    await getPracticeAnalytics(
-      user.id
+  const analytics = await getPracticeAnalytics(
+    user.id
+  );
+
+  // Early return fallback when no session history exists
+  if (analytics.totalSessions === 0) {
+    return (
+      <div className="p-8">
+        <h1 className="text-3xl font-bold mb-8">
+          Practice Analytics
+        </h1>
+
+        <div className="bg-white rounded-xl shadow p-12 text-center">
+          <div className="text-6xl mb-4">
+            📈
+          </div>
+
+          <h2 className="text-2xl font-bold mb-3">
+            No Practice Data Yet
+          </h2>
+
+          <p className="text-gray-600 mb-6">
+            Complete your first practice
+            session to unlock analytics,
+            accuracy trends, speed tracking,
+            and performance insights.
+          </p>
+
+          <a
+            href="/practice"
+            className="inline-flex items-center px-6 py-3 bg-black text-white rounded-lg hover:bg-gray-800"
+          >
+            Start Practice Session
+          </a>
+        </div>
+      </div>
     );
+  }
 
   return (
     <div className="p-8 space-y-8">
@@ -193,15 +225,15 @@ const qpmTrend =
             {analytics.speedScore}%
           </strong>
         </p>
-        <div className="grid md:grid-cols-2 gap-6">
-  <PracticeAccuracyChart
-    data={accuracyTrend}
-  />
+        <div className="grid md:grid-cols-2 gap-6 mt-6">
+          <PracticeAccuracyChart
+            data={accuracyTrend}
+          />
 
-  <PracticeQpmChart
-    data={qpmTrend}
-  />
-</div>
+          <PracticeQpmChart
+            data={qpmTrend}
+          />
+        </div>
       </div>
     </div>
   );

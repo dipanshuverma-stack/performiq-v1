@@ -41,18 +41,16 @@ export default async function MistakesPage() {
     );
   }
 
-  const analytics =
-    await getMistakeAnalytics(user.id);
+  const analytics = await getMistakeAnalytics(user.id);
 
-  const mistakes =
-    await prisma.mistakeEntry.findMany({
-      where: {
-        userId: user.id,
-      },
-      orderBy: {
-        createdAt: "desc",
-      },
-    });
+  const mistakes = await prisma.mistakeEntry.findMany({
+    where: {
+      userId: user.id,
+    },
+    orderBy: {
+      createdAt: "desc",
+    },
+  });
 
   return (
     <div className="p-8 space-y-8">
@@ -121,17 +119,13 @@ export default async function MistakesPage() {
           Subject Breakdown
         </h2>
 
-        {Object.keys(
-          analytics.subjectBreakdown
-        ).length === 0 ? (
+        {Object.keys(analytics.subjectBreakdown).length === 0 ? (
           <p className="text-gray-500">
             No mistake data available.
           </p>
         ) : (
           <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-            {Object.entries(
-              analytics.subjectBreakdown
-            ).map(([subject, count]) => (
+            {Object.entries(analytics.subjectBreakdown).map(([subject, count]) => (
               <div
                 key={subject}
                 className="border rounded-lg p-4"
@@ -151,16 +145,27 @@ export default async function MistakesPage() {
 
       {/* Mistakes List */}
       {mistakes.length === 0 ? (
-        <div className="bg-white p-8 rounded-xl shadow text-center">
-          <p className="text-gray-500">
-            No mistakes logged yet.
+        <div className="bg-white p-12 rounded-xl shadow text-center">
+          <div className="text-6xl mb-4">
+            🎯
+          </div>
+
+          <h2 className="text-2xl font-bold mb-3">
+            No Mistakes Logged Yet
+          </h2>
+
+          <p className="text-gray-600 mb-2">
+            Every topper maintains a mistake journal.
           </p>
 
-          <p className="text-sm text-gray-400 mt-2">
-            Add your first mistake above
-            to start building your mistake
-            journal.
+          <p className="text-gray-500 mb-6">
+            Record errors from mocks and practice
+            sessions to prevent repeating them.
           </p>
+
+          <div className="inline-flex px-4 py-2 bg-green-100 text-green-700 rounded-lg">
+            You're starting with a clean slate.
+          </div>
         </div>
       ) : (
         <div className="space-y-4">
@@ -177,9 +182,7 @@ export default async function MistakesPage() {
                   </h3>
 
                   <p className="text-xs text-gray-400 mt-1">
-                    {new Date(
-                      mistake.createdAt
-                    ).toLocaleDateString()}
+                    {new Date(mistake.createdAt).toLocaleDateString()}
                   </p>
                 </div>
 
@@ -191,9 +194,7 @@ export default async function MistakesPage() {
                   </span>
 
                   {!mistake.resolved && (
-                    <ResolveButton
-                      id={mistake.id}
-                    />
+                    <ResolveButton id={mistake.id} />
                   )}
                 </div>
               </div>

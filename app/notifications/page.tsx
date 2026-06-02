@@ -1,8 +1,7 @@
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import ReadButton from "@/components/notifications/read-button";
-import { generateNotifications }
-from "@/lib/notifications/generate-notifications";
+import { generateNotifications } from "@/lib/notifications/generate-notifications";
 
 export default async function NotificationsPage() {
   const session = await auth();
@@ -16,16 +15,17 @@ export default async function NotificationsPage() {
   if (!user) {
     return null;
   }
+
   await generateNotifications(user.id);
-  const notifications =
-    await prisma.notification.findMany({
-      where: {
-        userId: user.id,
-      },
-      orderBy: {
-        createdAt: "desc",
-      },
-    });
+
+  const notifications = await prisma.notification.findMany({
+    where: {
+      userId: user.id,
+    },
+    orderBy: {
+      createdAt: "desc",
+    },
+  });
 
   return (
     <div className="p-8">
@@ -33,9 +33,29 @@ export default async function NotificationsPage() {
         Notifications
       </h1>
 
-      <div className="space-y-4">
-        {notifications.map(
-          (notification) => (
+      {notifications.length === 0 ? (
+        <div className="bg-white p-12 rounded-xl shadow text-center">
+          <div className="text-6xl mb-4">
+            🔔
+          </div>
+
+          <h2 className="text-2xl font-bold mb-3">
+            No Notifications
+          </h2>
+
+          <p className="text-gray-600 mb-2">
+            You're all caught up.
+          </p>
+
+          <p className="text-gray-500">
+            Notifications will appear here for
+            revision reminders, performance alerts,
+            and study recommendations.
+          </p>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {notifications.map((notification) => (
             <div
               key={notification.id}
               className="bg-white p-6 rounded-xl shadow"
@@ -52,21 +72,17 @@ export default async function NotificationsPage() {
                 </div>
 
                 {!notification.read && (
-                  <ReadButton
-                    id={notification.id}
-                  />
+                  <ReadButton id={notification.id} />
                 )}
               </div>
 
               <div className="mt-3 text-sm text-gray-500">
-                {new Date(
-                  notification.createdAt
-                ).toLocaleString()}
+                {new Date(notification.createdAt).toLocaleString()}
               </div>
             </div>
-          )
-        )}
-      </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
