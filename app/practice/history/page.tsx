@@ -1,40 +1,49 @@
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { redirect } from "next/navigation";
 
 export default async function PracticeHistoryPage() {
   const session = await auth();
 
   if (!session?.user?.email) {
-    return (
-      <div className="p-8">
-        Please sign in.
-      </div>
-    );
+    redirect("/login");
   }
 
   const user = await prisma.user.findUnique({
     where: {
       email: session.user.email,
     },
+    select: {
+      id: true, // Performance optimization: retrieve index ID only
+    },
   });
 
   if (!user) {
-    return (
-      <div className="p-8">
-        User not found.
-      </div>
-    );
+    redirect("/login");
   }
 
-  const sessions =
-    await prisma.practiceSession.findMany({
-      where: {
-        userId: user.id,
-      },
-      orderBy: {
-        createdAt: "desc",
-      },
-    });
+  // 🚀 CORE FIX: Enforce page boundaries and clear property selections
+  const sessions = await prisma.practiceSession.findMany({
+    where: {
+      userId: user.id,
+    },
+    select: {
+      id: true,
+      subject: true,
+      topic: true,
+      createdAt: true,
+      accuracy: true,
+      totalQuestions: true,
+      correctQuestions: true,
+      incorrectQuestions: true,
+      qpm: true,
+      durationSeconds: true,
+    },
+    orderBy: {
+      createdAt: "desc",
+    },
+    take: 20, // Strict performance line boundary
+  });
 
   return (
     <div className="p-8">
@@ -60,9 +69,7 @@ export default async function PracticeHistoryPage() {
                   </h2>
 
                   <p className="text-sm text-gray-500">
-                    {new Date(
-                      session.createdAt
-                    ).toLocaleDateString()}
+                    {new Date(session.createdAt).toLocaleDateString()}
                   </p>
                 </div>
 
@@ -124,9 +131,7 @@ export default async function PracticeHistoryPage() {
                   </p>
 
                   <p className="font-semibold">
-                    {Math.floor(
-                      session.durationSeconds / 60
-                    )}m{" "}
+                    {Math.floor(session.durationSeconds / 60)}m{" "}
                     {session.durationSeconds % 60}s
                   </p>
                 </div>

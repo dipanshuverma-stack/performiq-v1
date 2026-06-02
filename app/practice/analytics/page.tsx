@@ -6,6 +6,7 @@ import {
 } from "@/lib/analytics/practice-analytics";
 import PracticeAccuracyChart from "@/components/charts/practice-accuracy-chart";
 import PracticeQpmChart from "@/components/charts/practice-qpm-chart";
+import { redirect } from "next/navigation";
 
 import {
   getPracticeAccuracyTrend,
@@ -16,38 +17,28 @@ export default async function PracticeAnalyticsPage() {
   const session = await auth();
 
   if (!session?.user?.email) {
-    return (
-      <div className="p-8">
-        Please sign in.
-      </div>
-    );
+    redirect("/login");
   }
 
   const user = await prisma.user.findUnique({
     where: {
       email: session.user.email,
     },
+    select: {
+      id: true, // Only fetch the ID to resolve relational constraints fast
+    },
   });
 
   if (!user) {
-    return (
-      <div className="p-8">
-        User not found.
-      </div>
-    );
+    redirect("/login");
   }
 
-  const accuracyTrend = await getPracticeAccuracyTrend(
-    user.id
-  );
-
-  const qpmTrend = await getPracticeQpmTrend(
-    user.id
-  );
-
-  const analytics = await getPracticeAnalytics(
-    user.id
-  );
+  // 🚀 CRITICAL FIX: Run trend aggregations and analytical engines concurrently
+  const [accuracyTrend, qpmTrend, analytics] = await Promise.all([
+    getPracticeAccuracyTrend(user.id),
+    getPracticeQpmTrend(user.id),
+    getPracticeAnalytics(user.id),
+  ]);
 
   // Early return fallback when no session history exists
   if (analytics.totalSessions === 0) {
@@ -149,9 +140,7 @@ export default async function PracticeAnalyticsPage() {
             <p>
               Total Practice Hours:{" "}
               <strong>
-                {
-                  analytics.totalPracticeHours
-                }
+                {analytics.totalPracticeHours}
               </strong>
             </p>
 
@@ -173,16 +162,14 @@ export default async function PracticeAnalyticsPage() {
             <p>
               Best Topic:{" "}
               <strong>
-                {analytics.bestTopic ??
-                  "-"}
+                {analytics.bestTopic ?? "-"}
               </strong>
             </p>
 
             <p>
               Weakest Topic:{" "}
               <strong>
-                {analytics.weakestTopic ??
-                  "-"}
+                {analytics.weakestTopic ?? "-"}
               </strong>
             </p>
           </div>
@@ -225,6 +212,7 @@ export default async function PracticeAnalyticsPage() {
             {analytics.speedScore}%
           </strong>
         </p>
+        
         <div className="grid md:grid-cols-2 gap-6 mt-6">
           <PracticeAccuracyChart
             data={accuracyTrend}

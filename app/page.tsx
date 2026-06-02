@@ -1,23 +1,37 @@
-import { signIn } from "@/auth";
+import type { Metadata } from "next";
+import { Geist, Geist_Mono } from "next/font/google";
+import "./globals.css";
+import React from "react";
 
-export default function Home() {
+const geistSans = Geist({
+  variable: "--font-geist-sans",
+  subsets: ["latin"],
+  // display: "swap" is implicit in Next.js 15, keeping font loading optimized
+});
+
+const geistMono = Geist_Mono({
+  variable: "--font-geist-mono",
+  subsets: ["latin"],
+});
+
+export const metadata: Metadata = {
+  title: "Banking PO Prep Engine",
+  description: "AI-driven smart prep tracker and analytics engine",
+};
+
+export default function RootLayout({
+  children,
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
   return (
-    <main className="min-h-screen flex items-center justify-center">
-      <form
-        action={async () => {
-          "use server";
-          await signIn("google", {
-            redirectTo: "/dashboard",
-          });
-        }}
-      >
-        <button
-          type="submit"
-          className="px-6 py-3 rounded-lg bg-black text-white"
-        >
-          Continue with Google
-        </button>
-      </form>
-    </main>
+    <html
+      lang="en"
+      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+    >
+      <body className="min-h-full flex flex-col bg-gray-50 text-gray-900">
+        {children}
+      </body>
+    </html>
   );
 }

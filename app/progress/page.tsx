@@ -1,26 +1,29 @@
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { getSubjectProgress } from "@/lib/analytics/subject-progress";
+import { redirect } from "next/navigation";
 
 export default async function ProgressPage() {
   const session = await auth();
 
   if (!session?.user?.email) {
-    return null;
+    redirect("/login");
   }
 
   const user = await prisma.user.findUnique({
     where: {
       email: session.user.email,
     },
+    select: {
+      id: true, // Performance optimization: pull only the ID needed for analytical joins
+    },
   });
 
   if (!user) {
-    return null;
+    redirect("/login");
   }
 
   const progress = await getSubjectProgress(user.id);
-
   const hasProgress = progress.length > 0;
 
   return (

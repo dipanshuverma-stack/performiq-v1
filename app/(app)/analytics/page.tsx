@@ -7,24 +7,29 @@ import { getWeakTopics } from "@/lib/analytics/weak-topics";
 import { getRevisionIntelligence } from "@/lib/analytics/revision-intelligence";
 import { getWeeklyStudyTrend } from "@/lib/analytics/study-trend";
 import { getReadinessScore } from "@/lib/analytics/readiness";
+import { redirect } from "next/navigation";
 
 export default async function AnalyticsPage() {
   const session = await auth();
 
+  if (!session?.user?.email) {
+    redirect("/login");
+  }
+
   const user = await prisma.user.findUnique({
     where: {
-      email: session?.user?.email ?? "",
+      email: session.user.email,
+    },
+    select: {
+      id: true, // Only fetch the ID required for downstream aggregations
     },
   });
 
   if (!user) {
-    return (
-      <div className="p-8">
-        <h1 className="text-2xl font-bold">User not found</h1>
-      </div>
-    );
+    redirect("/login");
   }
 
+  // Executes all analytical operations in parallel
   const [
     intelligence,
     trends,

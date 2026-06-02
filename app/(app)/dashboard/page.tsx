@@ -15,28 +15,27 @@ import DashboardAccuracyChart from "@/components/charts/dashboard-accuracy-chart
 import DashboardQpmChart from "@/components/charts/dashboard-qpm-chart";
 import { getPracticeAccuracyTrend, getPracticeQpmTrend } from "@/lib/analytics/practice-trends";
 import { getExamForecast } from "@/lib/analytics/exam-forecast";
+import { redirect } from "next/navigation";
 
 export default async function Dashboard() {
   const session = await auth();
 
-  // Safe fallback lookup using Optional Chaining
-  const user = session?.user?.email
-    ? await prisma.user.findUnique({
-        where: { email: session.user.email },
-      })
-    : null;
+  if (!session?.user?.email) {
+    redirect("/login");
+  }
+
+  const user = await prisma.user.findUnique({
+    where: { email: session.user.email },
+    select: { id: true }, // Index-only lookup projection 
+  });
 
   if (!user) {
-    return (
-      <div className="p-8">
-        <h1 className="text-2xl font-bold text-gray-950">User not found</h1>
-      </div>
-    );
+    redirect("/login");
   }
 
   const userId = user.id;
 
-  // Optimized parallel async data aggregation avoiding redundant individual calls
+  // Single global concurrent thread group for all analytical and tracking queries
   const [
     readiness,
     activeExam,
@@ -47,26 +46,6 @@ export default async function Dashboard() {
     forecast,
     priorities,
     performance,
-  ] = await Promise.all([
-    getReadinessScore(userId),
-    getActiveExam(userId),
-    getPracticeAnalytics(userId),
-    getSyllabusProgress(userId),
-    getPracticeAccuracyTrend(userId),
-    getPracticeQpmTrend(userId),
-    getExamForecast(userId),
-    getTopicPriorities(userId),
-    getPerformanceScore(userId),
-  ]);
-
-  const topPriorities = priorities.slice(0, 3);
-
-  const daysRemaining = activeExam?.targetDate
-    ? Math.ceil((activeExam.targetDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24))
-    : null;
-
-  // Aggregate database tracking queries metrics concurrently 
-  const [
     studySessions,
     completedTopics,
     completedTasks,
@@ -78,14 +57,19 @@ export default async function Dashboard() {
     revisionRemaining,
     unreadNotifications,
   ] = await Promise.all([
+    getReadinessScore(userId),
+    getActiveExam(userId),
+    getPracticeAnalytics(userId),
+    getSyllabusProgress(userId),
+    getPracticeAccuracyTrend(userId),
+    getPracticeQpmTrend(userId),
+    getExamForecast(userId),
+    getTopicPriorities(userId),
+    getPerformanceScore(userId),
     prisma.studySession.aggregate({
       where: { userId },
-      _sum: {
-        duration: true,
-      },
-      _count: {
-        id: true,
-      },
+      _sum: { duration: true },
+      _count: { id: true },
     }),
     prisma.topicProgress.count({
       where: { userId, completed: true },
@@ -121,6 +105,12 @@ export default async function Dashboard() {
     }),
   ]);
 
+  const topPriorities = priorities.slice(0, 3);
+
+  const daysRemaining = activeExam?.targetDate
+    ? Math.ceil((activeExam.targetDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+    : null;
+
   const averageAccuracy = averageAccuracyResult?._avg?.accuracy ?? 0;
   const totalTopics = progress.totalTopics;
   const progressPercentage = Number(progress.percentage);
@@ -143,7 +133,7 @@ export default async function Dashboard() {
         {/* Header section */}
         <div>
           <h1 className="text-3xl font-bold tracking-tight text-gray-900">
-            Welcome {session?.user?.name ?? "Guest"} 👋
+            Welcome {session.user.name ?? "Guest"} 👋
           </h1>
           <p className="text-gray-600 mt-2">
             {activeExam ? `Preparing for ${activeExam.name}` : "No active exam selected"}
@@ -151,7 +141,7 @@ export default async function Dashboard() {
         </div>
 
         {/* Section: Active Exam Core Metrics */}
-        <div className="bg-white rounded-xl shadow p-6 border border-gray-100">
+        <div className="bg-white rounded-xl shadow border p-6 border-gray-100">
           <h2 className="text-2xl font-bold border-b pb-3 text-gray-800">
             {activeExam?.name ?? "No Active Exam"}
           </h2>
@@ -184,7 +174,7 @@ export default async function Dashboard() {
         </div>
       
         {/* Section: Today's Priorities */}
-        <div className="bg-white rounded-xl shadow p-6 border border-gray-100">
+        <div className="bg-white rounded-xl shadow border p-6 border-gray-100">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-semibold text-gray-800">
               Today's Priorities
@@ -203,18 +193,14 @@ export default async function Dashboard() {
             </p>
           ) : (
             <div className="space-y-4">
-              {topPriorities.map((topic) => (
+              {topPriorities.map((topic, index) => (
                 <div
-                  key={topic.topic}
+                  key={`${topic.topic}-${index}`}
                   className="border border-gray-100 bg-gray-50 rounded-lg p-4 hover:bg-gray-100/70 transition"
                 >
                   <div className="flex justify-between items-center">
                     <h3 className="font-semibold text-gray-900">
-                      {topic.priority === "HIGH"
-                        ? "🔴"
-                        : topic.priority === "MEDIUM"
-                        ? "🟡"
-                        : "🟢"}{" "}
+                      {topic.priority === "HIGH" ? "🔴" : topic.priority === "MEDIUM" ? "🟡" : "🟢"}{" "}
                       {topic.topic}
                     </h3>
                     <span className="font-bold text-gray-900">
@@ -223,12 +209,8 @@ export default async function Dashboard() {
                   </div>
 
                   <div className="grid grid-cols-2 gap-2 mt-3 text-sm text-gray-600">
-                    <div>
-                      Knowledge: {topic.knowledgeScore}%
-                    </div>
-                    <div>
-                      Speed: {topic.speedScore}%
-                    </div>
+                    <div>Knowledge: {topic.knowledgeScore}%</div>
+                    <div>Speed: {topic.speedScore}%</div>
                   </div>
 
                   <p className="text-xs text-gray-500 mt-2">
@@ -241,7 +223,7 @@ export default async function Dashboard() {
         </div>
 
         {/* Section: Practice Performance Panel Widget */}
-        <div className="bg-white rounded-xl shadow p-6 border border-gray-100 flex flex-col justify-between">
+        <div className="bg-white rounded-xl shadow border p-6 border-gray-100 flex flex-col justify-between">
           <div>
             <h2 className="text-xl font-semibold mb-4 text-gray-800">
               Practice Performance
@@ -255,40 +237,28 @@ export default async function Dashboard() {
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
               <div className="bg-gray-50 p-4 rounded-lg border border-gray-100">
                 <p className="text-gray-500 text-sm font-medium">Sessions</p>
-                <p className="text-2xl font-bold text-gray-900 mt-1">
-                  {practiceAnalytics.totalSessions}
-                </p>
+                <p className="text-2xl font-bold text-gray-900 mt-1">{practiceAnalytics.totalSessions}</p>
               </div>
 
               <div className="bg-gray-50 p-4 rounded-lg border border-gray-100">
                 <p className="text-gray-500 text-sm font-medium">Accuracy</p>
-                <p className="text-2xl font-bold text-gray-900 mt-1">
-                  {practiceAnalytics.averageAccuracy}%
-                </p>
+                <p className="text-2xl font-bold text-gray-900 mt-1">{practiceAnalytics.averageAccuracy}%</p>
               </div>
 
               <div className="bg-gray-50 p-4 rounded-lg border border-gray-100">
                 <p className="text-gray-500 text-sm font-medium">Avg QPM</p>
-                <p className="text-2xl font-bold text-gray-900 mt-1">
-                  {practiceAnalytics.averageQPM.toFixed(2)}
-                </p>
+                <p className="text-2xl font-bold text-gray-900 mt-1">{practiceAnalytics.averageQPM.toFixed(2)}</p>
               </div>
 
               <div className="bg-gray-50 p-4 rounded-lg border border-gray-100">
                 <p className="text-gray-500 text-sm font-medium">Speed Score</p>
-                <p className="text-2xl font-bold text-gray-900 mt-1">
-                  {practiceAnalytics.speedScore}%
-                </p>
-                <p className="text-xs text-gray-500 mt-1">
-                  Target QPM: 1.67
-                </p>
+                <p className="text-2xl font-bold text-gray-900 mt-1">{practiceAnalytics.speedScore}%</p>
+                <p className="text-xs text-gray-500 mt-1">Target QPM: 1.67</p>
               </div>
             </div>
 
             {practiceAnalytics.totalSessions === 0 && (
-              <p className="text-sm text-gray-500 mt-4">
-                No practice sessions yet.
-              </p>
+              <p className="text-sm text-gray-500 mt-4">No practice sessions yet.</p>
             )}
           </div>
 
@@ -303,7 +273,7 @@ export default async function Dashboard() {
         </div>
 
         {/* Section: Daily Targets */}
-        <div className="bg-white rounded-xl shadow p-6 border border-gray-100">
+        <div className="bg-white rounded-xl shadow border p-6 border-gray-100">
           <h2 className="text-xl font-semibold mb-6 text-gray-800">Daily Target</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <div className="bg-gray-50 p-4 rounded-lg border border-gray-100">
@@ -389,32 +359,36 @@ export default async function Dashboard() {
           <h2 className="text-xl font-semibold mb-4 text-gray-800">Today's Study Plan</h2>
           <div className="space-y-4">
             {dailyPlan && dailyPlan.length > 0 ? (
-              dailyPlan.map((item) => (
-                <div
-                  key={item.topic}
-                  className="border rounded-lg p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-gray-50 hover:bg-gray-100 transition"
-                >
-                  <div>
-                    <p className="font-semibold text-gray-900">{item.subject}</p>
-                    <p className="text-gray-600 text-sm mt-0.5">{item.topic}</p>
-                    <p className="text-sm text-gray-500 mt-1">{item.duration} min</p>
-                  </div>
-                  <form
-                    action={async () => {
-                      "use server";
-                      await startStudySession(item.subject, item.topic, item.duration);
-                    }}
-                    className="w-full sm:w-auto"
+              dailyPlan.map((item, index) => {
+                // Fixed closure architecture issue: bind server actions statically to distinct parameters
+                const handleSessionStart = startStudySession.bind(
+                  null,
+                  item.subject,
+                  item.topic,
+                  item.duration
+                );
+
+                return (
+                  <div
+                    key={`${item.topic}-${index}`}
+                    className="border rounded-lg p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-gray-50 hover:bg-gray-100 transition"
                   >
-                    <button
-                      type="submit"
-                      className="w-full sm:w-auto bg-black text-white px-5 py-2 rounded-lg font-medium hover:bg-gray-800 transition text-sm"
-                    >
-                      Start
-                    </button>
-                  </form>
-                </div>
-              ))
+                    <div>
+                      <p className="font-semibold text-gray-900">{item.subject}</p>
+                      <p className="text-gray-600 text-sm mt-0.5">{item.topic}</p>
+                      <p className="text-sm text-gray-500 mt-1">{item.duration} min</p>
+                    </div>
+                    <form action={handleSessionStart} className="w-full sm:w-auto">
+                      <button
+                        type="submit"
+                        className="w-full sm:w-auto bg-black text-white px-5 py-2 rounded-lg font-medium hover:bg-gray-800 transition text-sm"
+                      >
+                        Start
+                      </button>
+                    </form>
+                  </div>
+                );
+              })
             ) : (
               <p className="text-gray-500 text-sm">No tasks planned for today.</p>
             )}

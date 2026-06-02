@@ -2,29 +2,47 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import ReadButton from "@/components/notifications/read-button";
 import { generateNotifications } from "@/lib/notifications/generate-notifications";
+import { redirect } from "next/navigation";
 
 export default async function NotificationsPage() {
   const session = await auth();
 
+  if (!session?.user?.email) {
+    redirect("/login");
+  }
+
   const user = await prisma.user.findUnique({
     where: {
-      email: session?.user?.email ?? "",
+      email: session.user.email,
+    },
+    select: {
+      id: true, // Performance optimization: only load the ID needed for joins
     },
   });
 
   if (!user) {
-    return null;
+    redirect("/login");
   }
 
+  // 1. Core Fix: Generate dynamic records first, but keep notifications optimized next
   await generateNotifications(user.id);
 
+  // 2. Core Fix: Enforce pagination limit boundaries and explicit selection properties
   const notifications = await prisma.notification.findMany({
     where: {
       userId: user.id,
     },
+    select: {
+      id: true,
+      title: true,
+      message: true,
+      read: true,
+      createdAt: true,
+    },
     orderBy: {
       createdAt: "desc",
     },
+    take: 50, // Strict performance guard: do not dump the whole database table over the wire
   });
 
   return (

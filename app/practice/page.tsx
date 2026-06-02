@@ -1,12 +1,39 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import PracticeTimer from "@/components/practice/practice-timer";
 import { savePracticeSession } from "@/app/actions/practice";
 
 export default function PracticePage() {
-  const [durationSeconds, setDurationSeconds] =
-    useState(0);
+  const [durationSeconds, setDurationSeconds] = useState(0);
+  const [isPending, startTransition] = useTransition();
+
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    // Force strict client-side validation check
+    const formData = new FormData(event.currentTarget);
+    const total = Number(formData.get("totalQuestions"));
+    const correct = Number(formData.get("correctQuestions"));
+
+    if (correct > total) {
+      alert("Correct questions cannot exceed total questions.");
+      return;
+    }
+
+    // Append the exact updated state value directly to the form instance data payload
+    formData.set("durationSeconds", durationSeconds.toString());
+
+    // Execute the server action safely within a protected transition lane
+    startTransition(async () => {
+      try {
+        await savePracticeSession(formData);
+      } catch (error) {
+        console.error("Failed to save practice session:", error);
+        alert("Something went wrong saving your session.");
+      }
+    });
+  };
 
   return (
     <div className="p-8 max-w-3xl mx-auto">
@@ -15,10 +42,7 @@ export default function PracticePage() {
       </h1>
 
       <div className="bg-white rounded-xl shadow p-6">
-        <form
-          action={savePracticeSession}
-          className="space-y-4"
-        >
+        <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-sm font-medium mb-2">
               Subject
@@ -26,20 +50,13 @@ export default function PracticePage() {
 
             <select
               name="subject"
-              className="w-full border rounded-lg p-3"
+              disabled={isPending}
+              className="w-full border rounded-lg p-3 bg-white disabled:bg-gray-100"
             >
-              <option value="Reasoning">
-                Reasoning
-              </option>
-              <option value="Quant">
-                Quant
-              </option>
-              <option value="English">
-                English
-              </option>
-              <option value="GA">
-                GA
-              </option>
+              <option value="Reasoning">Reasoning</option>
+              <option value="Quant">Quant</option>
+              <option value="English">English</option>
+              <option value="GA">GA</option>
             </select>
           </div>
 
@@ -52,16 +69,14 @@ export default function PracticePage() {
               name="topic"
               type="text"
               placeholder="Puzzle"
-              className="w-full border rounded-lg p-3"
+              disabled={isPending}
+              className="w-full border rounded-lg p-3 disabled:bg-gray-100"
               required
             />
           </div>
 
-          <PracticeTimer
-            onTimeUpdate={
-              setDurationSeconds
-            }
-          />
+          {/* Keep the current reactive state update parameters bound */}
+          <PracticeTimer onTimeUpdate={setDurationSeconds} />
 
           <div>
             <label className="block text-sm font-medium mb-2">
@@ -72,7 +87,8 @@ export default function PracticePage() {
               name="totalQuestions"
               type="number"
               min="1"
-              className="w-full border rounded-lg p-3"
+              disabled={isPending}
+              className="w-full border rounded-lg p-3 disabled:bg-gray-100"
               required
             />
           </div>
@@ -86,22 +102,18 @@ export default function PracticePage() {
               name="correctQuestions"
               type="number"
               min="0"
-              className="w-full border rounded-lg p-3"
+              disabled={isPending}
+              className="w-full border rounded-lg p-3 disabled:bg-gray-100"
               required
             />
           </div>
 
-          <input
-            type="hidden"
-            name="durationSeconds"
-            value={durationSeconds}
-          />
-
           <button
             type="submit"
-            className="w-full bg-black text-white py-3 rounded-lg hover:bg-gray-800 transition"
+            disabled={isPending}
+            className="w-full bg-black text-white py-3 rounded-lg hover:bg-gray-800 disabled:bg-gray-400 transition flex items-center justify-center font-medium"
           >
-            Save Session
+            {isPending ? "Saving Progress..." : "Save Session"}
           </button>
         </form>
       </div>

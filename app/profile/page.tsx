@@ -1,59 +1,60 @@
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { redirect } from "next/navigation";
 
 export default async function ProfilePage() {
   const session = await auth();
 
+  if (!session?.user?.email) {
+    redirect("/login");
+  }
+
   const user = await prisma.user.findUnique({
     where: {
-      email: session?.user?.email ?? "",
+      email: session.user.email,
+    },
+    select: {
+      id: true,
+      name: true,
+      email: true,
     },
   });
 
-  const completedTopics = await prisma.topicProgress.count({
-    where: {
-      userId: user?.id,
-      completed: true,
-    },
-  });
+  if (!user) {
+    redirect("/login");
+  }
 
-  const completedTasks = await prisma.task.count({
-    where: {
-      userId: user?.id,
-      completed: true,
-    },
-  });
+  // 🚀 COLLAPSE WATERFALL & OFFLOAD CALCULATIONS TO DATABASE AGGREGATION ENGINE
+  const [
+    completedTopics,
+    completedTasks,
+    studySessionsSum,
+    mockTestsAggregate,
+  ] = await Promise.all([
+    prisma.topicProgress.count({
+      where: { userId: user.id, completed: true },
+    }),
+    prisma.task.count({
+      where: { userId: user.id, completed: true },
+    }),
+    prisma.studySession.aggregate({
+      where: { userId: user.id },
+      _sum: { duration: true },
+    }),
+    prisma.mockTest.aggregate({
+      where: { userId: user.id },
+      _count: { _all: true },
+      _avg: { accuracy: true },
+    }),
+  ]);
 
-  const studySessions = await prisma.studySession.findMany({
-    where: {
-      userId: user?.id,
-    },
-  });
-
-  const mockTests = await prisma.mockTest.findMany({
-    where: {
-      userId: user?.id,
-    },
-  });
-
-  const totalMinutes = studySessions.reduce(
-    (sum, session) => sum + session.duration,
-    0
-  );
-
-  const totalHours = (
-    totalMinutes / 60
-  ).toFixed(1);
-
-  const averageAccuracy =
-    mockTests.length > 0
-      ? (
-          mockTests.reduce(
-            (sum, mock) => sum + mock.accuracy,
-            0
-          ) / mockTests.length
-        ).toFixed(1)
-      : "0";
+  // Compute values safely from the single aggregate object metrics returned
+  const totalMinutes = studySessionsSum._sum.duration ?? 0;
+  const totalHours = (totalMinutes / 60).toFixed(1);
+  const mockTestsCount = mockTestsAggregate._count._all;
+  const averageAccuracy = mockTestsAggregate._avg.accuracy 
+    ? mockTestsAggregate._avg.accuracy.toFixed(1) 
+    : "0";
 
   return (
     <div className="p-8">
@@ -69,7 +70,7 @@ export default async function ProfilePage() {
             </p>
 
             <p className="font-semibold text-lg">
-              {user?.name || "Unknown User"}
+              {user.name || "Unknown User"}
             </p>
           </div>
 
@@ -79,7 +80,7 @@ export default async function ProfilePage() {
             </p>
 
             <p className="font-semibold">
-              {user?.email}
+              {user.email}
             </p>
           </div>
 
@@ -122,7 +123,7 @@ export default async function ProfilePage() {
               </p>
 
               <p className="text-2xl font-bold">
-                {mockTests.length}
+                {mockTestsCount}
               </p>
             </div>
 

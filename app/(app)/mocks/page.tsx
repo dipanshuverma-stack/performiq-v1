@@ -1,189 +1,184 @@
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import MockForm from "@/components/mock/mock-form";
+import { redirect } from "next/navigation";
+import Link from "next/link";
 
 export default async function MocksPage() {
   const session = await auth();
 
-  const user = await prisma.user.findUnique({
+  if (!session?.user?.email) {
+    redirect("/login");
+  }
+
+  // Collapsed nested query: Fetches user metadata and relational array fields in one trip
+  const userWithMocks = await prisma.user.findUnique({
     where: {
-      email: session?.user?.email ?? "",
+      email: session.user.email,
+    },
+    select: {
+      id: true,
+      mockTests: {
+        select: {
+          id: true,
+          exam: true,
+          mockType: true,
+          title: true,
+          score: true,
+          accuracy: true,
+          totalQuestions: true,
+          createdAt: true,
+        },
+        orderBy: {
+          createdAt: "desc",
+        },
+      },
     },
   });
 
-  const mocks = await prisma.mockTest.findMany({
-    where: {
-      userId: user?.id,
-    },
-    orderBy: {
-      createdAt: "desc",
-    },
-  });
+  if (!userWithMocks) {
+    redirect("/login");
+  }
 
+  const mocks = userWithMocks.mockTests;
   const totalMocks = mocks.length;
 
-  const averageAccuracy =
-    mocks.length > 0
-      ? mocks.reduce(
-          (sum, mock) => sum + mock.accuracy,
-          0
-        ) / mocks.length
-      : 0;
+  // Single-Pass High-Speed O(n) Matrix Reducer Loop
+  const { totalAccuracy, bestAccuracy, prelimsMocks, mainsMocks } = mocks.reduce(
+    (accumulator, currentMock) => {
+      accumulator.totalAccuracy += currentMock.accuracy;
+      
+      if (currentMock.accuracy > accumulator.bestAccuracy) {
+        accumulator.bestAccuracy = currentMock.accuracy;
+      }
+      
+      if (currentMock.mockType === "PRELIMS") {
+        accumulator.prelimsMocks += 1;
+      } else if (currentMock.mockType === "MAINS") {
+        accumulator.mainsMocks += 1;
+      }
+      
+      return accumulator;
+    },
+    { totalAccuracy: 0, bestAccuracy: 0, prelimsMocks: 0, mainsMocks: 0 }
+  );
 
-  const bestAccuracy =
-    mocks.length > 0
-      ? Math.max(...mocks.map((m) => m.accuracy))
-      : 0;
-
-  const prelimsMocks = mocks.filter(
-    (m) => m.mockType === "PRELIMS"
-  ).length;
-
-  const mainsMocks = mocks.filter(
-    (m) => m.mockType === "MAINS"
-  ).length;
-
-  const hasMocks = mocks.length > 0;
+  const averageAccuracy = totalMocks > 0 ? totalAccuracy / totalMocks : 0;
 
   return (
-    <div className="p-8">
-      <h1 className="text-3xl font-bold mb-8">
-        Mock Tests
-      </h1>
+    <div className="p-8 max-w-7xl mx-auto space-y-8">
+      <div>
+        <h1 className="text-3xl font-bold tracking-tight text-gray-900">
+          Mock Tests Analytics
+        </h1>
+        <p className="text-gray-500 mt-2">
+          Track execution accuracy profiles, test milestones, and analytical diagnostic breakdowns.
+        </p>
+      </div>
 
-      {!hasMocks ? (
+      {totalMocks === 0 ? (
         <div className="space-y-6">
-          <div className="bg-white rounded-xl shadow p-12 text-center">
-            <div className="text-6xl mb-4">
-              📝
-            </div>
-
-            <h2 className="text-2xl font-bold mb-3">
+          <div className="bg-white rounded-xl shadow border border-gray-100 p-12 text-center">
+            <div className="text-5xl mb-4 text-gray-400 select-none">📝</div>
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">
               No Mock Tests Recorded Yet
             </h2>
-
-            <p className="text-gray-600 mb-2">
-              Mock tests are the strongest predictor
-              of exam performance.
-            </p>
-
-            <p className="text-gray-500 mb-6">
-              Record your first mock test to unlock
-              readiness scores, performance forecasts,
-              analytics, and intelligent recommendations.
+            <p className="text-gray-600 max-w-md mx-auto text-sm mb-6">
+              Record your first mock test execution below to generate core target insights, accuracy statistics, and readiness scores.
             </p>
           </div>
-
           <MockForm />
         </div>
       ) : (
         <>
-          {/* Summary Card */}
-          <div className="bg-blue-50 border rounded-xl p-6 mb-6">
-            <h2 className="font-semibold mb-2 text-blue-900">
-              Mock Performance Summary
+          {/* Summary Callout Banner */}
+          <div className="bg-blue-50/60 border border-blue-100 rounded-xl p-6">
+            <h2 className="font-semibold text-blue-900 text-base mb-1">
+              Performance Summary Profile
             </h2>
-
-            <p className="text-blue-800">
-              You've completed {totalMocks} mock tests with an average accuracy of{" "}
-              {averageAccuracy.toFixed(1)}%.
+            <p className="text-blue-800 text-sm leading-relaxed">
+              You have completed <span className="font-bold">{totalMocks}</span> diagnostic mocks with an aggregate accuracy threshold running at <span className="font-bold">{averageAccuracy.toFixed(1)}%</span>.
             </p>
           </div>
 
-          {/* Metrics Overview Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-8">
-            <div className="bg-white p-6 rounded-xl shadow">
-              <h3 className="font-semibold">
-                Total Mocks
-              </h3>
-              <p className="text-3xl font-bold mt-2">
-                {totalMocks}
-              </p>
+          {/* Optimized Metrics Data Dashboard Grid */}
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+            <div className="bg-white p-5 rounded-xl shadow border border-gray-100">
+              <h3 className="text-sm font-medium text-gray-500">Total Mocks</h3>
+              <p className="text-3xl font-bold text-gray-900 mt-2">{totalMocks}</p>
             </div>
 
-            <div className="bg-white p-6 rounded-xl shadow">
-              <h3 className="font-semibold">
-                Avg Accuracy
-              </h3>
-              <p className="text-3xl font-bold mt-2">
-                {averageAccuracy.toFixed(1)}%
-              </p>
+            <div className="bg-white p-5 rounded-xl shadow border border-gray-100">
+              <h3 className="text-sm font-medium text-gray-500">Avg Accuracy</h3>
+              <p className="text-3xl font-bold text-gray-900 mt-2">{averageAccuracy.toFixed(1)}%</p>
             </div>
 
-            <div className="bg-white p-6 rounded-xl shadow">
-              <h3 className="font-semibold">
-                Best Accuracy
-              </h3>
-              <p className="text-3xl font-bold mt-2 text-green-600">
-                {bestAccuracy.toFixed(1)}%
-              </p>
+            <div className="bg-white p-5 rounded-xl shadow border border-gray-100">
+              <h3 className="text-sm font-medium text-gray-500">Best Accuracy</h3>
+              <p className="text-3xl font-bold text-green-600 mt-2">{bestAccuracy.toFixed(1)}%</p>
             </div>
 
-            <div className="bg-white p-6 rounded-xl shadow">
-              <h3 className="font-semibold">
-                Prelims
-              </h3>
-              <p className="text-3xl font-bold mt-2">
-                {prelimsMocks}
-              </p>
+            <div className="bg-white p-5 rounded-xl shadow border border-gray-100">
+              <h3 className="text-sm font-medium text-gray-500">Prelims Type</h3>
+              <p className="text-3xl font-bold text-gray-900 mt-2">{prelimsMocks}</p>
             </div>
 
-            <div className="bg-white p-6 rounded-xl shadow">
-              <h3 className="font-semibold">
-                Mains
-              </h3>
-              <p className="text-3xl font-bold mt-2">
-                {mainsMocks}
-              </p>
+            <div className="bg-white p-5 rounded-xl shadow border border-gray-100">
+              <h3 className="text-sm font-medium text-gray-500">Mains Type</h3>
+              <p className="text-3xl font-bold text-gray-900 mt-2">{mainsMocks}</p>
             </div>
           </div>
 
           <MockForm />
 
-          {/* History Block Container */}
-          <div className="bg-white rounded-xl shadow overflow-hidden mt-8">
-            <div className="p-6 border-b">
-              <h2 className="text-xl font-semibold">
-                Mock History
+          {/* Historical Logs List Layout */}
+          <div className="bg-white rounded-xl shadow border border-gray-100 overflow-hidden">
+            <div className="p-6 border-b border-gray-100 bg-gray-50/50">
+              <h2 className="text-lg font-semibold text-gray-900">
+                Mock Performance History
               </h2>
             </div>
 
-            <div className="divide-y">
-              {mocks.map((mock) => (
+            <div className="divide-y divide-gray-100">
+              {mocks.map((mock, idx) => (
                 <div
-                  key={mock.id}
-                  className="p-4 flex justify-between items-center"
+                  key={`${mock.id}-${idx}`}
+                  className="p-5 flex justify-between items-center hover:bg-gray-50/40 transition-colors"
                 >
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <h3 className="font-semibold">
+                  <div className="space-y-1 pr-4">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h3 className="font-semibold text-gray-900 text-sm sm:text-base">
                         {mock.exam}
                       </h3>
-
-                      <span className="text-xs bg-gray-100 px-2 py-1 rounded">
+                      <span className="text-xs bg-gray-100 border border-gray-200 text-gray-600 px-2 py-0.5 rounded font-medium">
                         {mock.mockType}
                       </span>
                     </div>
 
-                    <p className="text-sm text-gray-500">
-                      {new Date(mock.createdAt).toLocaleDateString()}
+                    <p className="text-xs text-gray-400">
+                      {new Date(mock.createdAt).toLocaleDateString(undefined, { dateStyle: 'medium' })}
                     </p>
 
                     {mock.title && (
-                      <p className="text-sm text-gray-600">
+                      <p className="text-sm text-gray-600 max-w-prose line-clamp-1">
                         {mock.title}
                       </p>
                     )}
                   </div>
 
-                  <div className="text-right">
-                    <p className="font-medium">
-                      {mock.score}/{mock.totalQuestions}
+                  <div className="text-right shrink-0 space-y-0.5">
+                    <p className="font-semibold text-gray-900 text-sm sm:text-base">
+                      {mock.score} <span className="text-xs text-gray-400 font-normal">/ {mock.totalQuestions}</span>
                     </p>
-
-                    <p className="text-green-600 font-semibold">
+                    <p className="text-sm text-green-600 font-bold">
                       {mock.accuracy.toFixed(1)}%
                     </p>
+                    <Link
+                      href={`/mocks/${mock.id}`}
+                      className="inline-block text-xs text-blue-600 font-semibold hover:underline pt-1"
+                    >
+                      View Report →
+                    </Link>
                   </div>
                 </div>
               ))}

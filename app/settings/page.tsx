@@ -1,38 +1,46 @@
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { redirect } from "next/navigation";
 
 export default async function SettingsPage() {
+  // 1. Authenticate session
   const session = await auth();
 
+  if (!session?.user?.email) {
+    redirect("/login");
+  }
+
+  // 2. Fetch the user profile (selecting only necessary columns)
   const user = await prisma.user.findUnique({
     where: {
-      email: session?.user?.email ?? "",
+      email: session.user.email,
+    },
+    select: {
+      id: true,
+      name: true,
+      email: true,
     },
   });
 
-  const totalTopics = await prisma.topicProgress.count({
-    where: {
-      userId: user?.id,
-    },
-  });
+  if (!user) {
+    redirect("/login");
+  }
 
-  const totalTasks = await prisma.task.count({
-    where: {
-      userId: user?.id,
-    },
-  });
-
-  const totalMocks = await prisma.mockTest.count({
-    where: {
-      userId: user?.id,
-    },
-  });
-
-  const totalRevisions = await prisma.revision.count({
-    where: {
-      userId: user?.id,
-    },
-  });
+  // 3. COLLAPSE WATERFALL: Run all counts concurrently in parallel
+  const [totalTopics, totalTasks, totalMocks, totalRevisions] = await Promise.all([
+    prisma.topicProgress.count({
+      where: { userId: user.id },
+    }),
+    prisma.task.count({
+      where: { userId: user.id },
+    }),
+    prisma.mockTest.count({
+      where: { userId: user.id },
+    }),
+    prisma.revision.count({
+      where: { userId: user.id },
+    }),
+  ]);
 
   return (
     <div className="p-8">
@@ -53,7 +61,7 @@ export default async function SettingsPage() {
             </p>
 
             <p className="font-medium">
-              {user?.name || "Unknown User"}
+              {user.name || "Unknown User"}
             </p>
           </div>
 
@@ -63,7 +71,7 @@ export default async function SettingsPage() {
             </p>
 
             <p className="font-medium">
-              {user?.email}
+              {user.email}
             </p>
           </div>
         </div>
