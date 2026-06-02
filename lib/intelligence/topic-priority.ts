@@ -65,6 +65,37 @@ export async function getTopicPriorities(
     }),
   ]);
 
+  // Map tracking unresolved mistakes counts per topic
+  const mistakeCountMap = new Map<string, number>();
+
+  for (const mistake of mistakes) {
+    mistakeCountMap.set(
+      mistake.topic,
+      (mistakeCountMap.get(mistake.topic) ?? 0) + 1
+    );
+  }
+
+  // Map aggregating mock scores and total metrics per topic
+  const mockAccuracyMap = new Map<
+    string,
+    {
+      total: number;
+      count: number;
+    }
+  >();
+
+  for (const mock of mockTopics) {
+    const existing = mockAccuracyMap.get(mock.topic) ?? {
+      total: 0,
+      count: 0,
+    };
+
+    existing.total += mock.accuracy;
+    existing.count++;
+
+    mockAccuracyMap.set(mock.topic, existing);
+  }
+
   const topicMap = new Map<
     string,
     {
@@ -186,9 +217,7 @@ export async function getTopicPriorities(
       //
       // Mistakes
       //
-      const topicMistakes = mistakes.filter(
-        (m) => m.topic === topic
-      ).length;
+      const topicMistakes = mistakeCountMap.get(topic) ?? 0;
 
       if (topicMistakes >= 5) {
         score += 30;
@@ -208,18 +237,10 @@ export async function getTopicPriorities(
       //
       // Mock Weakness
       //
-      const mockData = mockTopics.filter(
-        (m) => m.topic === topic
-      );
+      const mockStats = mockAccuracyMap.get(topic);
 
-      if (
-        mockData.length > 0
-      ) {
-        const mockAccuracy =
-          mockData.reduce(
-            (sum, m) => sum + m.accuracy,
-            0
-          ) / mockData.length;
+      if (mockStats) {
+        const mockAccuracy = mockStats.total / mockStats.count;
 
         if (
           mockAccuracy < 70
