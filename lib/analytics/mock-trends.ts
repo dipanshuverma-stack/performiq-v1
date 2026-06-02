@@ -3,14 +3,15 @@ import { prisma } from "@/lib/prisma";
 export async function getMockTrends(
   userId: string
 ) {
-  const mocks = await prisma.mockTest.findMany({
-    where: {
-      userId,
-    },
-    orderBy: {
-      createdAt: "asc",
-    },
-  });
+  const mocks =
+    await prisma.mockTest.findMany({
+      where: {
+        userId,
+      },
+      orderBy: {
+        createdAt: "asc",
+      },
+    });
 
   if (mocks.length === 0) {
     return {
@@ -18,34 +19,38 @@ export async function getMockTrends(
       bestAccuracy: 0,
       latestAccuracy: 0,
       improvement: 0,
-      mocks,
     };
   }
 
-  const averageAccuracy =
-    mocks.reduce(
-      (sum, mock) => sum + mock.accuracy,
-      0
-    ) / mocks.length;
-
-  const bestAccuracy = Math.max(
-    ...mocks.map((mock) => mock.accuracy)
+  const accuracies = mocks.map(
+    (m) => m.accuracy ?? 0
   );
 
+  const averageAccuracy =
+    accuracies.reduce(
+      (a, b) => a + b,
+      0
+    ) / accuracies.length;
+
+  const bestAccuracy =
+    Math.max(...accuracies);
+
   const latestAccuracy =
-    mocks[mocks.length - 1].accuracy;
+    accuracies[
+      accuracies.length - 1
+    ];
 
   const firstAccuracy =
-    mocks[0].accuracy;
+    accuracies[0];
 
   const improvement =
-    latestAccuracy - firstAccuracy;
+    latestAccuracy -
+    firstAccuracy;
 
   return {
     averageAccuracy,
     bestAccuracy,
     latestAccuracy,
     improvement,
-    mocks,
   };
 }

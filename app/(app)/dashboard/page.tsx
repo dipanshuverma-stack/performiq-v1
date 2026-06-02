@@ -1,3 +1,4 @@
+// app/dashboard/page.tsx
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { dailyPlan } from "@/lib/daily-plan";
@@ -6,6 +7,8 @@ import { getReadinessScore } from "@/lib/analytics/readiness";
 import { getActiveExam } from "@/lib/exams/get-active-exam";
 import { calculateDailyTarget } from "@/lib/analytics/daily-target";
 import { getSyllabusProgress } from "@/lib/analytics/syllabus-progress";
+import { getPracticeAnalytics } from "@/lib/analytics/practice-analytics";
+import Link from "next/link";
 
 export default async function Dashboard() {
   const session = await auth();
@@ -17,82 +20,80 @@ export default async function Dashboard() {
       })
     : null;
 
-  const userId = user?.id;
+  if (!user) {
+    return (
+      <div className="p-8">
+        <h1 className="text-2xl font-bold text-gray-950">User not found</h1>
+      </div>
+    );
+  }
 
-  // Parallel and safe async data aggregation fallbacks
-  const readiness = userId ? await getReadinessScore(userId) : null;
-  const activeExam = userId ? await getActiveExam(userId) : null;
+  const userId = user.id;
+
+  // Optimized parallel async data aggregation avoiding redundant individual calls
+  const [readiness, activeExam, practiceAnalytics, progress] = await Promise.all([
+    getReadinessScore(userId),
+    getActiveExam(userId),
+    getPracticeAnalytics(userId),
+    getSyllabusProgress(userId),
+  ]);
 
   const daysRemaining = activeExam?.targetDate
     ? Math.ceil((activeExam.targetDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24))
     : null;
 
-  const studySessions = userId
-    ? await prisma.studySession.findMany({
-        where: { userId },
-        orderBy: { createdAt: "desc" },
-      })
-    : [];
-
-  const completedTopics = userId
-    ? await prisma.topicProgress.count({
-        where: { userId, completed: true },
-      })
-    : 0;
-
-  const completedTasks = userId
-    ? await prisma.task.count({
-        where: { userId, completed: true },
-      })
-    : 0;
-
-  const totalTasks = userId
-    ? await prisma.task.count({
-        where: { userId },
-      })
-    : 0;
-
-  const totalMocks = userId
-    ? await prisma.mockTest.count({
-        where: { userId },
-      })
-    : 0;
-
-  const averageAccuracyResult = userId
-    ? await prisma.mockTest.aggregate({
-        where: { userId },
-        _avg: { accuracy: true },
-      })
-    : null;
+  // Aggregate database tracking queries metrics concurrently 
+  const [
+    studySessions,
+    completedTopics,
+    completedTasks,
+    totalTasks,
+    totalMocks,
+    averageAccuracyResult,
+    revisionDueToday,
+    latestMock,
+    revisionRemaining,
+    unreadNotifications,
+  ] = await Promise.all([
+    prisma.studySession.findMany({
+      where: { userId },
+      orderBy: { createdAt: "desc" },
+    }),
+    prisma.topicProgress.count({
+      where: { userId, completed: true },
+    }),
+    prisma.task.count({
+      where: { userId, completed: true },
+    }),
+    prisma.task.count({
+      where: { userId },
+    }),
+    prisma.mockTest.count({
+      where: { userId },
+    }),
+    prisma.mockTest.aggregate({
+      where: { userId },
+      _avg: { accuracy: true },
+    }),
+    prisma.revision.count({
+      where: {
+        userId,
+        nextRevision: { lte: new Date() },
+      },
+    }),
+    prisma.mockTest.findFirst({
+      where: { userId },
+      orderBy: { createdAt: "desc" },
+    }),
+    prisma.revision.count({
+      where: { userId },
+    }),
+    prisma.notification.count({
+      where: { userId, read: false },
+    }),
+  ]);
 
   const averageAccuracy = averageAccuracyResult?._avg?.accuracy ?? 0;
-
-  const revisionDueToday = userId
-    ? await prisma.revision.count({
-        where: {
-          userId,
-          nextRevision: { lte: new Date() },
-        },
-      })
-    : 0;
-
-  const latestMock = userId
-    ? await prisma.mockTest.findFirst({
-        where: { userId },
-        orderBy: { createdAt: "desc" },
-      })
-    : null;
-
-  const revisionRemaining = userId
-    ? await prisma.revision.count({
-        where: { userId },
-      })
-    : 0;
-
-  const progress = userId
-    ? await getSyllabusProgress(userId)
-    : { totalTopics: 0, completedTopics: 0, percentage: "0" };
-
   const totalTopics = progress.totalTopics;
   const progressPercentage = Number(progress.percentage);
   const topicRemaining = Math.max(0, totalTopics - completedTopics);
@@ -102,12 +103,6 @@ export default async function Dashboard() {
     topicRemaining,
     revisionRemaining
   );
-
-  const unreadNotifications = userId
-    ? await prisma.notification.count({
-        where: { userId, read: false },
-      })
-    : 0;
 
   const totalMinutes = studySessions.reduce((sum, session) => sum + session.duration, 0);
   const totalHours = (totalMinutes / 60).toFixed(1);
@@ -127,7 +122,7 @@ export default async function Dashboard() {
         </div>
 
         {/* Section: Active Exam Core Metrics */}
-        <div className="bg-white rounded-xl shadow p-6">
+        <div className="bg-white rounded-xl shadow p-6 border border-gray-100">
           <h2 className="text-2xl font-bold border-b pb-3 text-gray-800">
             {activeExam?.name ?? "No Active Exam"}
           </h2>
@@ -147,8 +142,65 @@ export default async function Dashboard() {
           </div>
         </div>
 
+        {/* Section: Practice Performance Panel Widget */}
+        <div className="bg-white rounded-xl shadow p-6 border border-gray-100 flex flex-col justify-between">
+          <div>
+            <h2 className="text-xl font-semibold mb-4 text-gray-800">
+              Practice Performance
+            </h2>
+
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="bg-gray-50 p-4 rounded-lg border border-gray-100">
+                <p className="text-gray-500 text-sm font-medium">Sessions</p>
+                <p className="text-2xl font-bold text-gray-900 mt-1">
+                  {practiceAnalytics.totalSessions}
+                </p>
+              </div>
+
+              <div className="bg-gray-50 p-4 rounded-lg border border-gray-100">
+                <p className="text-gray-500 text-sm font-medium">Accuracy</p>
+                <p className="text-2xl font-bold text-gray-900 mt-1">
+                  {practiceAnalytics.averageAccuracy}%
+                </p>
+              </div>
+
+              <div className="bg-gray-50 p-4 rounded-lg border border-gray-100">
+                <p className="text-gray-500 text-sm font-medium">Avg QPM</p>
+                <p className="text-2xl font-bold text-gray-900 mt-1">
+                  {practiceAnalytics.averageQPM.toFixed(2)}
+                </p>
+              </div>
+
+              <div className="bg-gray-50 p-4 rounded-lg border border-gray-100">
+                <p className="text-gray-500 text-sm font-medium">Speed Score</p>
+                <p className="text-2xl font-bold text-gray-900 mt-1">
+                  {practiceAnalytics.speedScore}%
+                </p>
+                <p className="text-xs text-gray-500 mt-1">
+                  Target QPM: 1.67
+                </p>
+              </div>
+            </div>
+
+            {practiceAnalytics.totalSessions === 0 && (
+              <p className="text-sm text-gray-500 mt-4">
+                No practice sessions yet.
+              </p>
+            )}
+          </div>
+
+          <div className="pt-4 mt-4 border-t border-gray-100 flex justify-end">
+            <Link
+              href="/practice/analytics"
+              className="text-blue-600 text-sm font-medium hover:underline"
+            >
+              View Practice Analytics →
+            </Link>
+          </div>
+        </div>
+
         {/* Section: Daily Targets */}
-        <div className="bg-white rounded-xl shadow p-6">
+        <div className="bg-white rounded-xl shadow p-6 border border-gray-100">
           <h2 className="text-xl font-semibold mb-6 text-gray-800">Daily Target</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <div className="bg-gray-50 p-4 rounded-lg border border-gray-100">
@@ -172,42 +224,42 @@ export default async function Dashboard() {
 
         {/* Global Progress Metrics Cards Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="bg-white p-6 rounded-xl shadow">
+          <div className="bg-white p-6 rounded-xl shadow border border-gray-100">
             <h3 className="font-semibold text-gray-700">Study Time</h3>
             <p className="text-3xl font-bold mt-2 text-gray-900">{totalHours}h</p>
           </div>
-          <div className="bg-white p-6 rounded-xl shadow">
+          <div className="bg-white p-6 rounded-xl shadow border border-gray-100">
             <h3 className="font-semibold text-gray-700">Sessions</h3>
             <p className="text-3xl font-bold mt-2 text-gray-900">{studySessions.length}</p>
           </div>
-          <div className="bg-white p-6 rounded-xl shadow">
+          <div className="bg-white p-6 rounded-xl shadow border border-gray-100">
             <h3 className="font-semibold text-gray-700">Topics</h3>
             <p className="text-3xl font-bold mt-2 text-gray-900">{completedTopics}/{totalTopics}</p>
           </div>
-          <div className="bg-white p-6 rounded-xl shadow">
+          <div className="bg-white p-6 rounded-xl shadow border border-gray-100">
             <h3 className="font-semibold text-gray-700">Tasks</h3>
             <p className="text-3xl font-bold mt-2 text-gray-900">{completedTasks}/{totalTasks}</p>
           </div>
-          <div className="bg-white p-6 rounded-xl shadow">
+          <div className="bg-white p-6 rounded-xl shadow border border-gray-100">
             <h3 className="font-semibold text-gray-700">Mock Tests</h3>
             <p className="text-3xl font-bold mt-2 text-gray-900">{totalMocks}</p>
           </div>
-          <div className="bg-white p-6 rounded-xl shadow">
+          <div className="bg-white p-6 rounded-xl shadow border border-gray-100">
             <h3 className="font-semibold text-gray-700">Avg Accuracy</h3>
             <p className="text-3xl font-bold mt-2 text-gray-900">{averageAccuracy.toFixed(1)}%</p>
           </div>
-          <div className="bg-white p-6 rounded-xl shadow">
+          <div className="bg-white p-6 rounded-xl shadow border border-gray-100">
             <h3 className="font-semibold text-gray-700">Notifications</h3>
             <p className="text-3xl font-bold mt-2 text-gray-900">{unreadNotifications}</p>
           </div>
-          <div className="bg-white p-6 rounded-xl shadow">
+          <div className="bg-white p-6 rounded-xl shadow border border-gray-100">
             <h3 className="font-semibold text-gray-700">Syllabus Progress</h3>
             <p className="text-3xl font-bold mt-2 text-gray-900">{progress.percentage}%</p>
           </div>
         </div>
 
         {/* Progress Bar Component Section */}
-        <div className="bg-white p-6 rounded-xl shadow">
+        <div className="bg-white p-6 rounded-xl shadow border border-gray-100">
           <div className="flex justify-between mb-3">
             <h2 className="font-semibold text-gray-800">Overall Progress</h2>
             <span className="font-semibold text-gray-900">{progressPercentage}%</span>
@@ -224,13 +276,13 @@ export default async function Dashboard() {
         </div>
 
         {/* Revision Tracking component */}
-        <div className="bg-white p-6 rounded-xl shadow">
+        <div className="bg-white p-6 rounded-xl shadow border border-gray-100">
           <h2 className="font-semibold text-gray-800 mb-2">Revisions Due Today</h2>
           <p className="text-3xl font-bold text-red-600">{revisionDueToday}</p>
         </div>
 
         {/* Active Study Routines Engine */}
-        <div className="bg-white p-6 rounded-xl shadow">
+        <div className="bg-white p-6 rounded-xl shadow border border-gray-100">
           <h2 className="text-xl font-semibold mb-4 text-gray-800">Today's Study Plan</h2>
           <div className="space-y-4">
             {dailyPlan && dailyPlan.length > 0 ? (
@@ -269,7 +321,7 @@ export default async function Dashboard() {
         {/* Diagnostic Analytics and Track Record Info */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           {/* Latest Mock Test */}
-          <div className="bg-white p-6 rounded-xl shadow">
+          <div className="bg-white p-6 rounded-xl shadow border border-gray-100">
             <h2 className="text-xl font-semibold mb-4 text-gray-800">Latest Mock Test</h2>
             {latestMock ? (
               <div className="space-y-3 text-sm text-gray-700">
@@ -296,7 +348,7 @@ export default async function Dashboard() {
           </div>
 
           {/* Upcoming Examinations Framework */}
-          <div className="bg-white p-6 rounded-xl shadow">
+          <div className="bg-white p-6 rounded-xl shadow border border-gray-100">
             <h2 className="text-xl font-semibold mb-4 text-gray-800">Upcoming Exams</h2>
             <div className="space-y-3">
               {["SBI PO", "IBPS PO", "RRB PO"].map((exam, index) => (

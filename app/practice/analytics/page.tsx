@@ -1,0 +1,208 @@
+import { auth } from "@/auth";
+import { prisma } from "@/lib/prisma";
+import {
+  getPracticeAnalytics,
+  TARGET_PRELIMS_QPM,
+} from "@/lib/analytics/practice-analytics";
+import PracticeAccuracyChart from "@/components/charts/practice-accuracy-chart";
+import PracticeQpmChart from "@/components/charts/practice-qpm-chart";
+
+import {
+  getPracticeAccuracyTrend,
+  getPracticeQpmTrend,
+} from "@/lib/analytics/practice-trends";
+
+export default async function PracticeAnalyticsPage() {
+  const session = await auth();
+
+  if (!session?.user?.email) {
+    return (
+      <div className="p-8">
+        Please sign in.
+      </div>
+    );
+  }
+
+  const user = await prisma.user.findUnique({
+    where: {
+      email: session.user.email,
+    },
+  });
+
+  if (!user) {
+    return (
+      <div className="p-8">
+        User not found.
+      </div>
+    );
+  }
+
+  const accuracyTrend =
+  await getPracticeAccuracyTrend(
+    user.id
+  );
+
+const qpmTrend =
+  await getPracticeQpmTrend(
+    user.id
+  );
+
+  const analytics =
+    await getPracticeAnalytics(
+      user.id
+    );
+
+  return (
+    <div className="p-8 space-y-8">
+      <h1 className="text-3xl font-bold">
+        Practice Analytics
+      </h1>
+
+      <div className="grid md:grid-cols-4 gap-4">
+        <div className="bg-white rounded-xl shadow p-6">
+          <p className="text-gray-500">
+            Sessions
+          </p>
+
+          <p className="text-3xl font-bold mt-2">
+            {analytics.totalSessions}
+          </p>
+        </div>
+
+        <div className="bg-white rounded-xl shadow p-6">
+          <p className="text-gray-500">
+            Accuracy
+          </p>
+
+          <p className="text-3xl font-bold mt-2">
+            {analytics.averageAccuracy}%
+          </p>
+        </div>
+
+        <div className="bg-white rounded-xl shadow p-6">
+          <p className="text-gray-500">
+            Average QPM
+          </p>
+
+          <p className="text-3xl font-bold mt-2">
+            {analytics.averageQPM}
+          </p>
+        </div>
+
+        <div className="bg-white rounded-xl shadow p-6">
+          <p className="text-gray-500">
+            Speed Score
+          </p>
+
+          <p className="text-3xl font-bold mt-2">
+            {analytics.speedScore}%
+          </p>
+        </div>
+      </div>
+
+      <div className="grid md:grid-cols-2 gap-4">
+        <div className="bg-white rounded-xl shadow p-6">
+          <h2 className="font-semibold mb-4">
+            Practice Summary
+          </h2>
+
+          <div className="space-y-3">
+            <p>
+              Total Questions:{" "}
+              <strong>
+                {analytics.totalQuestions}
+              </strong>
+            </p>
+
+            <p>
+              Total Practice Hours:{" "}
+              <strong>
+                {
+                  analytics.totalPracticeHours
+                }
+              </strong>
+            </p>
+
+            <p>
+              Target QPM:{" "}
+              <strong>
+                {TARGET_PRELIMS_QPM}
+              </strong>
+            </p>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-xl shadow p-6">
+          <h2 className="font-semibold mb-4">
+            Topic Performance
+          </h2>
+
+          <div className="space-y-3">
+            <p>
+              Best Topic:{" "}
+              <strong>
+                {analytics.bestTopic ??
+                  "-"}
+              </strong>
+            </p>
+
+            <p>
+              Weakest Topic:{" "}
+              <strong>
+                {analytics.weakestTopic ??
+                  "-"}
+              </strong>
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div className="bg-white rounded-xl shadow p-6">
+        <h2 className="font-semibold mb-4">
+          Banking PO Speed Benchmark
+        </h2>
+
+        <p>
+          Target:
+          {" "}
+          <strong>
+            100 Questions in 60 Minutes
+          </strong>
+        </p>
+
+        <p className="mt-2">
+          Required QPM:
+          {" "}
+          <strong>
+            {TARGET_PRELIMS_QPM}
+          </strong>
+        </p>
+
+        <p className="mt-2">
+          Your Current QPM:
+          {" "}
+          <strong>
+            {analytics.averageQPM}
+          </strong>
+        </p>
+
+        <p className="mt-2">
+          Progress:
+          {" "}
+          <strong>
+            {analytics.speedScore}%
+          </strong>
+        </p>
+        <div className="grid md:grid-cols-2 gap-6">
+  <PracticeAccuracyChart
+    data={accuracyTrend}
+  />
+
+  <PracticeQpmChart
+    data={qpmTrend}
+  />
+</div>
+      </div>
+    </div>
+  );
+}

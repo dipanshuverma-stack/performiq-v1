@@ -63,6 +63,27 @@ export default function AppLayout({
 </Link>
 
 <Link
+  href="/practice/history"
+  className="block hover:text-green-400"
+>
+  Practice History
+</Link>
+
+<Link
+  href="/practice/analytics"
+  className="block hover:text-green-400"
+>
+  Practice Analytics
+</Link>
+
+<Link
+  href="/revision/intelligence"
+  className="block hover:text-green-400"
+>
+  Smart Revision
+</Link>
+
+<Link
   href="/mistakes"
   className="block hover:text-green-400"
 >
