@@ -56,6 +56,13 @@ export default function AppLayout({
   Daily Plan
 </Link>
 
+<Link
+  href="/coach"
+  className="block hover:text-green-400"
+>
+  Study Coach
+</Link>
+
           <Link
             href="/exam-mode"
             className="block hover:text-green-400"

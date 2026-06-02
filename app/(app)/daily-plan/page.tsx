@@ -1,13 +1,81 @@
-export default function DailyPlanPage() {
+import { auth } from "@/auth";
+import { prisma } from "@/lib/prisma";
+import { getDailyPlan } from "@/lib/intelligence/daily-target-generator";
+
+export default async function DailyPlanPage() {
+  const session = await auth();
+
+  const user =
+    await prisma.user.findUnique({
+      where: {
+        email:
+          session?.user?.email ?? "",
+      },
+    });
+
+  if (!user) {
+    return null;
+  }
+
+  const plan =
+    await getDailyPlan(user.id);
+
   return (
-    <main className="p-6">
-      <h1 className="text-3xl font-bold">
-        Daily Plan
+    <div className="p-8">
+      <h1 className="text-3xl font-bold mb-8">
+        Today's Plan
       </h1>
 
-      <p className="mt-4">
-        Daily target generator coming soon...
-      </p>
-    </main>
+      <div className="grid md:grid-cols-2 gap-6">
+
+        <div className="bg-white rounded-xl shadow p-6">
+          <h2 className="text-xl font-semibold mb-4">
+            Practice
+          </h2>
+
+          <div className="space-y-3">
+            {plan.practiceTopics.map(
+              (topic) => (
+                <div
+                  key={topic.topic}
+                >
+                  <div className="font-medium">
+                    {topic.topic}
+                  </div>
+
+                  <div className="text-sm text-gray-500">
+                    Target:
+                    {" "}
+                    {topic.targetQuestions}
+                    {" "}
+                    Questions
+                  </div>
+                </div>
+              )
+            )}
+          </div>
+        </div>
+
+        <div className="bg-white rounded-xl shadow p-6">
+          <h2 className="text-xl font-semibold mb-4">
+            Revision
+          </h2>
+
+          <div className="space-y-3">
+            {plan.revisionTopics.map(
+              (topic) => (
+                <div
+                  key={topic}
+                  className="font-medium"
+                >
+                  {topic}
+                </div>
+              )
+            )}
+          </div>
+        </div>
+
+      </div>
+    </div>
   );
 }
