@@ -1,9 +1,10 @@
 import Link from "next/link";
+import type { ReactNode } from "react";
 
 export default function AppLayout({
   children,
 }: {
-  children: React.ReactNode;
+  children: ReactNode;
 }) {
   return (
     <div className="min-h-screen flex">
@@ -47,48 +48,48 @@ export default function AppLayout({
           >
             Mock Tests
           </Link>
-         
+
           <Link
-  href="/mocks"
+  href="/daily-plan"
   className="block hover:text-green-400"
 >
-  Mock Tests
+  Daily Plan
 </Link>
 
-<Link
-  href="/practice"
-  className="block hover:text-green-400"
->
-  Practice Timer
-</Link>
+          <Link
+            href="/exam-mode"
+            className="block hover:text-green-400"
+          >
+            Exam Mode
+          </Link>
 
-<Link
-  href="/practice/history"
-  className="block hover:text-green-400"
->
-  Practice History
-</Link>
+          <Link
+            href="/practice"
+            className="block hover:text-green-400"
+          >
+            Practice Timer
+          </Link>
 
-<Link
-  href="/practice/analytics"
-  className="block hover:text-green-400"
->
-  Practice Analytics
-</Link>
+          <Link
+            href="/practice/history"
+            className="block hover:text-green-400"
+          >
+            Practice History
+          </Link>
 
-<Link
-  href="/revision/intelligence"
-  className="block hover:text-green-400"
->
-  Smart Revision
-</Link>
+          <Link
+            href="/practice/analytics"
+            className="block hover:text-green-400"
+          >
+            Practice Analytics
+          </Link>
 
-<Link
-  href="/mistakes"
-  className="block hover:text-green-400"
->
-  Mistake Journal
-</Link>
+          <Link
+            href="/revision/intelligence"
+            className="block hover:text-green-400"
+          >
+            Smart Revision
+          </Link>
 
           <Link
             href="/mistakes"
@@ -104,12 +105,12 @@ export default function AppLayout({
             Progress
           </Link>
          
-         <Link
-  href="/notifications"
-  className="block hover:text-green-400"
->
-  Notifications
-</Link> 
+          <Link
+            href="/notifications"
+            className="block hover:text-green-400"
+          >
+            Notifications
+          </Link> 
 
           <Link
             href="/analytics"

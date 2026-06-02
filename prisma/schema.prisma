@@ -44,7 +44,6 @@ model User {
   mistakes                Mistake[]
   notifications           Notification[]
   practiceSessions        PracticeSession[]
-  examSimulations         ExamSimulation[]
 }
 
 model TopicProgress {
@@ -380,30 +379,6 @@ model PracticeSession {
   @@index([userId])
   @@index([subject])
   @@index([topic])
-}
-
-model ExamSimulation {
-  id     String @id @default(cuid())
-  userId String
-
-  examName String
-
-  totalQuestions Int
-  attempted      Int
-  correct        Int
-  wrong          Int
-
-  accuracy Float
-  qpm      Float
-  score    Float
-
-  durationSeconds Int
-
-  createdAt DateTime @default(now())
-
-  user User @relation(fields: [userId], references: [id])
-
-  @@index([userId])
 }
 
 model VerificationToken {

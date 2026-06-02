@@ -1,14 +1,12 @@
-"use client";
-
-export default function ExamStartPage() {
+export default function DailyPlanPage() {
   return (
     <main className="p-6">
       <h1 className="text-3xl font-bold">
-        Exam Session
+        Daily Plan
       </h1>
 
       <p className="mt-4">
-        Timer and exam engine coming next.
+        Daily target generator coming soon...
       </p>
     </main>
   );

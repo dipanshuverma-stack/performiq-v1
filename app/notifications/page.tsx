@@ -1,6 +1,8 @@
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import ReadButton from "@/components/notifications/read-button";
+import { generateNotifications }
+from "@/lib/notifications/generate-notifications";
 
 export default async function NotificationsPage() {
   const session = await auth();
@@ -14,7 +16,7 @@ export default async function NotificationsPage() {
   if (!user) {
     return null;
   }
-
+  await generateNotifications(user.id);
   const notifications =
     await prisma.notification.findMany({
       where: {
