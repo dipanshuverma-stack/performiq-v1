@@ -1,37 +1,25 @@
-import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
-import "./globals.css";
-import React from "react";
+import Link from "next/link";
+import { auth } from "@/auth";
+import { redirect } from "next/navigation";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-  // display: "swap" is implicit in Next.js 15, keeping font loading optimized
-});
+export default async function LandingPage() {
+  const session = await auth();
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
+  // If user is already logged in, redirect them to the dashboard
+  if (session) {
+    redirect("/dashboard");
+  }
 
-export const metadata: Metadata = {
-  title: "Banking PO Prep Engine",
-  description: "AI-driven smart prep tracker and analytics engine",
-};
-
-export default function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
   return (
-    <html
-      lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
-    >
-      <body className="min-h-full flex flex-col bg-gray-50 text-gray-900">
-        {children}
-      </body>
-    </html>
+    <div className="flex flex-col items-center justify-center min-h-screen">
+      <h1 className="text-4xl font-bold mb-4">Welcome to PerformIQ</h1>
+      {/* This link triggers the sign-in flow */}
+      <Link 
+        href="/api/auth/signin" 
+        className="px-6 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition"
+      >
+        Sign In
+      </Link>
+    </div>
   );
 }
