@@ -7,9 +7,7 @@ export async function getPracticeAnalytics(
 ) {
   const sessions =
     await prisma.practiceSession.findMany({
-      where: {
-        userId,
-      },
+      where: { userId },
     });
 
   if (sessions.length === 0) {
@@ -25,8 +23,7 @@ export async function getPracticeAnalytics(
     };
   }
 
-  const totalSessions =
-    sessions.length;
+  const totalSessions = sessions.length;
 
   const averageAccuracy =
     sessions.reduce(
@@ -42,94 +39,40 @@ export async function getPracticeAnalytics(
 
   const totalQuestions =
     sessions.reduce(
-      (sum, s) =>
-        sum + s.totalQuestions,
+      (sum, s) => sum + s.totalQuestions,
       0
     );
 
   const totalSeconds =
     sessions.reduce(
-      (sum, s) =>
-        sum + s.durationSeconds,
+      (sum, s) => sum + s.durationSeconds,
       0
     );
 
-  const speedScore =
-    Math.min(
-      100,
-      (averageQPM /
-        TARGET_PRELIMS_QPM) *
-        100
-    );
-
-  const topicMap = new Map<
-    string,
-    number[]
-  >();
-
-  sessions.forEach((session) => {
-    const scores =
-      topicMap.get(session.topic) ||
-      [];
-
-    scores.push(session.accuracy);
-
-    topicMap.set(
-      session.topic,
-      scores
-    );
-  });
-
-  let bestTopic = null;
-  let weakestTopic = null;
-
-  let bestScore = -1;
-  let worstScore = 101;
-
-  topicMap.forEach(
-    (scores, topic) => {
-      const avg =
-        scores.reduce(
-          (a, b) => a + b,
-          0
-        ) / scores.length;
-
-      if (avg > bestScore) {
-        bestScore = avg;
-        bestTopic = topic;
-      }
-
-      if (avg < worstScore) {
-        worstScore = avg;
-        weakestTopic = topic;
-      }
-    }
+  const speedScore = Math.min(
+    100,
+    (averageQPM / TARGET_PRELIMS_QPM) *
+      100
   );
 
   return {
     totalSessions,
-
     averageAccuracy:
       Math.round(
         averageAccuracy * 10
       ) / 10,
-
     averageQPM:
       Math.round(
         averageQPM * 100
       ) / 100,
-
     speedScore:
       Math.round(speedScore),
-
     totalQuestions,
-
     totalPracticeHours:
       Math.round(
         (totalSeconds / 3600) * 10
       ) / 10,
-
-    bestTopic,
-    weakestTopic,
+    bestTopic: null,
+    weakestTopic: null,
   };
 }

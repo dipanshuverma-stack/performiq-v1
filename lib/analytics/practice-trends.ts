@@ -5,15 +5,12 @@ export async function getPracticeAccuracyTrend(
 ) {
   const sessions =
     await prisma.practiceSession.findMany({
-      where: {
-        userId,
-      },
+      where: { userId },
       orderBy: {
         createdAt: "asc",
       },
       select: {
         accuracy: true,
-        createdAt: true,
       },
     });
 
@@ -30,15 +27,12 @@ export async function getPracticeQpmTrend(
 ) {
   const sessions =
     await prisma.practiceSession.findMany({
-      where: {
-        userId,
-      },
+      where: { userId },
       orderBy: {
         createdAt: "asc",
       },
       select: {
         qpm: true,
-        createdAt: true,
       },
     });
 

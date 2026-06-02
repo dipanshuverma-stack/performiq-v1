@@ -9,6 +9,12 @@ import { calculateDailyTarget } from "@/lib/analytics/daily-target";
 import { getSyllabusProgress } from "@/lib/analytics/syllabus-progress";
 import { getPracticeAnalytics } from "@/lib/analytics/practice-analytics";
 import Link from "next/link";
+import { getTopicPriorities } from "@/lib/intelligence/topic-priority";
+import { getPerformanceScore } from "@/lib/analytics/performance-score";
+import DashboardAccuracyChart from "@/components/charts/dashboard-accuracy-chart";
+import DashboardQpmChart from "@/components/charts/dashboard-qpm-chart";
+import { getPracticeAccuracyTrend, getPracticeQpmTrend } from "@/lib/analytics/practice-trends";
+import { getExamForecast } from "@/lib/analytics/exam-forecast";
 
 export default async function Dashboard() {
   const session = await auth();
@@ -31,12 +37,29 @@ export default async function Dashboard() {
   const userId = user.id;
 
   // Optimized parallel async data aggregation avoiding redundant individual calls
-  const [readiness, activeExam, practiceAnalytics, progress] = await Promise.all([
+  const [
+    readiness,
+    activeExam,
+    practiceAnalytics,
+    progress,
+    accuracyTrend,
+    qpmTrend,
+    forecast,
+    priorities,
+    performance,
+  ] = await Promise.all([
     getReadinessScore(userId),
     getActiveExam(userId),
     getPracticeAnalytics(userId),
     getSyllabusProgress(userId),
+    getPracticeAccuracyTrend(userId),
+    getPracticeQpmTrend(userId),
+    getExamForecast(userId),
+    getTopicPriorities(userId),
+    getPerformanceScore(userId),
   ]);
+
+  const topPriorities = priorities.slice(0, 3);
 
   const daysRemaining = activeExam?.targetDate
     ? Math.ceil((activeExam.targetDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24))
@@ -126,10 +149,22 @@ export default async function Dashboard() {
           <h2 className="text-2xl font-bold border-b pb-3 text-gray-800">
             {activeExam?.name ?? "No Active Exam"}
           </h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 mt-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6 mt-6">
             <div>
               <p className="text-sm font-medium text-gray-500">Readiness</p>
               <p className="text-3xl font-bold text-blue-600 mt-1">{readiness?.readiness ?? 0}%</p>
+            </div>
+            <div>
+              <p className="text-sm font-medium text-gray-500">Forecast</p>
+              <p className="text-3xl font-bold text-green-600 mt-1">{forecast.forecastScore}</p>
+              <p className="text-xs text-gray-500 mt-1">{forecast.readinessLevel}</p>
+            </div>
+            <div>
+              <p className="text-sm font-medium text-gray-500">Performance</p>
+              <p className="text-3xl font-bold text-purple-600 mt-1">{performance.score}</p>
+              <p className="text-xs text-gray-500 mt-1">
+                Accuracy {performance.accuracy}% · Speed {performance.speedScore}%
+              </p>
             </div>
             <div>
               <p className="text-sm font-medium text-gray-500">Days Remaining</p>
@@ -141,6 +176,63 @@ export default async function Dashboard() {
             </div>
           </div>
         </div>
+      
+        {/* Section: Today's Priorities */}
+        <div className="bg-white rounded-xl shadow p-6 border border-gray-100">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-semibold text-gray-800">
+              Today's Priorities
+            </h2>
+            <Link
+              href="/revision/intelligence"
+              className="text-sm text-blue-600 font-medium hover:underline"
+            >
+              View All →
+            </Link>
+          </div>
+
+          {topPriorities.length === 0 ? (
+            <p className="text-gray-500 text-sm">
+              No intelligence data available yet.
+            </p>
+          ) : (
+            <div className="space-y-4">
+              {topPriorities.map((topic) => (
+                <div
+                  key={topic.topic}
+                  className="border border-gray-100 bg-gray-50 rounded-lg p-4 hover:bg-gray-100/70 transition"
+                >
+                  <div className="flex justify-between items-center">
+                    <h3 className="font-semibold text-gray-900">
+                      {topic.priority === "HIGH"
+                        ? "🔴"
+                        : topic.priority === "MEDIUM"
+                        ? "🟡"
+                        : "🟢"}{" "}
+                      {topic.topic}
+                    </h3>
+                    <span className="font-bold text-gray-900">
+                      {topic.score}
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2 mt-3 text-sm text-gray-600">
+                    <div>
+                      Knowledge: {topic.knowledgeScore}%
+                    </div>
+                    <div>
+                      Speed: {topic.speedScore}%
+                    </div>
+                  </div>
+
+                  <p className="text-xs text-gray-500 mt-2">
+                    {topic.reasons.slice(0, 2).join(" • ")}
+                  </p>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
 
         {/* Section: Practice Performance Panel Widget */}
         <div className="bg-white rounded-xl shadow p-6 border border-gray-100 flex flex-col justify-between">
@@ -148,6 +240,11 @@ export default async function Dashboard() {
             <h2 className="text-xl font-semibold mb-4 text-gray-800">
               Practice Performance
             </h2>
+
+            <div className="grid lg:grid-cols-2 gap-6 mb-6">
+              <DashboardAccuracyChart data={accuracyTrend} />
+              <DashboardQpmChart data={qpmTrend} />
+            </div>
 
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
               <div className="bg-gray-50 p-4 rounded-lg border border-gray-100">
