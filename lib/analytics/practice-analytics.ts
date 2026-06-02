@@ -5,12 +5,29 @@ export const TARGET_PRELIMS_QPM = 1.67;
 export async function getPracticeAnalytics(
   userId: string
 ) {
-  const sessions =
-    await prisma.practiceSession.findMany({
+  const stats =
+    await prisma.practiceSession.aggregate({
       where: { userId },
+
+      _count: {
+        id: true,
+      },
+
+      _avg: {
+        accuracy: true,
+        qpm: true,
+      },
+
+      _sum: {
+        totalQuestions: true,
+        durationSeconds: true,
+      },
     });
 
-  if (sessions.length === 0) {
+  const totalSessions =
+    stats._count.id;
+
+  if (totalSessions === 0) {
     return {
       totalSessions: 0,
       averageAccuracy: 0,
@@ -23,56 +40,50 @@ export async function getPracticeAnalytics(
     };
   }
 
-  const totalSessions = sessions.length;
-
   const averageAccuracy =
-    sessions.reduce(
-      (sum, s) => sum + s.accuracy,
-      0
-    ) / totalSessions;
+    stats._avg.accuracy ?? 0;
 
   const averageQPM =
-    sessions.reduce(
-      (sum, s) => sum + s.qpm,
-      0
-    ) / totalSessions;
+    stats._avg.qpm ?? 0;
 
   const totalQuestions =
-    sessions.reduce(
-      (sum, s) => sum + s.totalQuestions,
-      0
-    );
+    stats._sum.totalQuestions ?? 0;
 
   const totalSeconds =
-    sessions.reduce(
-      (sum, s) => sum + s.durationSeconds,
-      0
-    );
+    stats._sum.durationSeconds ?? 0;
 
   const speedScore = Math.min(
     100,
-    (averageQPM / TARGET_PRELIMS_QPM) *
+    (averageQPM /
+      TARGET_PRELIMS_QPM) *
       100
   );
 
   return {
     totalSessions,
+
     averageAccuracy:
       Math.round(
         averageAccuracy * 10
       ) / 10,
+
     averageQPM:
       Math.round(
         averageQPM * 100
       ) / 100,
+
     speedScore:
       Math.round(speedScore),
+
     totalQuestions,
+
     totalPracticeHours:
       Math.round(
         (totalSeconds / 3600) * 10
       ) / 10,
+
     bestTopic: null,
+
     weakestTopic: null,
   };
 }

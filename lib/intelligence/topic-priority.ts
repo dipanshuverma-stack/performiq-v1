@@ -5,15 +5,10 @@ import { getTopicWeightage } from "./topic-weightage";
 
 export type TopicPriority = {
   topic: string;
-
   score: number;
-
   priority: "HIGH" | "MEDIUM" | "LOW";
-
   knowledgeScore: number;
-
   speedScore: number;
-
   reasons: string[];
 };
 
@@ -22,14 +17,13 @@ const TARGET_QPM = 1.67;
 export async function getTopicPriorities(
   userId: string
 ): Promise<TopicPriority[]> {
-  const activeExam =
-    await getActiveExam(userId);
+  const activeExam = await getActiveExam(userId);
 
-  const profile =
-    getExamProfile(
-      activeExam?.name ?? ""
-    );
+  const profile = getExamProfile(
+    activeExam?.name ?? ""
+  );
 
+  // Optimized database aggregation by selecting only required fields and capping historical records
   const [
     practiceSessions,
     mistakes,
@@ -40,6 +34,12 @@ export async function getTopicPriorities(
       orderBy: {
         createdAt: "desc",
       },
+      take: 200,
+      select: {
+        topic: true,
+        accuracy: true,
+        qpm: true,
+      },
     }),
 
     prisma.mistakeEntry.findMany({
@@ -47,12 +47,20 @@ export async function getTopicPriorities(
         userId,
         resolved: false,
       },
+      select: {
+        topic: true,
+      },
     }),
 
     prisma.mockTopicPerformance.findMany({
       where: { userId },
       orderBy: {
         createdAt: "desc",
+      },
+      take: 200,
+      select: {
+        topic: true,
+        accuracy: true,
       },
     }),
   ]);
@@ -90,22 +98,18 @@ export async function getTopicPriorities(
     );
   });
 
-  const priorities: TopicPriority[] =
-    [];
+  const priorities: TopicPriority[] = [];
 
   topicMap.forEach(
     (data, topic) => {
       let score = 0;
-
-      const reasons: string[] =
-        [];
+      const reasons: string[] = [];
 
       const avgAccuracy =
         data.accuracies.reduce(
           (a, b) => a + b,
           0
-        ) /
-        data.accuracies.length;
+        ) / data.accuracies.length;
 
       const avgQpm =
         data.qpms.reduce(
@@ -116,12 +120,10 @@ export async function getTopicPriorities(
       //
       // Weightage
       //
-
-      const weightage =
-        getTopicWeightage(
-          profile,
-          topic
-        );
+      const weightage = getTopicWeightage(
+        profile,
+        topic
+      );
 
       score += weightage;
 
@@ -134,7 +136,6 @@ export async function getTopicPriorities(
       //
       // Accuracy Penalty
       //
-
       if (avgAccuracy < 60) {
         score += 40;
         reasons.push(
@@ -160,7 +161,6 @@ export async function getTopicPriorities(
       //
       // QPM Penalty
       //
-
       if (avgQpm < 0.8) {
         score += 40;
         reasons.push(
@@ -186,16 +186,12 @@ export async function getTopicPriorities(
       //
       // Mistakes
       //
-
-      const topicMistakes =
-        mistakes.filter(
-          (m) =>
-            m.topic === topic
-        ).length;
+      const topicMistakes = mistakes.filter(
+        (m) => m.topic === topic
+      ).length;
 
       if (topicMistakes >= 5) {
         score += 30;
-
         reasons.push(
           "Many unresolved mistakes"
         );
@@ -212,30 +208,23 @@ export async function getTopicPriorities(
       //
       // Mock Weakness
       //
-
-      const mockData =
-        mockTopics.filter(
-          (m) =>
-            m.topic === topic
-        );
+      const mockData = mockTopics.filter(
+        (m) => m.topic === topic
+      );
 
       if (
         mockData.length > 0
       ) {
         const mockAccuracy =
           mockData.reduce(
-            (sum, m) =>
-              sum +
-              m.accuracy,
+            (sum, m) => sum + m.accuracy,
             0
-          ) /
-          mockData.length;
+          ) / mockData.length;
 
         if (
           mockAccuracy < 70
         ) {
           score += 25;
-
           reasons.push(
             "Weak in mocks"
           );
@@ -245,12 +234,10 @@ export async function getTopicPriorities(
       //
       // Confidence
       //
-
       if (
         data.attempts < 5
       ) {
         score += 10;
-
         reasons.push(
           "Limited practice data"
         );
@@ -259,10 +246,8 @@ export async function getTopicPriorities(
       //
       // Trend
       //
-
       if (
-        data.accuracies.length >=
-        6
+        data.accuracies.length >= 6
       ) {
         const recent =
           data.accuracies
@@ -284,62 +269,47 @@ export async function getTopicPriorities(
           recent < previous
         ) {
           score += 15;
-
           reasons.push(
             "Performance declining"
           );
         }
       }
 
-      const knowledgeScore =
+      const knowledgeScore = Math.round(
+        avgAccuracy
+      );
+
+      const speedScore = Math.min(
+        100,
         Math.round(
-          avgAccuracy
-        );
+          (avgQpm / TARGET_QPM) * 100
+        )
+      );
 
-      const speedScore =
-        Math.min(
-          100,
-          Math.round(
-            (avgQpm /
-              TARGET_QPM) *
-              100
-          )
-        );
-
-      let priority:
-        | "HIGH"
-        | "MEDIUM"
-        | "LOW";
+      let priority: "HIGH" | "MEDIUM" | "LOW";
 
       if (score >= 80) {
         priority = "HIGH";
       } else if (
         score >= 50
       ) {
-        priority =
-          "MEDIUM";
+        priority = "MEDIUM";
       } else {
         priority = "LOW";
       }
 
       priorities.push({
         topic,
-
         score,
-
         priority,
-
         knowledgeScore,
-
         speedScore,
-
         reasons,
       });
     }
   );
 
   return priorities.sort(
-    (a, b) =>
-      b.score - a.score
+    (a, b) => b.score - a.score
   );
 }

@@ -6,7 +6,7 @@ export async function getReadinessScore(
   const [
     topicTotal,
     topicCompleted,
-    mocks,
+    mockStats,
     revisions,
     mistakes,
   ] = await Promise.all([
@@ -21,9 +21,9 @@ export async function getReadinessScore(
       },
     }),
 
-    prisma.mockTest.findMany({
+    prisma.mockTest.aggregate({
       where: { userId },
-      select: {
+      _avg: {
         accuracy: true,
       },
     }),
@@ -48,13 +48,7 @@ export async function getReadinessScore(
       : 0;
 
   const avgAccuracy =
-    mocks.length > 0
-      ? mocks.reduce(
-          (sum, mock) =>
-            sum + mock.accuracy,
-          0
-        ) / mocks.length
-      : 0;
+    mockStats._avg.accuracy ?? 0;
 
   const mockScore =
     (avgAccuracy / 100) * 30;
