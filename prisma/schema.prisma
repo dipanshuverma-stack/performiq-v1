@@ -31,11 +31,10 @@ model User {
   accounts Account[]
   sessions Session[]
 
-  topicProgress TopicProgress[]
-  studySessions StudySession[]
-  tasks         Task[]
-  revisions     Revision[]
-
+  topicProgress           TopicProgress[]
+  studySessions           StudySession[]
+  tasks                   Task[]
+  revisions               Revision[]
   mockTests               MockTest[]
   mockSubjectPerformances MockSubjectPerformance[]
   mockTopicPerformances   MockTopicPerformance[]
@@ -47,36 +46,29 @@ model User {
 }
 
 model TopicProgress {
-  id String @id @default(cuid())
-
-  userId String
-
+  id        String   @id @default(cuid())
+  userId    String
   subject   String
   topicName String
-
-  completed Boolean @default(false)
-
+  completed Boolean  @default(false)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@index([userId])
-  @@index([subject])
+  // 🚀 OPTIMIZATION: Faster user reads + required unique constraint for single-trip upserts
+  @@index([userId, subject, completed])
+  @@unique([userId, subject, topicName])
 }
 
 model StudySession {
-  id String @id @default(cuid())
-
-  userId String
-
-  subject String
-  topic   String
-
+  id       String @id @default(cuid())
+  userId   String
+  subject  String
+  topic    String
   duration Int
 
-  completed Boolean @default(false)
-
+  completed Boolean  @default(false)
   createdAt DateTime @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -85,14 +77,10 @@ model StudySession {
 }
 
 model Task {
-  id String @id @default(cuid())
-
-  userId String
-
-  title String
-
-  completed Boolean @default(false)
-
+  id        String   @id @default(cuid())
+  userId    String
+  title     String
+  completed Boolean  @default(false)
   createdAt DateTime @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -101,61 +89,41 @@ model Task {
 }
 
 model Revision {
-  id String @id @default(cuid())
-
-  userId String
-
-  subject String
-  topic   String
-
-  revisionCount Int @default(0)
-
-  nextRevision DateTime
-
-  completed Boolean @default(false)
-
-  createdAt DateTime @default(now())
+  id            String   @id @default(cuid())
+  userId        String
+  subject       String
+  topic         String
+  revisionCount Int      @default(0)
+  nextRevision  DateTime
+  completed     Boolean  @default(false)
+  createdAt     DateTime @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@index([userId])
+  // 🚀 OPTIMIZATION: Fast filtering on upcoming tasks + unique lookup limit constraint
+  @@index([userId, nextRevision])
+  @@unique([userId, topic])
 }
 
 model MockTest {
-  id String @id @default(cuid())
-
-  userId String
-
-  exam String
-
-  title String?
-
-  mockType MockType?
-
-  score Float
-
-  totalQuestions Int
-
-  attemptedQuestions Int @default(0)
-
-  correctAnswers Int @default(0)
-
-  incorrectAnswers Int @default(0)
-
-  unattemptedQuestions Int @default(0)
-
-  accuracy Float
-
-  percentile Float?
-
-  rank Int?
-
-  duration Int?
-
-  notes String?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id                 String    @id @default(cuid())
+  userId             String
+  exam               String
+  title              String?
+  mockType           MockType?
+  score              Float
+  totalQuestions     Int
+  attemptedQuestions Int       @default(0)
+  correctAnswers     Int       @default(0)
+  incorrectAnswers   Int       @default(0)
+  unattemptedQuestions Int     @default(0)
+  accuracy           Float
+  percentile         Float?
+  rank               Int?
+  duration           Int?
+  notes              String?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -169,31 +137,20 @@ model MockTest {
 }
 
 model MockSubjectPerformance {
-  id String @id @default(cuid())
-
-  userId String
-  mockId String
-
-  subject String
-
+  id             String   @id @default(cuid())
+  userId         String
+  mockId         String
+  subject        String
   totalQuestions Int
-
-  attempted Int
-
-  correct Int
-
-  incorrect Int
-
-  score Float
-
-  accuracy Float
-
-  timeSpent Int?
-
-  createdAt DateTime @default(now())
+  attempted      Int
+  correct        Int
+  incorrect      Int
+  score          Float
+  accuracy       Float
+  timeSpent      Int?
+  createdAt      DateTime @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
   mock MockTest @relation(fields: [mockId], references: [id], onDelete: Cascade)
 
   @@index([userId])
@@ -202,28 +159,18 @@ model MockSubjectPerformance {
 }
 
 model MockTopicPerformance {
-  id String @id @default(cuid())
-
-  userId String
-
-  mockId String
-
-  subject String
-
-  topic String
-
-  correct Int @default(0)
-
-  incorrect Int @default(0)
-
-  skipped Int @default(0)
-
-  accuracy Float
-
+  id        String   @id @default(cuid())
+  userId    String
+  mockId    String
+  subject   String
+  topic     String
+  correct   Int      @default(0)
+  incorrect Int      @default(0)
+  skipped   Int      @default(0)
+  accuracy  Float
   createdAt DateTime @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
   mock MockTest @relation(fields: [mockId], references: [id], onDelete: Cascade)
 
   @@index([userId])
@@ -233,21 +180,16 @@ model MockTopicPerformance {
 }
 
 model MistakeEntry {
-  id String @id @default(cuid())
-
-  userId String
-
-  subject String
-  topic   String
-
+  id          String    @id @default(cuid())
+  userId      String
+  subject     String
+  topic       String
   question    String
   explanation String?
   source      String?
-
-  resolved Boolean @default(false)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  resolved    Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 
   user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   MockTest   MockTest? @relation(fields: [mockTestId], references: [id])
@@ -260,23 +202,16 @@ model MistakeEntry {
 }
 
 model Mistake {
-  id String @id @default(cuid())
-
-  userId String
-
-  subject String
-  topic   String?
-
-  question String
-
+  id          String   @id @default(cuid())
+  userId      String
+  subject     String
+  topic       String?
+  question    String
   mistakeType String
-
-  notes String?
-
-  resolved Boolean @default(false)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  notes       String?
+  resolved    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -286,21 +221,15 @@ model Mistake {
 }
 
 model ExamProfile {
-  id String @id @default(cuid())
-
-  userId String
-
-  name     String
-  examType String
-
+  id         String   @id @default(cuid())
+  userId     String
+  name       String
+  examType   String
   targetDate DateTime
-
-  readiness Float @default(0)
-
-  isActive Boolean @default(false)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  readiness  Float    @default(0)
+  isActive   Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -309,19 +238,18 @@ model ExamProfile {
 }
 
 model Account {
-  id                String @id @default(cuid())
+  id                String  @id @default(cuid())
   userId            String
   type              String
   provider          String
   providerAccountId String
-
-  refresh_token String?
-  access_token  String?
-  expires_at    Int?
-  token_type    String?
-  scope         String?
-  id_token      String?
-  session_state String?
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -338,15 +266,11 @@ model Session {
 }
 
 model Notification {
-  id String @id @default(cuid())
-
-  userId String
-
-  title   String
-  message String
-
-  read Boolean @default(false)
-
+  id        String   @id @default(cuid())
+  userId    String
+  title     String
+  message   String
+  read      Boolean  @default(false)
   createdAt DateTime @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -356,23 +280,17 @@ model Notification {
 }
 
 model PracticeSession {
-  id String @id @default(cuid())
-
-  userId String
-
-  subject String
-  topic   String
-
+  id                 String   @id @default(cuid())
+  userId             String
+  subject            String
+  topic              String
   totalQuestions     Int
   correctQuestions   Int
   incorrectQuestions Int
-
-  durationSeconds Int
-
-  accuracy Float
-  qpm      Float
-
-  createdAt DateTime @default(now())
+  durationSeconds    Int
+  accuracy           Float
+  qpm                Float
+  createdAt          DateTime @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 

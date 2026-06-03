@@ -73,11 +73,12 @@ export default async function SyllabusPage() {
                 const uniqueKey = `${subject}:${topic}`;
                 const isCompleted = completedTopicsSet.has(uniqueKey);
 
-                // Safely pre-bind contextual arguments away from the runtime closure loop
-                const completeTopicAction = completeTopic.bind(null, subject, topic);
-
                 return (
-                  <form key={`${uniqueKey}-${index}`} action={completeTopicAction}>
+                  <form key={`${uniqueKey}-${index}`} action={completeTopic}>
+                    {/* Hidden inputs to safely pass context without using .bind() */}
+                    <input type="hidden" name="subject" value={subject} />
+                    <input type="hidden" name="topic" value={topic} />
+
                     <button
                       type="submit"
                       className={`w-full border rounded-xl p-4 text-left transition-all flex items-center justify-between group focus:outline-none focus:ring-2 focus:ring-offset-2 ${

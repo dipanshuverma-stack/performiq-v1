@@ -7,24 +7,13 @@ import Link from "next/link";
 export default async function DailyPlanPage() {
   const session = await auth();
 
-  if (!session?.user?.email) {
+  // 🚀 OPTIMIZATION: Check for the ID directly on the session object
+  if (!session?.user?.id) {
     redirect("/login");
   }
 
-  const user = await prisma.user.findUnique({
-    where: {
-      email: session.user.email,
-    },
-    select: {
-      id: true,
-    },
-  });
-
-  if (!user) {
-    redirect("/login");
-  }
-
-  const plan = await getDailyPlan(user.id);
+  // Bypassed the prisma.user.findUnique query completely!
+  const plan = await getDailyPlan(session.user.id);
 
   const hasPlan =
     plan.practiceTopics.length > 0 ||
