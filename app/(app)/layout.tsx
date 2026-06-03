@@ -4,9 +4,68 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
-import { Menu, X, LayoutDashboard, BookOpen, CheckSquare, RotateCcw, Timer, History, BarChart3, GraduationCap, FileWarning, Calendar, Bot, Sparkles, TrendingUp, LineChart, Bell, User, Settings } from "lucide-react";
+import { 
+  Menu, X, LayoutDashboard, BookOpen, CheckSquare, RotateCcw, 
+  Timer, History, BarChart3, GraduationCap, FileWarning,
+  Calendar, Bot, Sparkles, TrendingUp, LineChart,
+  Bell, User, Settings 
+} from "lucide-react";
 
-// ... (Keep your existing 'navigation' array and 'NavItem'/'NavSection' types here)
+interface NavItem {
+  name: string;
+  href: string;
+  icon: React.ComponentType<{ className?: string }>;
+}
+
+interface NavSection {
+  title: string;
+  items: NavItem[];
+}
+
+const navigation: NavSection[] = [
+  {
+    title: "Study",
+    items: [
+      { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+      { name: "Syllabus", href: "/syllabus", icon: BookOpen },
+      { name: "Tasks", href: "/tasks", icon: CheckSquare },
+      { name: "Revision", href: "/revision", icon: RotateCcw },
+    ],
+  },
+  {
+    title: "Practice",
+    items: [
+      { name: "Practice Timer", href: "/practice", icon: Timer },
+      { name: "Practice History", href: "/practice/history", icon: History },
+      { name: "Practice Analytics", href: "/practice/analytics", icon: BarChart3 },
+      { name: "Mock Tests", href: "/mocks", icon: GraduationCap },
+      { name: "Mistake Journal", href: "/mistakes", icon: FileWarning },
+    ],
+  },
+  {
+    title: "Intelligence",
+    items: [
+      { name: "Daily Plan", href: "/daily-plan", icon: Calendar },
+      { name: "Study Coach", href: "/coach", icon: Bot },
+      { name: "Smart Revision", href: "/revision/intelligence", icon: Sparkles },
+    ],
+  },
+  {
+    title: "Insights",
+    items: [
+      { name: "Progress", href: "/progress", icon: TrendingUp },
+      { name: "Analytics", href: "/analytics", icon: LineChart },
+    ],
+  },
+  {
+    title: "Account",
+    items: [
+      { name: "Notifications", href: "/notifications", icon: Bell },
+      { name: "Profile", href: "/profile", icon: User },
+      { name: "Settings", href: "/settings", icon: Settings },
+    ],
+  },
+];
 
 export default function AppLayout({ children }: { children: ReactNode }) {
   const [isOpen, setIsOpen] = useState(false);
@@ -26,7 +85,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
 
       {/* Sidebar - Drawer on Mobile, Fixed on Desktop */}
       <aside className={`
-        fixed md:relative z-50 w-64 h-full bg-slate-950 text-slate-200 flex flex-col border-r border-slate-800 shrink-0 select-none
+        fixed md:relative z-50 w-64 h-screen md:h-auto bg-slate-950 text-slate-200 flex flex-col border-r border-slate-800 shrink-0 select-none
         transform transition-transform duration-300 ease-in-out md:translate-x-0
         ${isOpen ? "translate-x-0" : "-translate-x-full"}
       `}>
@@ -35,12 +94,16 @@ export default function AppLayout({ children }: { children: ReactNode }) {
             <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
             PerformIQ
           </h1>
-          <button onClick={closeSidebar} className="md:hidden text-slate-400">
+          <button 
+            onClick={closeSidebar} 
+            aria-label="Close menu"
+            className="md:hidden text-slate-400"
+          >
             <X className="h-6 w-6" />
           </button>
         </div>
 
-        <nav className="flex-1 overflow-y-auto p-4 space-y-6 custom-scrollbar" onClick={closeSidebar}>
+        <nav className="flex-1 overflow-y-auto p-4 space-y-6 custom-scrollbar">
           {navigation.map((section) => (
             <div key={section.title} className="space-y-1">
               <h2 className="px-3 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
@@ -48,11 +111,20 @@ export default function AppLayout({ children }: { children: ReactNode }) {
               </h2>
               <ul className="space-y-0.5">
                 {section.items.map((item) => {
-                  const isActive = pathname === item.href;
+                  const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
                   const Icon = item.icon;
+                  
                   return (
                     <li key={item.href}>
-                      <Link href={item.href} className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all ${isActive ? "bg-emerald-500/10 text-emerald-400" : "text-slate-400 hover:bg-slate-900"}`}>
+                      <Link 
+                        href={item.href} 
+                        onClick={closeSidebar}
+                        className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+                          isActive 
+                            ? "bg-emerald-500/10 text-emerald-400" 
+                            : "text-slate-400 hover:bg-slate-900"
+                        }`}
+                      >
                         <Icon className="h-4 w-4" />
                         {item.name}
                       </Link>
