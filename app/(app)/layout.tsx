@@ -119,6 +119,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
                       <Link 
                         href={item.href} 
                         onClick={closeSidebar}
+                        prefetch={false} // <-- FIX: Stops Next.js from spamming compilation requests for all 17 pages at once
                         className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
                           isActive 
                             ? "bg-emerald-500/10 text-emerald-400" 
