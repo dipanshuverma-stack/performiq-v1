@@ -19,6 +19,22 @@ export async function getDailyPlan(
         },
       },
       take: 5,
+      select: {
+        topic: true,
+      },
+    });
+
+  const latestMock =
+    await prisma.mockTest.findFirst({
+      where: {
+        userId,
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+      select: {
+        exam: true,
+      },
     });
 
   return {
@@ -33,5 +49,15 @@ export async function getDailyPlan(
       revisions.map(
         (r) => r.topic
       ),
+
+    mockReviewTopics:
+      latestMock
+        ? [`Review ${latestMock.exam}`]
+        : [],
+
+    focusMessage:
+      topTopics.length > 0
+        ? `Focus on ${topTopics[0].topic} today. It currently has the highest priority.`
+        : "No priority topics available today.",
   };
 }
