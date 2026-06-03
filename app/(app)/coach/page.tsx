@@ -1,25 +1,45 @@
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { getStudyCoach } from "@/lib/coach/study-coach";
+import { getMockIntelligence } from "@/lib/intelligence/mock-intelligence";
 import { redirect } from "next/navigation";
 import { SmartLink as Link } from "@/components/smart-link";
+
 export default async function CoachPage() {
   const session = await auth();
 
-  if (!session?.user?.email) {
+  // Extracts user.id from the custom session token, saving an expensive query
+  if (!session?.user?.id) {
     redirect("/login");
   }
 
-  const user = await prisma.user.findUnique({
-    where: { email: session.user.email },
-    select: { id: true },
+  const userId = session.user.id;
+
+  // 1. Fetch backend coach advice models
+  const coach = await getStudyCoach(userId);
+
+  // 2. Query the latest raw historical test record with child datasets
+  const latestMock = await prisma.mockTest.findFirst({
+    where: {
+      userId,
+    },
+    include: {
+      subjectPerformances: true,
+    },
+    orderBy: {
+      createdAt: "desc",
+    },
   });
 
-  if (!user) {
-    redirect("/login");
-  }
-
-  const coach = await getStudyCoach(user.id);
+  // 3. Map records cleanly into our functional intelligence layer
+  const mockIntelligence = latestMock
+    ? await getMockIntelligence(
+        latestMock.subjectPerformances.map((s) => ({
+          subject: s.subject,
+          accuracy: s.accuracy,
+        }))
+      )
+    : null;
 
   const hasCoachData =
     coach.messages.length > 0 ||
@@ -88,6 +108,102 @@ export default async function CoachPage() {
               ))}
             </div>
           </div>
+
+          {/* Mock Intelligence Assessment Matrix */}
+          {mockIntelligence && (
+            <div className="bg-white rounded-xl shadow border p-6">
+              <h2 className="text-xl font-semibold mb-4 text-gray-900">
+                Mock Intelligence
+              </h2>
+
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                <div className="border rounded-lg p-4">
+                  <p className="text-sm text-gray-500">
+                    Performance Level
+                  </p>
+                  <p className="text-lg font-semibold text-gray-800">
+                    {mockIntelligence.performanceLevel}
+                  </p>
+                </div>
+
+                <div className="border rounded-lg p-4">
+                  <p className="text-sm text-gray-500">
+                    Confidence Score
+                  </p>
+                  <p className="text-lg font-semibold text-gray-800">
+                    {mockIntelligence.confidenceScore}%
+                  </p>
+                </div>
+
+                <div className="border rounded-lg p-4">
+                  <p className="text-sm text-gray-500">
+                    Target Accuracy
+                  </p>
+                  <p className="text-lg font-semibold text-gray-800">
+                    {mockIntelligence.targetAccuracy}%
+                  </p>
+                </div>
+
+                <div className="border rounded-lg p-4">
+                  <p className="text-sm text-gray-500">
+                    Strongest Subject
+                  </p>
+                  <p className="text-lg font-semibold text-green-600">
+                    {mockIntelligence.strongestSubject ?? "N/A"}
+                  </p>
+                </div>
+
+                <div className="border rounded-lg p-4">
+                  <p className="text-sm text-gray-500">
+                    Weakest Subject
+                  </p>
+                  <p className="text-lg font-semibold text-rose-600">
+                    {mockIntelligence.weakestSubject ?? "N/A"}
+                  </p>
+                </div>
+              </div>
+
+              <div className="mt-6">
+                <h3 className="font-semibold mb-2 text-gray-700">
+                  Recommended Practice Priority
+                </h3>
+
+                <div className="flex flex-wrap gap-2">
+                  {mockIntelligence.recommendedPractice.map(
+                    (subject) => (
+                      <span
+                        key={subject}
+                        className="px-3 py-1 rounded-full bg-blue-50 text-blue-700 text-sm font-medium border border-blue-100"
+                      >
+                        {subject}
+                      </span>
+                    )
+                  )}
+                </div>
+
+                {/* 🚀 UPGRADE: Natural Language Recommendation Callout Box */}
+                <div className="mt-4 p-4 rounded-lg bg-slate-50 border">
+                  <p className="text-sm text-slate-600 font-medium">
+                    Coach Recommendation
+                  </p>
+                  <p className="font-medium mt-1 text-slate-800 leading-relaxed">
+                    Focus primarily on{" "}
+                    <span className="font-semibold text-rose-700">
+                      {mockIntelligence.weakestSubject ?? "your weakest area"}
+                    </span>{" "}
+                    to move from{" "}
+                    <span className="font-semibold text-slate-900">
+                      {mockIntelligence.performanceLevel}
+                    </span>{" "}
+                    toward your target accuracy of{" "}
+                    <span className="font-bold text-slate-900">
+                      {mockIntelligence.targetAccuracy}%
+                    </span>.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
         </>
       )}
     </div>
