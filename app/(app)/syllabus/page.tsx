@@ -2,7 +2,6 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { syllabus } from "@/lib/syllabus";
 import { completeTopic } from "@/app/actions/topic-progress";
-import SeedButton from "@/components/syllabus/seed-button";
 import { redirect } from "next/navigation";
 
 export default async function SyllabusPage() {
@@ -51,9 +50,7 @@ export default async function SyllabusPage() {
             Monitor topic coverage, log milestones, and update preparation metrics.
           </p>
         </div>
-        <div className="shrink-0">
-          <SeedButton />
-        </div>
+        {/* 🧠 Seed Button UI Container cleanly removed from this row layout block */}
       </div>
 
       <div className="space-y-6">

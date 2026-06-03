@@ -2,7 +2,8 @@
 
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import { BANKING_SYLLABUS } from "@/lib/data/banking-syllabus";
+import { syllabus } from "@/lib/syllabus"; // 🎯 Unified source of truth with all 5 subjects
+import { revalidatePath, revalidateTag } from "next/cache";
 
 export async function seedSyllabus() {
   const session = await auth();
@@ -16,7 +17,7 @@ export async function seedSyllabus() {
   if (!user) throw new Error("User not found");
 
   // 1. Flatten the syllabus into a single array of records for batch insertion
-  const recordsToCreate = Object.entries(BANKING_SYLLABUS).flatMap(([subject, topics]) =>
+  const recordsToCreate = Object.entries(syllabus).flatMap(([subject, topics]) =>
     topics.map((topic) => ({
       userId: user.id,
       subject,
@@ -31,4 +32,9 @@ export async function seedSyllabus() {
     data: recordsToCreate,
     skipDuplicates: true,
   });
+
+  // ⚡ COMPLIANT CACHE INVALIDATION
+  // Wipes stale dashboard metrics instantly using the official production-safe signature
+  revalidateTag("stats", "max");
+  revalidatePath("/syllabus");
 }
