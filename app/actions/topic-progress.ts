@@ -63,7 +63,7 @@ export async function completeTopic(formData: FormData) {
 
   // ⚡ MUTATION INVALIDATION ENGINE WITH TS COMPLIANCE
   // Passed 'undefined as any' to satisfy strict environment signature requirements
-  revalidateTag("stats", undefined as any); 
+  revalidateTag("stats", "max");
 
   // Instantly reset Next.js routing cache for these layouts
   revalidatePath("/syllabus");

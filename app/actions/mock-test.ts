@@ -103,7 +103,7 @@ export async function createMockTest(formData: FormData) {
 
   // ⚡ MUTATION INVALIDATION ENGINE WITH TS COMPLIANCE
   // Passed 'undefined as any' to satisfy strict environment signature requirements
-  revalidateTag("performance", undefined as any); 
+  revalidateTag("performance", "max");
   
   revalidatePath("/mocks");
   revalidatePath("/dashboard");
