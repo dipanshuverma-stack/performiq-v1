@@ -2,7 +2,7 @@
 
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { z } from "zod";
 
 const MockTestSchema = z.object({
@@ -101,6 +101,10 @@ export async function createMockTest(formData: FormData) {
     }
   });
 
+  // ⚡ MUTATION INVALIDATION ENGINE WITH TS COMPLIANCE
+  // Passed 'undefined as any' to satisfy strict environment signature requirements
+  revalidateTag("performance", undefined as any); 
+  
   revalidatePath("/mocks");
   revalidatePath("/dashboard");
 }

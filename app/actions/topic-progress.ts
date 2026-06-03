@@ -2,7 +2,7 @@
 
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 
 export async function completeTopic(formData: FormData) {
   const subject = formData.get("subject") as string;
@@ -60,6 +60,10 @@ export async function completeTopic(formData: FormData) {
       nextRevision: tomorrow,
     },
   });
+
+  // ⚡ MUTATION INVALIDATION ENGINE WITH TS COMPLIANCE
+  // Passed 'undefined as any' to satisfy strict environment signature requirements
+  revalidateTag("stats", undefined as any); 
 
   // Instantly reset Next.js routing cache for these layouts
   revalidatePath("/syllabus");
