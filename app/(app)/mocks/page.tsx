@@ -2,8 +2,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import MockForm from "@/components/mock/mock-form";
 import { redirect } from "next/navigation";
-import Link from "next/link";
-
+import { SmartLink as Link } from "@/components/smart-link";
 export default async function MocksPage() {
   const session = await auth();
 

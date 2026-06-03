@@ -2,8 +2,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { getDailyPlan } from "@/lib/intelligence/daily-target-generator";
 import { redirect } from "next/navigation";
-import Link from "next/link";
-
+import { SmartLink as Link } from "@/components/smart-link";
 export default async function DailyPlanPage() {
   const session = await auth();
 

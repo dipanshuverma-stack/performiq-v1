@@ -2,8 +2,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { getStudyCoach } from "@/lib/coach/study-coach";
 import { redirect } from "next/navigation";
-import Link from "next/link";
-
+import { SmartLink as Link } from "@/components/smart-link";
 export default async function CoachPage() {
   const session = await auth();
 
