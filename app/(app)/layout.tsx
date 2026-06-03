@@ -74,7 +74,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
   return (
     <div className="min-h-screen flex bg-gray-50 text-gray-900">
       {/* Sidebar Container */}
-      <aside className="w-64 bg-slate-950 text-slate-200 flex flex-col border-r border-slate-800 shrink-0 select-none">
+      <aside className="hidden md:flex w-64 bg-slate-950 text-slate-200 flex-col border-r border-slate-800 shrink-0 select-none">
         {/* Header / Brand */}
         <div className="p-6 border-b border-slate-900">
           <h1 className="text-xl font-bold tracking-tight text-white flex items-center gap-2">
@@ -83,7 +83,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
           </h1>
         </div>
 
-        {/* Navigation Navigation */}
+        {/* Navigation Section */}
         <nav className="flex-1 overflow-y-auto p-4 space-y-6 custom-scrollbar">
           {navigation.map((section) => (
             <div key={section.title} className="space-y-1">
@@ -125,6 +125,12 @@ export default function AppLayout({ children }: { children: ReactNode }) {
 
       {/* Primary Workspace View */}
       <main className="flex-1 flex flex-col min-w-0 overflow-x-hidden">
+        <header className="md:hidden p-4 border-b bg-white">
+          <h1 className="font-bold text-lg">
+            PerformIQ
+          </h1>
+        </header>
+
         {children}
       </main>
     </div>
