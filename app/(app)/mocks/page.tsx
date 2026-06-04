@@ -151,6 +151,9 @@ export default async function MocksPage() {
             a.accuracy - b.accuracy
         )[0]
       : null;
+  
+  const focusNext =
+  weakestSubject?.subject ?? null;
 
   return (
     <div className="p-8 max-w-7xl mx-auto space-y-8">
@@ -231,7 +234,7 @@ export default async function MocksPage() {
               Mock Intelligence
             </h2>
 
-            <div className="grid md:grid-cols-5 gap-4">
+            <div className="grid md:grid-cols-6 gap-4">
               <div className="bg-blue-50 rounded-xl p-4">
                 <p className="text-sm text-blue-600">
                   Performance Level
@@ -291,6 +294,20 @@ export default async function MocksPage() {
                   {weakestSubject
                     ? `${weakestSubject.accuracy.toFixed(1)}%`
                     : ""}
+                </p>
+              </div>
+
+              <div className="bg-orange-50 rounded-xl p-4">
+                <p className="text-sm text-orange-600">
+                  Focus Next
+                </p>
+
+                <p className="text-xl font-bold mt-2">
+                  {focusNext ?? "-"}
+                </p>
+
+                <p className="text-xs text-gray-500 mt-1">
+                  Priority subject
                 </p>
               </div>
             </div>
