@@ -1,0 +1,308 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum MockType {
+  PRELIMS
+  MAINS
+}
+
+enum MistakeType {
+  CONCEPTUAL
+  SILLY
+  GUESS
+  TIME_MANAGEMENT
+  CALCULATION
+  QUESTION_MISREAD
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String?   @unique
+  emailVerified DateTime?
+  image         String?
+
+  accounts Account[]
+  sessions Session[]
+
+  topicProgress           TopicProgress[]
+  studySessions           StudySession[]
+  tasks                   Task[]
+  revisions               Revision[]
+  mockTests               MockTest[]
+  mockSubjectPerformances MockSubjectPerformance[]
+  mockTopicPerformances   MockTopicPerformance[]
+  mistakeEntries          MistakeEntry[]
+  examProfiles            ExamProfile[]
+  mistakes                Mistake[]
+  notifications           Notification[]
+  practiceSessions        PracticeSession[]
+}
+
+model TopicProgress {
+  id        String   @id @default(cuid())
+  userId    String
+  subject   String
+  topicName String
+  completed Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // 🚀 OPTIMIZATION: Faster user reads + required unique constraint for single-trip upserts
+  @@index([userId, subject, completed])
+  @@unique([userId, subject, topicName])
+}
+
+model StudySession {
+  id       String @id @default(cuid())
+  userId   String
+  subject  String
+  topic    String
+  duration Int
+
+  completed Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model Task {
+  id        String   @id @default(cuid())
+  userId    String
+  title     String
+  completed Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model Revision {
+  id            String   @id @default(cuid())
+  userId        String
+  subject       String
+  topic         String
+  revisionCount Int      @default(0)
+  nextRevision  DateTime
+  completed     Boolean  @default(false)
+  createdAt     DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // 🚀 OPTIMIZATION: Fast filtering on upcoming tasks + unique lookup limit constraint
+  @@index([userId, nextRevision])
+  @@unique([userId, topic])
+}
+
+model MockTest {
+  id                 String    @id @default(cuid())
+  userId             String
+  exam               String
+  title              String?
+  mockType           MockType?
+  score              Float
+  totalQuestions     Int
+  attemptedQuestions Int       @default(0)
+  correctAnswers     Int       @default(0)
+  incorrectAnswers   Int       @default(0)
+  unattemptedQuestions Int     @default(0)
+  accuracy           Float
+  percentile         Float?
+  rank               Int?
+  duration           Int?
+  notes              String?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  subjectPerformances MockSubjectPerformance[]
+  topicPerformances   MockTopicPerformance[]
+  mistakes            MistakeEntry[]
+
+  @@index([userId])
+  @@index([mockType])
+  @@index([createdAt])
+}
+
+model MockSubjectPerformance {
+  id             String   @id @default(cuid())
+  userId         String
+  mockId         String
+  subject        String
+  totalQuestions Int
+  attempted      Int
+  correct        Int
+  incorrect      Int
+  score          Float
+  accuracy       Float
+  timeSpent      Int?
+  createdAt      DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  mock MockTest @relation(fields: [mockId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([mockId])
+  @@index([subject])
+}
+
+model MockTopicPerformance {
+  id        String   @id @default(cuid())
+  userId    String
+  mockId    String
+  subject   String
+  topic     String
+  correct   Int      @default(0)
+  incorrect Int      @default(0)
+  skipped   Int      @default(0)
+  accuracy  Float
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  mock MockTest @relation(fields: [mockId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([mockId])
+  @@index([subject])
+  @@index([topic])
+}
+
+model MistakeEntry {
+  id          String    @id @default(cuid())
+  userId      String
+  subject     String
+  topic       String
+  question    String
+  explanation String?
+  source      String?
+  resolved    Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  MockTest   MockTest? @relation(fields: [mockTestId], references: [id])
+  mockTestId String?
+
+  @@index([userId])
+  @@index([subject])
+  @@index([topic])
+  @@index([resolved])
+}
+
+model Mistake {
+  id          String   @id @default(cuid())
+  userId      String
+  subject     String
+  topic       String?
+  question    String
+  mistakeType String
+  notes       String?
+  resolved    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([subject])
+  @@index([resolved])
+}
+
+model ExamProfile {
+  id         String   @id @default(cuid())
+  userId     String
+  name       String
+  examType   String
+  targetDate DateTime
+  readiness  Float    @default(0)
+  isActive   Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([isActive])
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  title     String
+  message   String
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([read])
+}
+
+model PracticeSession {
+  id                 String   @id @default(cuid())
+  userId             String
+  subject            String
+  topic              String
+  totalQuestions     Int
+  correctQuestions   Int
+  incorrectQuestions Int
+  durationSeconds    Int
+  accuracy           Float
+  qpm                Float
+  createdAt          DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([subject])
+  @@index([topic])
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
