@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import MockForm from "@/components/mock/mock-form";
 import { redirect } from "next/navigation";
 import { SmartLink as Link } from "@/components/smart-link";
+
 export default async function MocksPage() {
   const session = await auth();
 
@@ -64,6 +65,36 @@ export default async function MocksPage() {
 
   const averageAccuracy = totalMocks > 0 ? totalAccuracy / totalMocks : 0;
 
+  const bestScore =
+    mocks.length > 0
+      ? Math.max(...mocks.map((m) => m.score))
+      : 0;
+
+  const averageScore =
+    mocks.length > 0
+      ? mocks.reduce((sum, m) => sum + m.score, 0) /
+        mocks.length
+      : 0;
+
+  const latestMock = mocks[0];
+
+  const performanceLevel =
+    averageAccuracy >= 80
+      ? "Advanced"
+      : averageAccuracy >= 65
+      ? "Intermediate"
+      : "Beginner";
+
+  const targetAccuracy = Math.min(
+    90,
+    Math.round(averageAccuracy + 5)
+  );
+
+  const confidenceScore = Math.min(
+    100,
+    Math.round(averageAccuracy * 1.1)
+  );
+
   return (
     <div className="p-8 max-w-7xl mx-auto space-y-8">
       <div>
@@ -98,6 +129,82 @@ export default async function MocksPage() {
             <p className="text-blue-800 text-sm leading-relaxed">
               You have completed <span className="font-bold">{totalMocks}</span> diagnostic mocks with an aggregate accuracy threshold running at <span className="font-bold">{averageAccuracy.toFixed(1)}%</span>.
             </p>
+          </div>
+
+          <div className="grid md:grid-cols-4 gap-4">
+            <div className="bg-white rounded-xl shadow border border-gray-100 p-5">
+              <p className="text-sm text-gray-500">
+                Best Score
+              </p>
+              <p className="text-3xl font-bold mt-2">
+                {bestScore}
+              </p>
+            </div>
+
+            <div className="bg-white rounded-xl shadow border border-gray-100 p-5">
+              <p className="text-sm text-gray-500">
+                Avg Score
+              </p>
+              <p className="text-3xl font-bold mt-2">
+                {averageScore.toFixed(1)}
+              </p>
+            </div>
+
+            <div className="bg-white rounded-xl shadow border border-gray-100 p-5">
+              <p className="text-sm text-gray-500">
+                Target Accuracy
+              </p>
+              <p className="text-3xl font-bold mt-2 text-blue-600">
+                {targetAccuracy}%
+              </p>
+            </div>
+
+            <div className="bg-white rounded-xl shadow border border-gray-100 p-5">
+              <p className="text-sm text-gray-500">
+                Confidence Score
+              </p>
+              <p className="text-3xl font-bold mt-2 text-green-600">
+                {confidenceScore}
+              </p>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-xl shadow border border-gray-100 p-6">
+            <h2 className="text-lg font-semibold mb-4">
+              Mock Intelligence
+            </h2>
+
+            <div className="grid md:grid-cols-3 gap-4">
+              <div className="bg-blue-50 rounded-xl p-4">
+                <p className="text-sm text-blue-600">
+                  Performance Level
+                </p>
+
+                <p className="text-xl font-bold mt-2">
+                  {performanceLevel}
+                </p>
+              </div>
+
+              <div className="bg-green-50 rounded-xl p-4">
+                <p className="text-sm text-green-600">
+                  Latest Accuracy
+                </p>
+
+                <p className="text-xl font-bold mt-2">
+                  {latestMock?.accuracy.toFixed(1) ?? 0}%
+                </p>
+              </div>
+
+              <div className="bg-purple-50 rounded-xl p-4">
+                <p className="text-sm text-purple-600">
+                  Total Mocks
+                </p>
+
+                <p className="text-xl font-bold mt-2">
+                  {totalMocks}
+                </p>
+              </div>
+            </div>
           </div>
 
           {/* Optimized Metrics Data Dashboard Grid */}
