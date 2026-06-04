@@ -1,41 +1,29 @@
 "use client";
 
 import { useState } from "react";
-import { SmartLink as Link } from "@/components/smart-link";import { usePathname } from "next/navigation";
+import { SmartLink as Link } from "@/components/smart-link";
+import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 import { 
   Menu, X, LayoutDashboard, BookOpen, CheckSquare, RotateCcw, 
-  Timer, History, BarChart3, GraduationCap, FileWarning,
+  Timer, BarChart3, GraduationCap, FileWarning,
   Calendar, Bot, Sparkles, TrendingUp, LineChart,
   Bell, User, Settings 
 } from "lucide-react";
 
-interface NavItem {
-  name: string;
-  href: string;
-  icon: React.ComponentType<{ className?: string }>;
-}
-
-interface NavSection {
-  title: string;
-  items: NavItem[];
-}
-
-const navigation: NavSection[] = [
+// Example location where the navigation structure is declared
+const navigationGroups = [
   {
-    title: "Study",
+    title: "Core",
     items: [
       { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-      { name: "Syllabus", href: "/syllabus", icon: BookOpen },
-      { name: "Tasks", href: "/tasks", icon: CheckSquare },
-      { name: "Revision", href: "/revision", icon: RotateCcw },
+      { name: "Syllabus Tracker", href: "/syllabus", icon: BookOpen },
     ],
   },
   {
     title: "Practice",
     items: [
       { name: "Practice Timer", href: "/practice", icon: Timer },
-      { name: "Practice History", href: "/practice/history", icon: History },
       { name: "Practice Analytics", href: "/practice/analytics", icon: BarChart3 },
       { name: "Mock Tests", href: "/mocks", icon: GraduationCap },
       { name: "Mistake Journal", href: "/mistakes", icon: FileWarning },
@@ -103,7 +91,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
         </div>
 
         <nav className="flex-1 overflow-y-auto p-4 space-y-6 custom-scrollbar">
-          {navigation.map((section) => (
+          {navigationGroups.map((section) => (
             <div key={section.title} className="space-y-1">
               <h2 className="px-3 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
                 {section.title}

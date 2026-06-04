@@ -1,8 +1,8 @@
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { syllabus } from "@/lib/syllabus";
-import { completeTopic } from "@/app/actions/topic-progress";
 import { redirect } from "next/navigation";
+import TopicButton from "@/components/syllabus/topic-button";
 
 export default async function SyllabusPage() {
   const session = await auth();
@@ -71,36 +71,12 @@ export default async function SyllabusPage() {
                 const isCompleted = completedTopicsSet.has(uniqueKey);
 
                 return (
-                  <form key={`${uniqueKey}-${index}`} action={completeTopic}>
-                    {/* Hidden inputs to safely pass context without using .bind() */}
-                    <input type="hidden" name="subject" value={subject} />
-                    <input type="hidden" name="topic" value={topic} />
-
-                    <button
-                      type="submit"
-                      className={`w-full border rounded-xl p-4 text-left transition-all flex items-center justify-between group focus:outline-none focus:ring-2 focus:ring-offset-2 ${
-                        isCompleted
-                          ? "bg-green-50/50 border-green-200 text-green-900 focus:ring-green-500"
-                          : "bg-white border-gray-200 hover:border-gray-300 text-gray-700 hover:bg-gray-50/50 focus:ring-gray-900"
-                      }`}
-                    >
-                      <span className={`text-sm font-medium ${isCompleted ? "line-through text-gray-400" : ""}`}>
-                        {topic}
-                      </span>
-                      
-                      <div className={`w-5 h-5 rounded-md border flex items-center justify-center shrink-0 transition-colors ${
-                        isCompleted 
-                          ? "bg-green-600 border-green-600 text-white" 
-                          : "border-gray-300 group-hover:border-gray-400 bg-white"
-                      }`}>
-                        {isCompleted && (
-                          <svg className="w-3.5 h-3.5 stroke-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                          </svg>
-                        )}
-                      </div>
-                    </button>
-                  </form>
+                  <TopicButton
+                    key={`${uniqueKey}-${index}`}
+                    subject={subject}
+                    topic={topic}
+                    initialCompleted={isCompleted}
+                  />
                 );
               })}
             </div>

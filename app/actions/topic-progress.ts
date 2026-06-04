@@ -22,8 +22,8 @@ export async function completeTopic(formData: FormData) {
 
   const userId = session.user.id;
 
-  // Look up and create topic progress in 1 single trip
-  await prisma.topicProgress.upsert({
+  // 🔄 REAL TOGGLE LOGIC FOR TOPIC PROGRESS
+  const existing = await prisma.topicProgress.findUnique({
     where: {
       userId_subject_topicName: {
         userId,
@@ -31,43 +31,60 @@ export async function completeTopic(formData: FormData) {
         topicName,
       },
     },
-    update: {}, // If it already exists, change nothing
-    create: {
-      userId,
-      subject,
-      topicName,
-      completed: true,
-    },
   });
+
+  if (existing) {
+    await prisma.topicProgress.update({
+      where: {
+        userId_subject_topicName: {
+          userId,
+          subject,
+          topicName,
+        },
+      },
+      data: {
+        completed: !existing.completed,
+      },
+    });
+  } else {
+    await prisma.topicProgress.create({
+      data: {
+        userId,
+        subject,
+        topicName,
+        completed: true,
+      },
+    });
+  }
+
+  const isNowCompleted = existing ? !existing.completed : true;
 
   const tomorrow = new Date();
   tomorrow.setDate(tomorrow.getDate() + 1);
 
-  // Look up and create revision schedules in 1 single trip
-  await prisma.revision.upsert({
-    where: {
-      userId_topic: {
-        userId,
-        topic: topicName,
+  // Look up and create revision schedules only if the topic is now marked completed
+  if (isNowCompleted) {
+    await prisma.revision.upsert({
+      where: {
+        userId_topic: {
+          userId,
+          topic: topicName,
+        },
       },
-    },
-    update: {}, // If it already exists, change nothing
-    create: {
-      userId,
-      subject,
-      topic: topicName,
-      revisionCount: 0,
-      nextRevision: tomorrow,
-    },
-  });
+      update: {}, // If it already exists, change nothing
+      create: {
+        userId,
+        subject,
+        topic: topicName,
+        revisionCount: 0,
+        nextRevision: tomorrow,
+      },
+    });
+  }
 
   // ⚡ MUTATION INVALIDATION ENGINE WITH TS COMPLIANCE
-  // Passed 'undefined as any' to satisfy strict environment signature requirements
   revalidateTag("stats", "max");
 
   // Instantly reset Next.js routing cache for these layouts
   revalidatePath("/syllabus");
-  revalidatePath("/dashboard");
-  revalidatePath("/revision");
-  revalidatePath("/progress");
 }
