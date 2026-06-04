@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import React from "react";
 import { Toaster } from "sonner";
+import { ThemeProvider } from "@/components/providers/theme-provider";
 
 export const metadata: Metadata = {
   title: "PerformIQ",
@@ -20,16 +21,18 @@ export default function RootLayout({
       suppressHydrationWarning
     >
       <body
-        className="min-h-full flex flex-col"
+        className="min-h-full flex flex-col bg-slate-50 text-slate-900 dark:bg-[#090D16] dark:text-slate-100 transition-colors duration-300"
         suppressHydrationWarning
       >
-        {children}
+        <ThemeProvider>
+          {children}
 
-        <Toaster
-          position="top-right"
-          richColors
-          closeButton
-        />
+          <Toaster
+            position="top-right"
+            richColors
+            closeButton
+          />
+        </ThemeProvider>
       </body>
     </html>
   );
