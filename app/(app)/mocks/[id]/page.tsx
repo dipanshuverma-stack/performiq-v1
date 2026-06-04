@@ -88,7 +88,7 @@ export default async function MockDetailsPage({ params }: Props) {
           Mock Intelligence
         </h2>
 
-        <div className="grid md:grid-cols-3 gap-4">
+        <div className="grid md:grid-cols-5 gap-4">
           <div className="bg-green-50 border border-green-200 rounded-xl p-4">
             <h3 className="font-bold text-green-900 mb-3">🏆 Strong Areas</h3>
             {intelligence.strongestSubjects.length > 0 ? (
@@ -126,6 +126,38 @@ export default async function MockDetailsPage({ params }: Props) {
             ) : (
               <p className="text-sm text-blue-700">No recommendations yet</p>
             )}
+          </div>
+
+          <div className="bg-green-50 rounded-xl p-4">
+            <p className="text-sm text-green-600">
+              Strongest Subject
+            </p>
+
+            <p className="text-xl font-bold mt-2">
+              {strongestSubject?.subject ?? "-"}
+            </p>
+
+            <p className="text-xs text-gray-500 mt-1">
+              {strongestSubject
+                ? `${strongestSubject.accuracy.toFixed(1)}%`
+                : ""}
+            </p>
+          </div>
+
+          <div className="bg-red-50 rounded-xl p-4">
+            <p className="text-sm text-red-600">
+              Weakest Subject
+            </p>
+
+            <p className="text-xl font-bold mt-2">
+              {weakestSubject?.subject ?? "-"}
+            </p>
+
+            <p className="text-xs text-gray-500 mt-1">
+              {weakestSubject
+                ? `${weakestSubject.accuracy.toFixed(1)}%`
+                : ""}
+            </p>
           </div>
         </div>
       </div>

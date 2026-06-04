@@ -28,6 +28,12 @@ export default async function MocksPage() {
           accuracy: true,
           totalQuestions: true,
           createdAt: true,
+          subjectPerformances: {
+            select: {
+              subject: true,
+              accuracy: true,
+            },
+          },
         },
         orderBy: {
           createdAt: "desc",
@@ -94,6 +100,57 @@ export default async function MocksPage() {
     100,
     Math.round(averageAccuracy * 1.1)
   );
+
+  const subjectMap = new Map<
+    string,
+    {
+      totalAccuracy: number;
+      count: number;
+    }
+  >();
+
+  for (const mock of mocks) {
+    for (const subject of mock.subjectPerformances) {
+      const existing = subjectMap.get(
+        subject.subject
+      );
+
+      if (existing) {
+        existing.totalAccuracy +=
+          subject.accuracy;
+        existing.count += 1;
+      } else {
+        subjectMap.set(subject.subject, {
+          totalAccuracy: subject.accuracy,
+          count: 1,
+        });
+      }
+    }
+  }
+
+  const subjectAverages = Array.from(
+    subjectMap.entries()
+  ).map(([subject, data]) => ({
+    subject,
+    accuracy:
+      data.totalAccuracy / data.count,
+  }));
+
+  const strongestSubject =
+    subjectAverages.length > 0
+      ? [...subjectAverages].sort(
+          (a, b) =>
+            b.accuracy - a.accuracy
+        )[0]
+      : null;
+
+  const weakestSubject =
+    subjectAverages.length > 0
+      ? [...subjectAverages].sort(
+          (a, b) =>
+            a.accuracy - b.accuracy
+        )[0]
+      : null;
 
   return (
     <div className="p-8 max-w-7xl mx-auto space-y-8">
@@ -174,7 +231,7 @@ export default async function MocksPage() {
               Mock Intelligence
             </h2>
 
-            <div className="grid md:grid-cols-3 gap-4">
+            <div className="grid md:grid-cols-5 gap-4">
               <div className="bg-blue-50 rounded-xl p-4">
                 <p className="text-sm text-blue-600">
                   Performance Level
@@ -202,6 +259,38 @@ export default async function MocksPage() {
 
                 <p className="text-xl font-bold mt-2">
                   {totalMocks}
+                </p>
+              </div>
+
+              <div className="bg-green-50 rounded-xl p-4">
+                <p className="text-sm text-green-600">
+                  Strongest Subject
+                </p>
+
+                <p className="text-xl font-bold mt-2">
+                  {strongestSubject?.subject ?? "-"}
+                </p>
+
+                <p className="text-xs text-gray-500 mt-1">
+                  {strongestSubject
+                    ? `${strongestSubject.accuracy.toFixed(1)}%`
+                    : ""}
+                </p>
+              </div>
+
+              <div className="bg-red-50 rounded-xl p-4">
+                <p className="text-sm text-red-600">
+                  Weakest Subject
+                </p>
+
+                <p className="text-xl font-bold mt-2">
+                  {weakestSubject?.subject ?? "-"}
+                </p>
+
+                <p className="text-xs text-gray-500 mt-1">
+                  {weakestSubject
+                    ? `${weakestSubject.accuracy.toFixed(1)}%`
+                    : ""}
                 </p>
               </div>
             </div>
