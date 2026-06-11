@@ -2,61 +2,101 @@
 
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { REVISION_STATUS } from "@/lib/constants/practice"; // 👈 Clean import
+import { PracticeSessionSchema } from "@/lib/validations/practice";
+import { Prisma } from "@prisma/client";
+import { randomUUID } from "crypto";
 import { revalidatePath } from "next/cache";
-import { z } from "zod";
 
-const PracticeSessionSchema = z.object({
-  subject: z.string().min(1, "Subject is required"),
-  topic: z.string().min(1, "Topic is required"),
-  totalQuestions: z.coerce.number().min(0),
-  correctQuestions: z.coerce.number().min(0),
-  durationSeconds: z.coerce.number().min(0),
-});
-
-/**
- * Helper to fetch the user ID efficiently
- */
-async function getAuthenticatedUserId() {
+export async function savePracticeSession(rawInput: unknown) {
   const session = await auth();
-  if (!session?.user?.email) throw new Error("Unauthorized");
-  
-  const user = await prisma.user.findUnique({
-    where: { email: session.user.email },
-    select: { id: true },
-  });
-
-  if (!user) throw new Error("User not found");
-  return user.id;
-}
-
-export async function savePracticeSession(formData: FormData) {
-  const userId = await getAuthenticatedUserId();
-
-  const validation = PracticeSessionSchema.safeParse(Object.fromEntries(formData.entries()));
-
-  if (!validation.success) {
-    throw new Error("Invalid practice session data");
+  if (!session?.user?.email) {
+    return { success: false, error: "Unauthorized access context" };
   }
 
-  const { subject, topic, totalQuestions, correctQuestions, durationSeconds } = validation.data;
+  const payload = rawInput instanceof FormData 
+    ? Object.fromEntries(rawInput.entries()) 
+    : rawInput;
 
-  const incorrectQuestions = totalQuestions - correctQuestions;
-  const accuracy = totalQuestions > 0 ? (correctQuestions / totalQuestions) * 100 : 0;
-  const qpm = durationSeconds > 0 ? totalQuestions / (durationSeconds / 60) : 0;
+  const validationResult = PracticeSessionSchema.safeParse(payload);
+  if (!validationResult.success) {
+    return { 
+      success: false, 
+      error: "Validation failure", 
+      details: validationResult.error.format() 
+    };
+  }
 
-  await prisma.practiceSession.create({
-    data: {
-      userId,
-      subject,
-      topic,
-      totalQuestions,
-      correctQuestions,
-      incorrectQuestions,
-      durationSeconds,
-      accuracy,
-      qpm,
-    },
-  });
+  const { 
+    subject, 
+    topic, 
+    totalQuestions, 
+    correctQuestions, 
+    durationSeconds, 
+    difficulty, 
+    notes,
+    confidenceScore,
+    revisionStatus 
+  } = validationResult.data;
 
-  revalidatePath("/practice");
+  const incorrectQuestions = Math.max(0, totalQuestions - correctQuestions);
+  
+  const accuracy = totalQuestions > 0 
+    ? Number(((correctQuestions / totalQuestions) * 100).toFixed(2)) 
+    : 0;
+    
+  const qpm = durationSeconds > 0 
+    ? Number((totalQuestions / (durationSeconds / 60)).toFixed(2)) 
+    : 0;
+
+  try {
+    const user = await prisma.user.findUnique({
+      where: { email: session.user.email },
+      select: { id: true },
+    });
+
+    if (!user) {
+      return { success: false, error: "User context matching record not found" };
+    }
+
+    const recordedSession = await prisma.practiceSession.create({
+      data: {
+        sessionUuid: randomUUID(),
+        userId: user.id,
+        subject,
+        topic,
+        difficulty,
+        totalQuestions,
+        correctQuestions,
+        incorrectQuestions,
+        durationSeconds,
+        accuracy,
+        qpm,
+        mistakeCount: incorrectQuestions, 
+        revisionStatus: revisionStatus ?? REVISION_STATUS.UNRESOLVED, // 👈 Zero string literals
+        confidenceScore,
+        notes: notes?.trim() || undefined,
+      },
+    });
+
+    revalidatePath("/practice");
+    revalidatePath("/practice/history");
+    revalidatePath("/practice/analytics");
+
+    return { success: true, data: recordedSession };
+  } catch (error) {
+    console.error("[CRITICAL_SAVE_SESSION_FAILURE]:", error);
+
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+      return {
+        success: false,
+        error: "Duplicate session detected.",
+      };
+    }
+
+    return { 
+      success: false, 
+      error: error instanceof Error ? error.message : "An unexpected database error occurred" 
+    };
+  }
 }

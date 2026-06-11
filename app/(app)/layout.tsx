@@ -7,10 +7,9 @@ import type { ReactNode } from "react";
 import { PageContainer } from "@/components/layout/page-container";
 import { Menu, X } from "lucide-react";
 import { navigationGroups } from "@/lib/navigation";
-import { user } from "@/lib/user";
 import { appConfig } from "@/lib/app-config";
-import { getInitials } from "@/lib/formatters";
 import { widePages } from "@/lib/page-layouts";
+import { Footer } from "@/components/ui/Footer";
 
 export default function AppLayout({ children }: { children: ReactNode }) {
   const [isOpen, setIsOpen] = useState(false);
@@ -25,7 +24,6 @@ export default function AppLayout({ children }: { children: ReactNode }) {
   const containerSize = isWidePage ? "wide" : "default";
 
   return (
-    // FIXED: Removed dark variant, applied core background color directly
     <div className="min-h-screen flex bg-[#090D16] text-slate-200 transition-colors duration-200">
       {/* Mobile Backdrop */}
       {isOpen && (
@@ -41,7 +39,6 @@ export default function AppLayout({ children }: { children: ReactNode }) {
         transform transition-transform duration-300 ease-in-out md:translate-x-0
         ${isOpen ? "translate-x-0" : "-translate-x-full"}
       `}>
-        {/* ... (Sidebar content remains same) */}
         <div className="p-6 border-b border-white/[0.06] flex justify-between items-center">
           <h1 className="text-xl font-bold tracking-tight text-white flex items-center gap-2">
             <div className="h-2 w-2 rounded-full bg-indigo-500" />
@@ -83,25 +80,25 @@ export default function AppLayout({ children }: { children: ReactNode }) {
             </div>
           ))}
         </nav>
-        {/* ... (Footer content remains same) */}
       </aside>
 
       {/* Main Content */}
-      {/* FIXED: Removed dark variant, applied core background color directly */}
       <main className="md:ml-64 flex-1 flex flex-col min-w-0 overflow-x-hidden bg-[#090D16] transition-colors duration-300">
         <header className="md:hidden p-4 border-b border-white/[0.06] flex items-center justify-between">
-            <button onClick={() => setIsOpen(true)} className="p-2 hover:bg-white/[0.04] rounded-lg text-white">
-              <Menu className="h-6 w-6" />
-            </button>
-            <h1 className="font-bold text-lg text-white">{appConfig.name}</h1>
+          <button onClick={() => setIsOpen(true)} className="p-2 hover:bg-white/[0.04] rounded-lg text-white">
+            <Menu className="h-6 w-6" />
+          </button>
+          <h1 className="font-bold text-lg text-white">{appConfig.name}</h1>
         </header>
 
         <div className="flex-1">
-          {/* Passed the correctly evaluated containerSize */}
           <PageContainer size={containerSize}>
             {children}
           </PageContainer>
         </div>
+
+        {/* ✅ Injected Global Application Footer Element */}
+        <Footer />
       </main>
     </div>
   );

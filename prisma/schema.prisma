@@ -7,6 +7,10 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// ─────────────────────────────────────────────────────────────────
+// ENUMS
+// ─────────────────────────────────────────────────────────────────
+
 enum MockType {
   PRELIMS
   MAINS
@@ -20,6 +24,22 @@ enum MistakeType {
   CALCULATION
   QUESTION_MISREAD
 }
+
+enum RevisionStatus {
+  UNRESOLVED
+  IN_PROGRESS
+  MASTERED
+}
+
+enum Difficulty {
+  EASY
+  MEDIUM
+  HARD
+}
+
+// ─────────────────────────────────────────────────────────────────
+// CORE SYSTEM MODELS
+// ─────────────────────────────────────────────────────────────────
 
 model User {
   id            String    @id @default(cuid())
@@ -56,18 +76,16 @@ model TopicProgress {
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  // 🚀 OPTIMIZATION: Faster user reads + required unique constraint for single-trip upserts
-  @@index([userId, subject, completed])
   @@unique([userId, subject, topicName])
+  @@index([userId, subject, completed])
 }
 
 model StudySession {
-  id       String @id @default(cuid())
-  userId   String
-  subject  String
-  topic    String
-  duration Int
-
+  id        String   @id @default(cuid())
+  userId    String
+  subject   String
+  topic     String
+  duration  Int
   completed Boolean  @default(false)
   createdAt DateTime @default(now())
 
@@ -100,30 +118,33 @@ model Revision {
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  // 🚀 OPTIMIZATION: Fast filtering on upcoming tasks + unique lookup limit constraint
-  @@index([userId, nextRevision])
   @@unique([userId, topic])
+  @@index([userId, nextRevision])
 }
 
+// ─────────────────────────────────────────────────────────────────
+// MOCK TEST ARCHITECTURE
+// ─────────────────────────────────────────────────────────────────
+
 model MockTest {
-  id                 String    @id @default(cuid())
-  userId             String
-  exam               String
-  title              String?
-  mockType           MockType?
-  score              Float
-  totalQuestions     Int
-  attemptedQuestions Int       @default(0)
-  correctAnswers     Int       @default(0)
-  incorrectAnswers   Int       @default(0)
-  unattemptedQuestions Int     @default(0)
-  accuracy           Float
-  percentile         Float?
-  rank               Int?
-  duration           Int?
-  notes              String?
-  createdAt          DateTime  @default(now())
-  updatedAt          DateTime  @updatedAt
+  id                   String                  @id @default(cuid())
+  userId               String
+  exam                 String
+  title                String?
+  mockType             MockType?
+  score                Float
+  totalQuestions       Int
+  attemptedQuestions   Int                     @default(0)
+  correctAnswers       Int                     @default(0)
+  incorrectAnswers     Int                     @default(0)
+  unattemptedQuestions Int                     @default(0)
+  accuracy             Float
+  percentile           Float?
+  rank                 Int?
+  duration             Int?
+  notes                String?
+  createdAt            DateTime                @default(now())
+  updatedAt            DateTime                @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -150,7 +171,7 @@ model MockSubjectPerformance {
   timeSpent      Int?
   createdAt      DateTime @default(now())
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   mock MockTest @relation(fields: [mockId], references: [id], onDelete: Cascade)
 
   @@index([userId])
@@ -170,7 +191,7 @@ model MockTopicPerformance {
   accuracy  Float
   createdAt DateTime @default(now())
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   mock MockTest @relation(fields: [mockId], references: [id], onDelete: Cascade)
 
   @@index([userId])
@@ -178,6 +199,10 @@ model MockTopicPerformance {
   @@index([subject])
   @@index([topic])
 }
+
+// ─────────────────────────────────────────────────────────────────
+// DIAGNOSTIC MISTAKE ENGINE
+// ─────────────────────────────────────────────────────────────────
 
 model MistakeEntry {
   id          String    @id @default(cuid())
@@ -202,16 +227,16 @@ model MistakeEntry {
 }
 
 model Mistake {
-  id          String   @id @default(cuid())
+  id          String      @id @default(cuid())
   userId      String
   subject     String
   topic       String?
   question    String
-  mistakeType String
+  mistakeType MistakeType 
   notes       String?
-  resolved    Boolean  @default(false)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  resolved    Boolean     @default(false)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -219,6 +244,52 @@ model Mistake {
   @@index([subject])
   @@index([resolved])
 }
+
+// ─────────────────────────────────────────────────────────────────
+// DRILL RUN ENGINE (Sprint 3 Specification Blueprint)
+// ─────────────────────────────────────────────────────────────────
+
+model PracticeSession {
+  id                 String         @id @default(cuid())
+  sessionUuid        String         // High-integrity trace key generated at the server boundary
+
+  userId             String
+  user               User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  subject            String
+  topic              String
+  difficulty         Difficulty?    // Type-safe enum configuration: EASY • MEDIUM • HARD
+
+  totalQuestions     Int
+  correctQuestions   Int
+  incorrectQuestions Int
+  durationSeconds    Int
+  accuracy           Float
+  qpm                Float          // Questions Per Minute velocity index
+
+  mistakeCount       Int            @default(0)
+  revisionStatus     RevisionStatus @default(UNRESOLVED)
+  confidenceScore    Int?           // Service layer mapping matrix: 1 to 5
+  notes              String?        // Qualitative post-execution thoughts
+
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
+
+  @@unique([userId, sessionUuid]) // Defends table against client transaction retries
+
+  // Scoped compound indexes for real-time complex data dashboard queries
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([userId, subject])
+  @@index([userId, topic])
+  @@index([userId, revisionStatus])
+  @@index([userId, confidenceScore])
+
+  @@map("practice_sessions")
+}
+
+// ─────────────────────────────────────────────────────────────────
+// PLATFORM METADATA & IDENTITY MANAGEMENT
+// ─────────────────────────────────────────────────────────────────
 
 model ExamProfile {
   id         String   @id @default(cuid())
@@ -277,26 +348,6 @@ model Notification {
 
   @@index([userId])
   @@index([read])
-}
-
-model PracticeSession {
-  id                 String   @id @default(cuid())
-  userId             String
-  subject            String
-  topic              String
-  totalQuestions     Int
-  correctQuestions   Int
-  incorrectQuestions Int
-  durationSeconds    Int
-  accuracy           Float
-  qpm                Float
-  createdAt          DateTime @default(now())
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId])
-  @@index([subject])
-  @@index([topic])
 }
 
 model VerificationToken {
