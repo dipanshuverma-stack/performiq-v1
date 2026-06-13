@@ -1,0 +1,47 @@
+import { PrismaClient } from "@prisma/client";
+import { ALL_SYLLABUS_TOPICS } from "../config/syllabus";
+
+const prisma = new PrismaClient();
+
+async function main() {
+  console.log("🚀 Initializing PerformIQ Syllabus Data Syncer...");
+
+  // 1. Soft-deprecate ALL topics first to handle removals
+  await prisma.topic.updateMany({
+    data: { isActive: false },
+  });
+
+  // 2. Safely upsert in a simple loop
+  let count = 0;
+  for (const topic of ALL_SYLLABUS_TOPICS) {
+    await prisma.topic.upsert({
+      where: { id: topic.id },
+      update: {
+        name: topic.name,
+        displayOrder: topic.displayOrder,
+        isActive: true, 
+      },
+      create: {
+        id: topic.id,
+        slug: topic.slug,
+        subject: topic.subject,
+        section: topic.section,
+        name: topic.name,
+        displayOrder: topic.displayOrder,
+        isActive: true,
+      },
+    });
+    count++;
+  }
+
+  console.log(`✅ Successfully synced ${count} active master topics.`);
+}
+
+main()
+  .catch((e) => {
+    console.error("❌ Seed exception: ", e);
+    process.exit(1);
+  })
+  .finally(async () => {
+    await prisma.$disconnect();
+  });
