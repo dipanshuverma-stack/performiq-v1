@@ -752,6 +752,8 @@ export const ALL_SYLLABUS_TOPICS = Object.values(Subject).flatMap((subject) =>
   }))
 );
 
+export const TOTAL_TOPIC_COUNT = ALL_SYLLABUS_TOPICS.length;
+
 export const getTopicsBySubject = (subject: Subject): SyllabusTopic[] => BANKING_SYLLABUS[subject];
 
 /**
