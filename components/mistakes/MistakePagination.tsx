@@ -17,6 +17,23 @@ export function MistakePagination({ currentPage, totalPages }: PaginationProps) 
     router.replace(`/mistakes?${params.toString()}`);
   };
 
+  const navButtonClasses = `
+    h-11
+    px-5
+    rounded-2xl
+    border
+    border-white/[0.08]
+    bg-[#0E121B]
+    text-zinc-200
+    font-semibold
+    transition-all
+    duration-300
+    hover:border-indigo-500/30
+    hover:bg-white/[0.03]
+    disabled:opacity-40
+    disabled:cursor-not-allowed
+  `;
+
   const renderPageNodes = () => {
     const nodes: (number | string)[] = [];
     
@@ -35,7 +52,7 @@ export function MistakePagination({ currentPage, totalPages }: PaginationProps) 
     return nodes.map((node, index) => {
       if (node === "...") {
         return (
-          <span key={`ellipse-${index}`} className="w-9 h-9 flex items-center justify-center text-gray-400 select-none">
+          <span key={`ellipse-${index}`} className="flex h-11 w-11 items-center justify-center text-zinc-500 font-bold select-none">
             ...
           </span>
         );
@@ -46,11 +63,19 @@ export function MistakePagination({ currentPage, totalPages }: PaginationProps) 
         <button
           key={`page-${node}`}
           onClick={() => handlePageChange(node as number)}
-          className={`w-9 h-9 font-bold rounded-lg transition-colors cursor-pointer text-xs ${
-            isCurrent 
-              ? "bg-blue-600 text-white shadow-sm shadow-blue-500/10" 
-              : "border border-gray-200 bg-white hover:bg-gray-50 text-gray-700"
-          }`}
+          className={`
+            h-11
+            w-11
+            rounded-2xl
+            font-semibold
+            transition-all
+            duration-300
+            ${
+              isCurrent
+                ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg shadow-indigo-900/30"
+                : "border border-white/[0.08] bg-[#0E121B] text-zinc-300 hover:border-indigo-500/30 hover:bg-white/[0.03]"
+            }
+          `}
         >
           {node}
         </button>
@@ -59,24 +84,40 @@ export function MistakePagination({ currentPage, totalPages }: PaginationProps) 
   };
 
   return (
-    <div className="flex items-center justify-center gap-1.5 text-sm pt-4">
-      <button
-        disabled={currentPage === 1}
-        onClick={() => handlePageChange(currentPage - 1)}
-        className="px-3 py-1.5 text-xs rounded-lg border border-gray-200 bg-white font-bold hover:bg-gray-50 disabled:opacity-40 transition-colors cursor-pointer disabled:cursor-not-allowed"
-      >
-        Previous
-      </button>
+    <div className="flex flex-col items-center gap-5 pt-8">
+      
+      {/* Page Context */}
+      <p className="text-sm text-muted-foreground">
+        Page{" "}
+        <span className="font-semibold text-white">
+          {currentPage}
+        </span>{" "}
+        of{" "}
+        <span className="font-semibold text-white">
+          {totalPages}
+        </span>
+      </p>
 
-      {renderPageNodes()}
+      {/* Controls Container */}
+      <div className="flex items-center gap-2">
+        <button
+          disabled={currentPage === 1}
+          onClick={() => handlePageChange(currentPage - 1)}
+          className={navButtonClasses}
+        >
+          ← Previous
+        </button>
 
-      <button
-        disabled={currentPage === totalPages}
-        onClick={() => handlePageChange(currentPage + 1)}
-        className="px-3 py-1.5 text-xs rounded-lg border border-gray-200 bg-white font-bold hover:bg-gray-50 disabled:opacity-40 transition-colors cursor-pointer disabled:cursor-not-allowed"
-      >
-        Next
-      </button>
+        {renderPageNodes()}
+
+        <button
+          disabled={currentPage === totalPages}
+          onClick={() => handlePageChange(currentPage + 1)}
+          className={navButtonClasses}
+        >
+          Next →
+        </button>
+      </div>
     </div>
   );
 }
