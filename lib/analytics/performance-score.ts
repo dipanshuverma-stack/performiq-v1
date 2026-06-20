@@ -1,27 +1,47 @@
-import { cache } from 'react';
-import { unstable_cache } from "next/cache";
+
 import { getPracticeAnalytics } from "./practice-analytics";
+import { getPracticeConsistency } from "./practice-consistency";
 
-// 💡 Wrap everything in an outer function so 'userId' is available to both cache engines
-export const getPerformanceScore = (userId: string) =>
-  unstable_cache(
-    // 1. React 'cache' memoizes this execution for the duration of a single request
-    cache(async () => {
-      const practice = await getPracticeAnalytics(userId);
+export interface PerformanceScore {
+  score: number;
+  accuracyScore: number;
+  speedScore: number;
+  consistencyScore: number;
+}
 
-      const score = Math.round(
-        practice.averageAccuracy * 0.7 + practice.speedScore * 0.3
-      );
+export async function getPerformanceScore(
+  userId: string
+): Promise<PerformanceScore> {
+  const [
+    practice,
+    consistency,
+  ] = await Promise.all([
+    getPracticeAnalytics(userId),
+    getPracticeConsistency(userId),
+  ]);
 
-      return {
-        score,
-        accuracy: practice.averageAccuracy,
-        speedScore: practice.speedScore,
-      };
-    }),
-    ["performance-score", userId], // ✅ FIXED: 'userId' is now perfectly in scope here!
-    {
-      revalidate: 3600, // Cache results globally for 1 hour
-      tags: ["performance"],
-    }
-  )(); // 💡 CRITICAL: Invokes the execution chain immediately
+  const accuracyScore =
+    practice.averageAccuracy;
+
+  const speedScore =
+    practice.speedScore;
+
+  const consistencyScore =
+    consistency.consistencyScore;
+
+  const score = Math.round(
+    accuracyScore * 0.45 +
+      speedScore * 0.30 +
+      consistencyScore * 0.25
+  );
+
+  return {
+    score,
+
+    accuracyScore,
+
+    speedScore,
+
+    consistencyScore,
+  };
+}

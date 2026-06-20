@@ -1,7 +1,7 @@
-// app/practice/page.tsx
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { PracticeDashboard } from "@/components/practice/practice-dashboard";
+import { PracticeSessionData } from "@/components/practice/core/session-types";
 
 export default async function PracticePage() {
   const session = await auth();
@@ -21,23 +21,32 @@ export default async function PracticePage() {
 
   const rawSessions = await prisma.practiceSession.findMany({
     where: { userId: user.id },
-    orderBy: { createdAt: "desc" },
+    select: {
+      id: true,
+      subject: true,
+      topic: true,
+      durationSeconds: true,
+      accuracy: true,
+      createdAt: true,
+      totalQuestions: true, 
+    },
+    orderBy: {
+      createdAt: "desc",
+    },
     take: 5,
   });
 
-  /**
-   * Strict Structural Mapping Matrix:
-   * Explicitly shape our collection to match the component's contract.
-   * This completely avoids type-narrowing bugs between Prisma objects and React interfaces.
-   */
-  const recentSessions = rawSessions.map((s) => ({
+  const recentSessions: PracticeSessionData[] = rawSessions.map((s) => ({
     id: s.id,
     subject: s.subject,
     topic: s.topic,
+    durationSeconds: s.durationSeconds ?? 0,
     accuracy: s.accuracy,
     createdAt: s.createdAt,
+    attemptsCount: s.totalQuestions,
   }));
 
+  // ✅ Clean, minimal, and fully type-safe allocation rendering
   return (
     <PracticeDashboard
       recentSessions={recentSessions}

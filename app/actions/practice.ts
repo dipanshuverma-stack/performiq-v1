@@ -2,7 +2,7 @@
 
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import { REVISION_STATUS } from "@/lib/constants/practice"; // 👈 Clean import
+import { REVISION_STATUS } from "@/lib/constants/practice";
 import { PracticeSessionSchema } from "@/lib/validations/practice";
 import { Prisma } from "@prisma/client";
 import { randomUUID } from "crypto";
@@ -73,7 +73,7 @@ export async function savePracticeSession(rawInput: unknown) {
         accuracy,
         qpm,
         mistakeCount: incorrectQuestions, 
-        revisionStatus: revisionStatus ?? REVISION_STATUS.UNRESOLVED, // 👈 Zero string literals
+        revisionStatus: revisionStatus ?? REVISION_STATUS.UNRESOLVED,
         confidenceScore,
         notes: notes?.trim() || undefined,
       },
@@ -99,4 +99,44 @@ export async function savePracticeSession(rawInput: unknown) {
       error: error instanceof Error ? error.message : "An unexpected database error occurred" 
     };
   }
+}
+
+export async function deletePracticeSession(id: string) {
+  const session = await auth();
+
+  if (!session?.user?.email) {
+    return {
+      success: false,
+      error: "Unauthorized",
+    };
+  }
+
+  const user = await prisma.user.findUnique({
+    where: {
+      email: session.user.email,
+    },
+    select: {
+      id: true,
+    },
+  });
+
+  if (!user) {
+    return {
+      success: false,
+      error: "User not found",
+    };
+  }
+
+  await prisma.practiceSession.deleteMany({
+    where: {
+      id,
+      userId: user.id,
+    },
+  });
+
+  revalidatePath("/practice");
+
+  return {
+    success: true,
+  };
 }

@@ -3,7 +3,6 @@
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
-import { z } from "zod";
 
 /**
  * Helper to fetch user ID efficiently
@@ -24,28 +23,34 @@ async function getAuthenticatedUserId() {
 export async function createTask(formData: FormData) {
   const userId = await getAuthenticatedUserId();
   
-  const title = formData.get("title") as string;
-  if (!title?.trim()) return;
+  const title = String(formData.get("title") ?? "").trim();
+  if (title.length < 1 || title.length > 120) {
+    throw new Error("Invalid task title");
+  }
 
   await prisma.task.create({
     data: {
-      title: title.trim(),
+      title,
       userId,
     },
   });
 
   revalidatePath("/tasks");
+  revalidatePath("/dashboard");
 }
 
 export async function toggleTask(taskId: string) {
   const userId = await getAuthenticatedUserId();
 
-  // Verify ownership: Only allow toggling tasks that belong to the current user
-  const task = await prisma.task.findFirst({
-    where: { id: taskId, userId },
+  // Use findUnique for primary key index efficiency
+  const task = await prisma.task.findUnique({
+    where: { id: taskId },
+    select: { completed: true, userId: true },
   });
 
-  if (!task) throw new Error("Task not found or unauthorized");
+  if (!task || task.userId !== userId) {
+    throw new Error("Task not found or unauthorized");
+  }
 
   await prisma.task.update({
     where: { id: taskId },
@@ -53,21 +58,26 @@ export async function toggleTask(taskId: string) {
   });
 
   revalidatePath("/tasks");
+  revalidatePath("/dashboard");
 }
 
 export async function deleteTask(taskId: string) {
   const userId = await getAuthenticatedUserId();
 
-  // Verify ownership before deletion
-  const task = await prisma.task.findFirst({
-    where: { id: taskId, userId },
+  // Explicit ownership check via findUnique
+  const task = await prisma.task.findUnique({
+    where: { id: taskId },
+    select: { userId: true },
   });
 
-  if (!task) throw new Error("Task not found or unauthorized");
+  if (!task || task.userId !== userId) {
+    throw new Error("Task not found or unauthorized");
+  }
 
   await prisma.task.delete({
     where: { id: taskId },
   });
 
   revalidatePath("/tasks");
+  revalidatePath("/dashboard");
 }

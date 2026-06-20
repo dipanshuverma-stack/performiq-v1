@@ -3,15 +3,7 @@
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { Subject } from "@prisma/client";
-
-// ✅ Explicitly maps UI names directly to strict database enum keys
-const SUBJECT_MAP: Record<string, Subject> = {
-  Reasoning: "REASONING_ABILITY",
-  Quant: "QUANTITATIVE_APTITUDE",
-  English: "ENGLISH_LANGUAGE",
-  GA: "GENERAL_AWARENESS",
-  Computer: "COMPUTER_AWARENESS",
-};
+import { SUBJECT_MAP } from "@/config/subjects";
 
 export async function saveSubjectPerformance(formData: FormData) {
   const mockId = formData.get("mockId") as string;

@@ -1,9 +1,22 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { Subject, Difficulty, RevisionStatus } from "@prisma/client";
 import { CONFIDENCE_LEVELS } from "@/lib/constants/practice";
 import { SUBJECT_LABELS } from "@/config/syllabus";
+import { updatePracticeSessionNotes } from "@/app/(app)/practice/history/actions";
+import { deletePracticeSession } from "@/app/(app)/practice/history/actions";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 interface DrawerSession {
   id: string;
@@ -28,10 +41,40 @@ interface DrawerProps {
 
 export function SessionDetailDrawer({ session, onClose }: DrawerProps) {
   const closeButtonRef = useRef<HTMLButtonElement>(null);
+  const [isPending, startTransition] = useTransition();
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [editingNotes, setEditingNotes] = useState(false);
+  const [notes, setNotes] = useState(session?.notes ?? "");
+
+  // ✅ 1. Added dynamic dirty state tracking for live buffer alterations
+  const hasUnsavedChanges = notes.trim() !== (session?.notes ?? "").trim();
+
+  useEffect(() => {
+    if (session) {
+      setNotes(session.notes ?? "");
+      setEditingNotes(false);
+    }
+  }, [session]);
 
   useEffect(() => {
     if (!session) return;
-    function handleKeyDown(e: KeyboardEvent) { if (e.key === "Escape") onClose(); }
+    
+    // ✅ 3. Updated Escape key keydown event listener with confirm dialogue guards
+    function handleKeyDown(e: KeyboardEvent) { 
+      if (e.key !== "Escape") return;
+      if (deleteOpen) return;
+
+      if (
+        editingNotes &&
+        hasUnsavedChanges &&
+        !window.confirm("You have unsaved notes. Discard changes?")
+      ) {
+        return;
+      }
+
+      onClose(); 
+    }
+    
     window.addEventListener("keydown", handleKeyDown);
     closeButtonRef.current?.focus();
     document.body.style.overflow = "hidden";
@@ -39,9 +82,25 @@ export function SessionDetailDrawer({ session, onClose }: DrawerProps) {
       window.removeEventListener("keydown", handleKeyDown);
       document.body.style.overflow = "";
     };
-  }, [session, onClose]);
+  }, [session, onClose, deleteOpen, editingNotes, hasUnsavedChanges]);
 
   if (!session) return null;
+
+  async function handleSaveNotes() {
+    if (!session) return;
+
+    startTransition(async () => {
+      try {
+        await updatePracticeSessionNotes(
+          session.id,
+          notes.trim()
+        );
+        setEditingNotes(false);
+      } catch (error) {
+        console.error("Failed to update session observations:", error);
+      }
+    });
+  }
 
   const confidence = session.confidenceScore 
     ? CONFIDENCE_LEVELS[session.confidenceScore as keyof typeof CONFIDENCE_LEVELS] 
@@ -50,7 +109,24 @@ export function SessionDetailDrawer({ session, onClose }: DrawerProps) {
   return (
     <div className="fixed inset-0 z-50 overflow-hidden" role="dialog" aria-modal="true">
       <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm transition-opacity" onClick={onClose} />
+        {/* ✅ 2. Updated backdrop click event with confirmation interceptors */}
+        <div 
+          className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm transition-opacity" 
+          onClick={() => {
+            if (deleteOpen) return;
+
+            if (
+              editingNotes &&
+              hasUnsavedChanges &&
+              !window.confirm("You have unsaved notes. Discard changes?")
+            ) {
+              return;
+            }
+
+            onClose();
+          }} 
+        />
+        
         <div className="pointer-events-none fixed inset-y-0 right-0 flex max-w-full pl-10">
           <div className="pointer-events-auto w-screen max-w-md transform bg-white shadow-2xl border-l border-gray-100 flex flex-col justify-between transition-all duration-300">
             
@@ -62,10 +138,22 @@ export function SessionDetailDrawer({ session, onClose }: DrawerProps) {
                   </span>
                   <h2 className="text-lg font-bold text-gray-900 mt-1">{session.topic}</h2>
                 </div>
+                {/* ✅ 4. Updated top frame close button execution logic */}
                 <button 
                   ref={closeButtonRef}
-                  onClick={onClose}
-                  className="rounded-lg p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-700 transition-all text-sm"
+                  onClick={() => {
+                    if (
+                      editingNotes &&
+                      hasUnsavedChanges &&
+                      !window.confirm("You have unsaved notes. Discard changes?")
+                    ) {
+                      return;
+                    }
+
+                    onClose();
+                  }}
+                  disabled={isPending || deleteOpen}
+                  className="rounded-lg p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-700 transition-all text-sm disabled:opacity-50"
                 >
                   ✕
                 </button>
@@ -129,19 +217,131 @@ export function SessionDetailDrawer({ session, onClose }: DrawerProps) {
               {/* Performance Observations */}
               <div className="border-t border-slate-100 pt-4 space-y-2">
                 <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Performance Observations</h4>
-                <div className="bg-slate-50 p-4 rounded-xl text-xs leading-relaxed text-slate-600 italic border border-slate-100 whitespace-pre-wrap">
-                  {session.notes && session.notes.trim().length > 0
-                    ? session.notes
-                    : "No customized analytical observation logs appended to this run session."}
+                <div className="space-y-3">
+                  {editingNotes ? (
+                    <textarea
+                      value={notes}
+                      onChange={(e) => setNotes(e.target.value)}
+                      rows={5}
+                      disabled={isPending}
+                      className="w-full rounded-xl border border-slate-200 p-3 text-sm resize-none focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50"
+                      placeholder="Write your observations..."
+                    />
+                  ) : (
+                    <div className="bg-slate-50 p-4 rounded-xl text-xs leading-relaxed text-slate-600 italic border border-slate-100 whitespace-pre-wrap">
+                      {notes.trim().length > 0
+                        ? notes
+                        : "No customized analytical observation logs appended to this run session."}
+                    </div>
+                  )}
+
+                  <div className="flex gap-2">
+                    {!editingNotes ? (
+                      <button
+                        type="button"
+                        onClick={() => setEditingNotes(true)}
+                        disabled={isPending || deleteOpen}
+                        className="rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold hover:bg-slate-50 disabled:opacity-50"
+                      >
+                        Edit Notes
+                      </button>
+                    ) : (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setNotes(session.notes ?? "");
+                            setEditingNotes(false);
+                          }}
+                          disabled={isPending}
+                          className="rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold hover:bg-slate-50"
+                        >
+                          Cancel
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={handleSaveNotes}
+                          disabled={isPending}
+                          className="rounded-lg bg-blue-600 px-3 py-2 text-xs font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
+                        >
+                          {isPending ? "Saving..." : "Save"}
+                        </button>
+                      </>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
 
-            <div className="p-4 border-t border-gray-100 bg-slate-50/50">
-              <button onClick={onClose} className="w-full text-xs font-bold py-2.5 rounded-xl bg-white border border-gray-200 text-gray-700 shadow-sm hover:bg-gray-50 transition-all">
+            {/* Actions Block Footer */}
+            <div className="p-4 border-t border-gray-100 bg-slate-50/50 flex items-center gap-3">
+              
+              <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+                <AlertDialogTrigger asChild>
+                  <button
+                    type="button"
+                    disabled={isPending || editingNotes}
+                    className="flex-1 text-xs font-bold py-2.5 rounded-xl bg-red-600 text-white shadow-sm hover:bg-red-700 disabled:opacity-50 transition-all text-center"
+                  >
+                    Delete Session
+                  </button>
+                </AlertDialogTrigger>
+
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Delete Practice Session?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      This will permanently remove this practice session and update all
+                      analytics, streaks and performance metrics. This action cannot be undone.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  
+                  <AlertDialogFooter>
+                    <AlertDialogCancel disabled={isPending}>Cancel</AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={(e) => {
+                        e.preventDefault();
+                        startTransition(async () => {
+                          try {
+                            await deletePracticeSession(session.id);
+                            setDeleteOpen(false);
+                            onClose();
+                          } catch (error) {
+                            console.error("Friction layer mutation failure:", error);
+                          }
+                        });
+                      }}
+                      className="bg-red-600 hover:bg-red-700 text-white font-semibold"
+                      disabled={isPending}
+                    >
+                      {isPending ? "Deleting..." : "Delete"}
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+              
+              {/* ✅ 5. Updated footer frame close button execution logic */}
+              <button 
+                type="button"
+                onClick={() => {
+                  if (
+                    editingNotes &&
+                    hasUnsavedChanges &&
+                    !window.confirm("You have unsaved notes. Discard changes?")
+                  ) {
+                    return;
+                  }
+
+                  onClose();
+                }}
+                disabled={isPending || deleteOpen}
+                className="flex-1 text-xs font-bold py-2.5 rounded-xl bg-white border border-gray-200 text-gray-700 shadow-sm hover:bg-gray-50 transition-all text-center disabled:opacity-50"
+              >
                 Close Metrics View
               </button>
             </div>
+
           </div>
         </div>
       </div>

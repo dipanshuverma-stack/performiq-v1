@@ -1,7 +1,8 @@
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
-import { Prisma, RevisionStatus, Subject } from "@prisma/client";
+import { Prisma, RevisionStatus } from "@prisma/client";
+import { getPracticeHistory } from "@/lib/practice/get-practice-history"; // ✅ Added paginated history utility import
 import { HistorySummary } from "@/components/practice/history/history-summary";
 import { HistorySearch } from "@/components/practice/history/HistorySearch";
 import { HistoryFilters } from "@/components/practice/history/HistoryFilters";
@@ -9,6 +10,7 @@ import { HistoryTimeline } from "@/components/practice/history/HistoryTimeline";
 import { HistoryEmpty } from "@/components/practice/history/history-empty";
 import { SubjectStats } from "@/components/practice/history/SubjectStats";
 import { WeakTopics } from "@/components/practice/history/WeakTopics";
+import { SUBJECT_MAP } from "@/config/subjects";
 
 interface HistoryPageProps {
   searchParams: Promise<{
@@ -28,15 +30,6 @@ const SORT_MAP = {
   qpm_ASC: { qpm: "asc" },
 } satisfies Record<string, Prisma.PracticeSessionOrderByWithRelationInput>;
 
-// ✅ Maps incoming display strings safely to strict Prisma client Enums
-const SUBJECT_MAP: Record<string, Subject> = {
-  "Quantitative Aptitude": "QUANTITATIVE_APTITUDE",
-  "Reasoning Ability": "REASONING_ABILITY",
-  "English Language": "ENGLISH_LANGUAGE",
-  "General Awareness": "GENERAL_AWARENESS",
-  "Computer Awareness": "COMPUTER_AWARENESS",
-};
-
 export default async function PracticeHistoryPage({ searchParams }: HistoryPageProps) {
   const session = await auth();
   if (!session?.user?.email) redirect("/login");
@@ -49,7 +42,6 @@ export default async function PracticeHistoryPage({ searchParams }: HistoryPageP
   });
   if (!user) redirect("/login");
 
-  // ✅ Fixed: Safe conditional filter blocks using explicit typecasting maps
   const filtersConditions: Prisma.PracticeSessionWhereInput = {
     userId: user.id,
     ...(resolvedParams.subject && resolvedParams.subject !== "All" && { 
@@ -65,11 +57,11 @@ export default async function PracticeHistoryPage({ searchParams }: HistoryPageP
 
   const orderByCondition = SORT_MAP[resolvedParams.sortBy as keyof typeof SORT_MAP] || { createdAt: "desc" };
 
-  const [sessions, aggregates, subjectGroups, weakTopicGroups] = await Promise.all([
-    prisma.practiceSession.findMany({
+  // Run database transactions and data service aggregations concurrently
+  const [historyResult, aggregates, subjectGroups, weakTopicGroups] = await Promise.all([
+    getPracticeHistory({
       where: filtersConditions,
       orderBy: orderByCondition,
-      take: 50,
     }),
     prisma.practiceSession.aggregate({
       where: filtersConditions,
@@ -83,7 +75,6 @@ export default async function PracticeHistoryPage({ searchParams }: HistoryPageP
       _count: { id: true },
       _avg: { accuracy: true },
     }),
-    // ✅ Fully supported by your updated schema definitions
     prisma.practiceSession.groupBy({
       by: ["topic"],
       where: { userId: user.id, mistakeCount: { gt: 0 } },
@@ -92,6 +83,9 @@ export default async function PracticeHistoryPage({ searchParams }: HistoryPageP
       take: 5,
     }),
   ]);
+
+  // ✅ Extracted sessions array and cursor marker from our historyResult service wrapper
+  const { sessions, nextCursor } = historyResult;
 
   const summaryMetrics = {
     totalSessions: aggregates._count.id ?? 0,
@@ -117,6 +111,9 @@ export default async function PracticeHistoryPage({ searchParams }: HistoryPageP
           {sessions.length === 0 ? (
             <HistoryEmpty />
           ) : (
+            /* Pass sessions forward into your layout timeline component.
+              Note: nextCursor is now ready to be consumed here for infinite-scroll or pagination buttons!
+            */
             <HistoryTimeline sessions={sessions} />
           )}
         </div>

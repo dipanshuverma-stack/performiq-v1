@@ -7,31 +7,26 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// ==========================================
-// CORE AUTH.JS MODELS
-// ==========================================
-
 model User {
-  id            String    @id @default(cuid())
-  email         String?   @unique
-  name          String?
-  emailVerified DateTime? @map("email_verified")
-  image         String?
-
+  id                      String                   @id @default(cuid())
+  email                   String?                  @unique
+  name                    String?
+  emailVerified           DateTime?                @map("email_verified")
+  image                   String?
   accounts                Account[]
-  sessions                Session[]
   examProfiles            ExamProfile[]
-  mistakes                Mistake[]
   mistakeEntries          MistakeEntry[]
+  mistakes                Mistake[]
   mockSubjectPerformances MockSubjectPerformance[]
   mockTests               MockTest[]
   mockTopicPerformances   MockTopicPerformance[]
   notifications           Notification[]
+  practiceSessions        PracticeSession[]        @relation("UserToPracticeSessions")
   revisions               Revision[]
+  sessions                Session[]
   studySessions           StudySession[]
   tasks                   Task[]
   topicProgress           TopicProgress[]
-  practiceSessions        PracticeSession[]        @relation("UserToPracticeSessions")
 
   @@map("users")
 }
@@ -42,15 +37,14 @@ model Account {
   type              String
   provider          String
   providerAccountId String  @map("provider_account_id")
-  refresh_token     String? @db.Text
-  access_token      String? @db.Text
+  refresh_token     String?
+  access_token      String?
   expires_at        Int?
   token_type        String?
   scope             String?
-  id_token          String? @db.Text
+  id_token          String?
   session_state     String?
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerAccountId])
   @@map("accounts")
@@ -61,8 +55,7 @@ model Session {
   sessionToken String   @unique @map("session_token")
   userId       String   @map("user_id")
   expires      DateTime
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("sessions")
 }
@@ -76,20 +69,15 @@ model VerificationToken {
   @@map("verification_tokens")
 }
 
-// ==========================================
-// DOMAIN LEDGERS & BUSINESS METRICS
-// ==========================================
-
 model PracticeSession {
   id                 String         @id @default(cuid())
   sessionUuid        String         @map("session_uuid")
   userId             String         @map("user_id")
-  subject            Subject
   topic              String
   difficulty         Difficulty?
   totalQuestions     Int            @map("total_questions")
-  correctQuestions   Int            @map("correct_questions") // ✅ Restored & Cleaned
-  incorrectQuestions Int            @map("incorrect_questions") // ✅ Restored & Cleaned
+  correctQuestions   Int            @map("correct_questions")
+  incorrectQuestions Int            @map("incorrect_questions")
   durationSeconds    Int            @map("duration_seconds")
   accuracy           Float          @db.Real
   qpm                Float          @db.Real
@@ -99,8 +87,8 @@ model PracticeSession {
   notes              String?
   createdAt          DateTime       @default(now()) @map("created_at")
   updatedAt          DateTime       @updatedAt @map("updated_at")
-
-  user User @relation("UserToPracticeSessions", fields: [userId], references: [id], onDelete: Cascade)
+  subject            Subject
+  user               User           @relation("UserToPracticeSessions", fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, sessionUuid])
   @@index([userId, confidenceScore])
@@ -115,14 +103,13 @@ model ExamProfile {
   id         String   @id @default(cuid())
   userId     String   @map("user_id")
   name       String
-  examType   ExamType
   targetDate DateTime @map("target_date")
   readiness  Float    @default(0)
   isActive   Boolean  @default(false) @map("is_active")
   createdAt  DateTime @default(now()) @map("created_at")
   updatedAt  DateTime @updatedAt @map("updated_at")
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  examType   ExamType
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([isActive])
   @@index([userId])
@@ -132,16 +119,15 @@ model ExamProfile {
 model Mistake {
   id          String      @id @default(cuid())
   userId      String      @map("user_id")
-  subject     Subject
   topic       String?
-  question    String      @db.Text
-  notes       String?     @db.Text
+  question    String
+  notes       String?
   resolved    Boolean     @default(false)
   createdAt   DateTime    @default(now()) @map("created_at")
   updatedAt   DateTime    @updatedAt @map("updated_at")
   mistakeType MistakeType @map("mistake_type")
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subject     Subject
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([resolved])
   @@index([subject])
@@ -152,19 +138,18 @@ model Mistake {
 model MistakeEntry {
   id          String     @id @default(cuid())
   userId      String     @map("user_id")
-  subject     Subject
   topic       String
   createdAt   DateTime   @default(now()) @map("created_at")
-  explanation String?    @db.Text
+  explanation String?
   mockTestId  String?    @map("mock_test_id")
-  question    String     @db.Text
+  question    String
   resolved    Boolean    @default(false)
   source      String?
   updatedAt   DateTime   @updatedAt @map("updated_at")
   difficulty  Difficulty @default(MEDIUM)
-
-  mockTest MockTest? @relation(fields: [mockTestId], references: [id])
-  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subject     Subject
+  mockTest    MockTest?  @relation(fields: [mockTestId], references: [id])
+  user        User       @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([resolved])
   @@index([subject])
@@ -177,18 +162,17 @@ model MockSubjectPerformance {
   id             String   @id @default(cuid())
   userId         String   @map("user_id")
   mockId         String   @map("mock_id")
-  subject        Subject
   totalQuestions Int      @map("total_questions")
   attempted      Int
-  correct        Int      @map("correct_questions") // ✅ Realigned System Naming
-  incorrect      Int      @map("incorrect_questions") // ✅ Realigned System Naming
   score          Float    @db.Real
   accuracy       Float    @db.Real
   timeSpent      Int?     @map("time_spent")
   createdAt      DateTime @default(now()) @map("created_at")
-
-  mockTest MockTest @relation(fields: [mockId], references: [id], onDelete: Cascade)
-  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subject        Subject
+  correct        Int      @map("correct_questions")
+  incorrect      Int      @map("incorrect_questions")
+  mockTest       MockTest @relation(fields: [mockId], references: [id], onDelete: Cascade)
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([mockId])
   @@index([subject])
@@ -197,29 +181,28 @@ model MockSubjectPerformance {
 }
 
 model MockTest {
-  id                   String    @id @default(cuid())
-  userId               String    @map("user_id")
-  exam                 ExamType
+  id                   String                   @id @default(cuid())
+  userId               String                   @map("user_id")
   title                String?
-  mockType             MockType? @map("mock_type")
-  score                Float     @db.Real
-  totalQuestions       Int       @map("total_questions")
-  attemptedQuestions   Int       @default(0) @map("attempted_questions")
-  correctAnswers       Int       @default(0) @map("correct_answers") // ✅ Restored & Cleaned
-  incorrectAnswers     Int       @default(0) @map("incorrect_answers") // ✅ Restored & Cleaned
-  unattemptedQuestions Int       @default(0) @map("unattempted_questions")
-  accuracy             Float     @db.Real
-  percentile           Float?    @db.Real
+  mockType             MockType?                @map("mock_type")
+  score                Float                    @db.Real
+  totalQuestions       Int                      @map("total_questions")
+  attemptedQuestions   Int                      @default(0) @map("attempted_questions")
+  correctAnswers       Int                      @default(0) @map("correct_answers")
+  incorrectAnswers     Int                      @default(0) @map("incorrect_answers")
+  unattemptedQuestions Int                      @default(0) @map("unattempted_questions")
+  accuracy             Float                    @db.Real
+  percentile           Float?                   @db.Real
   rank                 Int?
   duration             Int?
-  notes                String?   @db.Text
-  createdAt            DateTime  @default(now()) @map("created_at")
-  updatedAt            DateTime  @updatedAt @map("updated_at")
-
-  mistakeEntries      MistakeEntry[]
-  subjectPerformances MockSubjectPerformance[]
-  topicPerformances   MockTopicPerformance[]
-  user                User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  notes                String?
+  createdAt            DateTime                 @default(now()) @map("created_at")
+  updatedAt            DateTime                 @updatedAt @map("updated_at")
+  exam                 ExamType
+  mistakeEntries       MistakeEntry[]
+  subjectPerformances  MockSubjectPerformance[]
+  user                 User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  topicPerformances    MockTopicPerformance[]
 
   @@index([createdAt])
   @@index([mockType])
@@ -231,16 +214,15 @@ model MockTopicPerformance {
   id                 String   @id @default(cuid())
   userId             String   @map("user_id")
   mockId             String   @map("mock_id")
-  subject            Subject
   topic              String
-  correctQuestions   Int      @default(0) @map("correct_questions") // ✅ Restored & Cleaned
-  incorrectQuestions Int      @default(0) @map("incorrect_questions") // ✅ Restored & Cleaned
   skipped            Int      @default(0)
   accuracy           Float    @db.Real
   createdAt          DateTime @default(now()) @map("created_at")
-
-  mockTest MockTest @relation(fields: [mockId], references: [id], onDelete: Cascade)
-  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subject            Subject
+  correctQuestions   Int      @default(0) @map("correct_questions")
+  incorrectQuestions Int      @default(0) @map("incorrect_questions")
+  mockTest           MockTest @relation(fields: [mockId], references: [id], onDelete: Cascade)
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([mockId])
   @@index([subject])
@@ -253,11 +235,10 @@ model Notification {
   id        String   @id @default(cuid())
   userId    String   @map("user_id")
   title     String
-  message   String   @db.Text
+  message   String
   read      Boolean  @default(false)
   createdAt DateTime @default(now()) @map("created_at")
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([read])
   @@index([userId])
@@ -267,14 +248,13 @@ model Notification {
 model Revision {
   id            String   @id @default(cuid())
   userId        String   @map("user_id")
-  subject       Subject
   topic         String
   revisionCount Int      @default(0) @map("revision_count")
   nextRevision  DateTime @map("next_revision")
   completed     Boolean  @default(false)
   createdAt     DateTime @default(now()) @map("created_at")
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subject       Subject
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, topic])
   @@index([userId, nextRevision])
@@ -287,10 +267,9 @@ model StudySession {
   createdAt DateTime @default(now()) @map("created_at")
   completed Boolean  @default(false)
   duration  Int
-  subject   Subject
   topic     String
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subject   Subject
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@map("study_sessions")
@@ -302,8 +281,7 @@ model Task {
   title     String
   completed Boolean  @default(false)
   createdAt DateTime @default(now()) @map("created_at")
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@map("tasks")
@@ -317,17 +295,12 @@ model TopicProgress {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
   subject   Subject
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, subject, topicName])
   @@index([userId, subject, completed])
   @@map("topic_progresses")
 }
-
-// ==========================================
-// ENUMS
-// ==========================================
 
 enum RevisionStatus {
   UNRESOLVED

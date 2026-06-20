@@ -10,15 +10,15 @@ export async function getStudyCoach(userId: string) {
   const top3 = priorities.slice(0, 3);
   const messages: string[] = [];
 
-  if (performance.accuracy < 60) {
-    messages.push(
-      "Accuracy is critically low. Focus on solving fewer questions with higher precision."
-    );
-  } else if (performance.accuracy < 80) {
-    messages.push(
-      "Accuracy is improving, but should reach 80%+ before increasing difficulty."
-    );
-  }
+  if (performance.accuracyScore < 60) {
+  messages.push(
+    "Accuracy is critically low. Focus on solving fewer questions with higher precision."
+  );
+} else if (performance.accuracyScore < 80) {
+  messages.push(
+    "Accuracy is improving, but should reach 80%+ before increasing difficulty."
+  );
+}
 
   if (performance.speedScore < 50) {
     messages.push(
@@ -47,8 +47,8 @@ export async function getStudyCoach(userId: string) {
     messages,
 
     performance: {
-      accuracy: performance.accuracy,
-      speedScore: performance.speedScore,
-    },
+  accuracy: performance.accuracyScore,
+  speedScore: performance.speedScore,
+},
   };
 }

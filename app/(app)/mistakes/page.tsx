@@ -1,6 +1,8 @@
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
+import { Prisma } from "@prisma/client";
+import { SUBJECT_MAP } from "@/config/subjects";
 import { getMistakeAnalytics } from "@/lib/analytics/mistake-analytics";
 import { MistakeSummary } from "@/components/mistakes/MistakeSummary";
 import { MistakeSearch } from "@/components/mistakes/MistakeSearch";
@@ -18,6 +20,9 @@ interface MistakesPageProps {
   }>;
 }
 
+// Single, authoritative model delegate source of truth
+const dbDelegate = prisma.mistakeEntry;
+
 const ITEMS_PER_PAGE = 20;
 
 export default async function MistakesPage({ searchParams }: MistakesPageProps) {
@@ -33,19 +38,27 @@ export default async function MistakesPage({ searchParams }: MistakesPageProps) 
   });
   if (!user) redirect("/login");
 
-  // Dynamically target the model delegate whether it's named 'mistake', 'mistakeEntry', or 'mistakes'
-  const dbDelegate = (prisma as any).mistake || (prisma as any).mistakeEntry || (prisma as any).mistakes;
+  // 1. Properly target mistakeEntry's filter type parameters
+  const subjectParam = resolvedParams.subject;
+  let mappedSubject: Prisma.MistakeEntryWhereInput["subject"] | undefined;
 
-  if (!dbDelegate) {
-    return <div className="p-8 text-zinc-400">Error: Mistake database model delegate missing from prisma schema definition.</div>;
+  // 2. Safe, context-guarded lookup without trailing type assertions
+  if (subjectParam && subjectParam !== "All" && subjectParam in SUBJECT_MAP) {
+    mappedSubject = SUBJECT_MAP[subjectParam as keyof typeof SUBJECT_MAP];
   }
 
-  const filtersConditions: any = {
+  // 3. Build query filters bounded cleanly to MistakeEntry definitions
+  const filtersConditions: Prisma.MistakeEntryWhereInput = {
     userId: user.id,
-    ...(resolvedParams.subject && resolvedParams.subject !== "All" && { subject: resolvedParams.subject }),
+    
+    ...(mappedSubject && {
+      subject: mappedSubject,
+    }),
+
     ...(resolvedParams.status && resolvedParams.status !== "All" && {
       resolved: resolvedParams.status === "RESOLVED",
     }),
+
     ...(resolvedParams.search && {
       OR: [
         { topic: { contains: resolvedParams.search, mode: "insensitive" } },
@@ -68,17 +81,17 @@ export default async function MistakesPage({ searchParams }: MistakesPageProps) 
     }),
   ]);
 
-  const serializedMistakes = rawMistakes.map((m: any) => ({
+  // 4. Serialize matching exactly what MistakeEntry provides, ensuring no nulls leak into required string fields
+  const serializedMistakes = rawMistakes.map((m) => ({
     id: m.id,
-    subject: m.subject || "Quantitative Aptitude",
-    topic: m.topic || m.topic || "General",
+    subject: m.subject,
+    topic: m.topic ?? "General",
     createdAt: m.createdAt,
     resolved: m.resolved,
-    question: m.question || "",
-    explanation: m.explanation || "",
-    source: m.source || "",
-    confidenceScore: m.confidenceScore || 3,
-    notes: m.notes || "",
+    question: m.question,
+    explanation: m.explanation ?? "",
+    source: m.source ?? "",
+    difficulty: m.difficulty,
   }));
 
   const totalPages = Math.ceil(totalCount / ITEMS_PER_PAGE);

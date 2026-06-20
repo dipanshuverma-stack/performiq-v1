@@ -1,7 +1,13 @@
-import React, { useState, useMemo } from "react";
+"use client";
+
+import React, { useState, useMemo, useEffect, useRef } from "react";
+import { cn } from "@/lib/utils";
 import { syllabus } from "@/config/syllabus";
 import { ALLOWED_SUBJECTS } from "@/components/practice/core/constants";
-import { PracticeDifficulty } from "@/components/practice/core/types";
+import { SUBJECT_LABELS } from "@/config/syllabus";
+import { PracticeDifficulty } from "@/lib/practice/types";
+import { PRACTICE_DIFFICULTY_LABELS } from "@/config/practice";
+import { GlassCard } from "@/components/ui/glass-card";
 
 interface PracticeSetupProps {
   subject: keyof typeof syllabus;
@@ -14,77 +20,141 @@ interface PracticeSetupProps {
 }
 
 export function PracticeSetup({
-  subject, setSubject, topic, setTopic, difficulty, setDifficulty, onStart
+  subject,
+  setSubject,
+  topic,
+  setTopic,
+  difficulty,
+  setDifficulty,
+  onStart,
 }: PracticeSetupProps) {
   const [search, setSearch] = useState("");
   const [isOpen, setIsOpen] = useState(false);
+ 
+  const wrapperRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    const handleOutsideClick = (event: MouseEvent) => {
+      if (wrapperRef.current && !wrapperRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleOutsideClick);
+    return () => document.removeEventListener("mousedown", handleOutsideClick);
+  }, []);
+
+  useEffect(() => {
+    if (isOpen) {
+      inputRef.current?.focus();
+    }
+  }, [isOpen]);
 
   const filteredTopics = useMemo(() => {
     const currentPool = syllabus[subject] || [];
     if (!search.trim()) return currentPool;
-    return currentPool.filter((t) => t.toLowerCase().includes(search.toLowerCase()));
+    return currentPool.filter((t) =>
+      t.toLowerCase().includes(search.toLowerCase())
+    );
   }, [subject, search]);
 
   return (
-    <div className="bg-[#141b2d] border border-[#1e2640] rounded-2xl p-5 space-y-4 shadow-xl text-zinc-100">
-      <div>
-        <h2 className="text-sm font-black text-white uppercase tracking-wider">Configure Practice Session</h2>
-        <p className="text-[10px] text-zinc-400 font-medium font-mono">Select parameters to initialize your runtime environment.</p>
+    <GlassCard className="p-8 rounded-3xl flex flex-col h-full">
+      {/* Premium Header */}
+      <div className="mb-8">
+        <h2 className="text-3xl font-bold tracking-tight text-white">
+          Configure Practice Session
+        </h2>
+        <p className="mt-2 text-sm leading-6 text-slate-400 max-w-xl">
+          Create a focused practice workspace by selecting a subject, topic and
+          difficulty level before starting your session.
+        </p>
       </div>
 
-      <div className="space-y-3.5">
+      <div className="space-y-8 pt-4 flex-1">
+        {/* Subject Grid */}
         <div>
-          <label className="text-[10px] font-bold text-zinc-400 block mb-1">Subject</label>
+          <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+            Subject
+          </label>
           <div className="grid grid-cols-2 gap-2">
             {ALLOWED_SUBJECTS.map((sub) => (
               <button
                 key={sub}
                 type="button"
-                onClick={() => { setSubject(sub); setTopic(syllabus[sub]?.[0] || ""); }}
-                className={`py-2 px-3 text-xs font-bold border rounded-xl transition-all ${
-                  subject === sub 
-                    ? "bg-[#4f46e5] border-[#4f46e5] text-white shadow-lg shadow-indigo-950/50" 
-                    : "bg-[#0d121f] border-[#1e2640] text-zinc-400 hover:border-[#2e3a5f]"
-                }`}
+                onClick={() => {
+                  setSubject(sub);
+                  setTopic(syllabus[sub]?.[0] ?? "");
+                  setSearch("");
+                  setIsOpen(false);
+                }}
+                className={cn(
+                  "h-14 px-4 text-sm font-semibold border rounded-2xl transition-all duration-300",
+                  subject === sub
+                    ? "bg-primary/15 border-primary/30 text-primary shadow-lg shadow-primary/10"
+                    : "bg-white/[0.02] border-white/[0.06] text-slate-400 hover:bg-white/[0.05] hover:border-primary/20 hover:-translate-y-0.5"
+                )}
               >
-                {sub}
+                {SUBJECT_LABELS[sub] ?? sub}
               </button>
             ))}
           </div>
         </div>
 
-        <div className="relative">
-          <label className="text-[10px] font-bold text-zinc-400 block mb-1">Topic Selector</label>
+        {/* Topic Selector */}
+        <div className="relative" ref={wrapperRef}>
+          <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+            Topic Selector
+          </label>
           <button
             type="button"
-            onClick={() => setIsOpen(!isOpen)}
-            className="w-full bg-[#0d121f] border border-[#1e2640] text-xs rounded-xl px-3 py-2 text-zinc-200 font-semibold text-left flex justify-between items-center h-9"
+            onClick={() => {
+              setSearch("");
+              setIsOpen((prev) => !prev);
+            }}
+            className="
+              w-full h-12 rounded-2xl border border-white/[0.06] bg-white/[0.02]
+              px-4 text-left text-sm text-white hover:border-primary/20
+              focus:border-primary transition-all flex items-center justify-between
+            "
           >
-            <span className="truncate">{topic || "Search and select a topic..."}</span>
-            <span className="text-zinc-500 text-[10px]">▼</span>
+            <span className="truncate">
+              {topic || "Search and select a topic..."}
+            </span>
+            <span className="text-slate-500 text-xs">▼</span>
           </button>
 
           {isOpen && (
-            <div className="absolute z-30 mt-1.5 w-full bg-[#141b2d] border border-[#1e2640] rounded-xl shadow-2xl overflow-hidden p-1.5 space-y-1">
+            <div className="absolute z-30 mt-1.5 w-full bg-background/95 backdrop-blur-xl border border-white/[0.08] rounded-2xl shadow-2xl overflow-hidden p-1.5 space-y-1">
               <input
+                ref={inputRef}
                 type="text"
                 placeholder="Type to filter topics..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="w-full bg-[#0d121f] border border-[#1e2640] text-xs rounded-lg px-2.5 py-1.5 text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-[#2e3a5f]"
+                className="w-full bg-white/[0.03] border border-white/[0.06] rounded-xl px-3 py-2.5 text-sm placeholder:text-slate-500 focus:outline-none focus:border-primary focus:bg-white/[0.05]"
               />
               <div className="max-h-48 overflow-y-auto pt-1">
                 {filteredTopics.length === 0 ? (
-                  <div className="text-[11px] text-zinc-500 p-2 text-center">No matching operational topics found</div>
+                  <div className="text-[11px] text-slate-400 p-3 text-center">
+                    No matching topics found
+                  </div>
                 ) : (
                   filteredTopics.map((t) => (
                     <button
                       key={t}
                       type="button"
-                      onClick={() => { setTopic(t); setIsOpen(false); setSearch(""); }}
-                      className={`w-full text-left px-2.5 py-1.5 rounded-lg text-xs transition-colors ${
-                        topic === t ? "bg-[#4f46e5] text-white font-bold" : "text-zinc-400 hover:bg-[#0d121f] hover:text-zinc-200"
-                      }`}
+                      onClick={() => {
+                        setTopic(t);
+                        setIsOpen(false);
+                        setSearch("");
+                      }}
+                      className={cn(
+                        "w-full text-left px-3 py-3 rounded-xl text-sm transition-colors",
+                        topic === t
+                          ? "bg-primary/10 text-primary font-semibold"
+                          : "text-slate-400 hover:bg-white/[0.04] hover:text-white"
+                      )}
                     >
                       {t}
                     </button>
@@ -95,33 +165,46 @@ export function PracticeSetup({
           )}
         </div>
 
+        {/* Difficulty Grid */}
         <div>
-          <label className="text-[10px] font-bold text-zinc-400 block mb-1">Difficulty Profile</label>
+          <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+            Difficulty Profile
+          </label>
           <div className="grid grid-cols-3 gap-2">
-            {(["Easy", "Mixed ⭐", "Mains"] as PracticeDifficulty[]).map((diff) => (
+            {(Object.keys(PRACTICE_DIFFICULTY_LABELS) as PracticeDifficulty[]).map((diff) => (
               <button
                 key={diff}
                 type="button"
                 onClick={() => setDifficulty(diff)}
-                className={`py-2 px-1 text-xs font-bold border rounded-xl transition-all ${
-                  difficulty === diff 
-                    ? "bg-[#4f46e5] border-[#4f46e5] text-white shadow-lg shadow-indigo-950/50" 
-                    : "bg-[#0d121f] border-[#1e2640] text-zinc-400 hover:border-[#2e3a5f]"
-                }`}
+                className={cn(
+                  "h-14 px-4 text-sm font-semibold border rounded-2xl transition-all duration-300",
+                  difficulty === diff
+                    ? "bg-primary/15 border-primary/30 text-primary shadow-lg shadow-primary/10"
+                    : "bg-white/[0.02] border-white/[0.06] text-slate-400 hover:bg-white/[0.05] hover:border-primary/20 hover:-translate-y-0.5"
+                )}
               >
-                {diff}
+                {PRACTICE_DIFFICULTY_LABELS[diff]}
               </button>
             ))}
           </div>
         </div>
       </div>
 
-      <button
-        onClick={onStart}
-        className="w-full bg-[#10b981] hover:bg-[#059669] text-white font-black py-2.5 rounded-xl text-xs transition-all uppercase tracking-wider mt-2 shadow-lg shadow-emerald-950/20"
-      >
-        ▶ Start Practice Session
-      </button>
-    </div>
+      {/* Divider + Start Button */}
+      <div className="border-t border-white/[0.06] pt-6 mt-auto">
+        <button
+          onClick={onStart}
+          disabled={!topic}
+          className={cn(
+            "w-full h-14 font-bold rounded-2xl text-sm tracking-[0.15em] transition-all duration-300 shadow-lg",
+            !topic
+              ? "bg-neutral-700 text-neutral-400 opacity-50 cursor-not-allowed"
+              : "bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 hover:scale-[1.01] shadow-blue-500/20 hover:shadow-blue-500/30"
+          )}
+        >
+          ▶ START PRACTICE SESSION
+        </button>
+      </div>
+    </GlassCard>
   );
 }

@@ -2,9 +2,13 @@
 
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import { calculateSessionMetrics } from "@/lib/metrics";
+import { calculatePracticeMetrics } from "@/lib/practice/metrics";
 import { createPracticeSession } from "@/services/practice.service";
-import { QuestionAttempt } from "@/lib/metrics/types";
+import {
+  QuestionAttempt,
+  PracticePhase,
+  SessionSnapshot,
+} from "@/lib/practice/types";
 import { Subject, Difficulty } from "@prisma/client";
 
 interface SavePracticeSessionPayload {
@@ -33,7 +37,7 @@ export async function savePracticeSession(payload: SavePracticeSessionPayload) {
     throw new Error("User not found");
   }
 
-  const metrics = calculateSessionMetrics(payload.attempts, payload.elapsedMs);
+  const metrics = calculatePracticeMetrics(payload.attempts, payload.elapsedMs);
 
   const practiceSession = await createPracticeSession({
     userId: user.id,
@@ -42,8 +46,8 @@ export async function savePracticeSession(payload: SavePracticeSessionPayload) {
     topic: payload.topic,
     difficulty: payload.difficulty,
     totalQuestions: metrics.total,
-    correctQuestions: metrics.correctQuestions,
-    incorrectQuestions: metrics.incorrectQuestions,
+    correctQuestions: metrics.correct,
+    incorrectQuestions: metrics.wrong,
     accuracy: metrics.accuracy, 
     qpm: metrics.pace,          
     durationSeconds: metrics.durationSeconds,

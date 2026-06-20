@@ -1,21 +1,26 @@
 "use client";
 
 import { useState } from "react";
-import { SUBJECT_MAP, SubjectId } from "@/lib/constants/subjects";
-import { Subject } from "@prisma/client"; // ✅ Fix: Imported direct Subject enum keys to resolve build blocker
+import { Subject, Difficulty } from "@prisma/client";
+import {
+  SUBJECT_BY_ID,
+  SUBJECT_LOOKUP,
+  SUBJECT_BADGE_CLASSES,
+} from "@/lib/constants/subjects";
 
+
+// Inside MistakeList.tsx
 interface MistakeItem {
   id: string;
-  subject: Subject; // ✅ Now fully typed and recognized by the compiler
+  subject: Subject;
   topic: string;
   question: string;
-  explanation: string | null; 
+  explanation: string; // Since we default to "" on server mapping now
   resolved: boolean;
   createdAt: Date;
-  source?: string | null;
-  difficulty?: any;           
-  confidenceScore?: any;
-  notes?: string | null;
+  source: string;
+  difficulty: Difficulty;
+  // ❌ Removed confidenceScore and notes entirely to match schema
 }
 
 interface ListProps {
@@ -38,7 +43,10 @@ export function MistakeList({ initialMistakes }: ListProps) {
       ) : (
         initialMistakes.map((mistake) => {
           const isExpanded = expandedId === mistake.id;
-          const subMeta = SUBJECT_MAP[mistake.subject as SubjectId];
+
+const subjectId = SUBJECT_LOOKUP[mistake.subject];
+const subMeta = SUBJECT_BY_ID[subjectId];
+const badgeClass = SUBJECT_BADGE_CLASSES[subjectId];
 
           return (
             <div key={mistake.id} className="transition-colors duration-150 hover:bg-white/[0.01]">
@@ -53,14 +61,7 @@ export function MistakeList({ initialMistakes }: ListProps) {
                   </span>
                   
                   {subMeta && (
-                    <span 
-                      className="text-xs font-bold px-2 py-0.5 rounded-md flex items-center gap-1 shrink-0 border"
-                      style={{
-                        backgroundColor: `var(--${subMeta.color}-500-opacity-10, rgba(99, 102, 241, 0.1))`,
-                        color: `var(--${subMeta.color}-400, #818cf8)`, 
-                        borderColor: `var(--${subMeta.color}-500-opacity-20, rgba(99, 102, 241, 0.2))`,
-                      }}
-                    >
+                    <span className={`text-xs font-bold px-2 py-0.5 rounded-md flex items-center gap-1 shrink-0 border ${badgeClass}`}>
                       {subMeta.icon} {subMeta.id}
                     </span>
                   )}
@@ -105,13 +106,6 @@ export function MistakeList({ initialMistakes }: ListProps) {
                     </p>
                   </div>
 
-                  {/* Personal Annotations Area */}
-                  {mistake.notes && (
-                    <div className="border-l-2 border-indigo-500 pl-3 py-1 text-xs text-slate-400 italic bg-indigo-500/[0.03] pr-2 rounded-r-lg">
-                      <span className="font-bold text-indigo-400 not-italic block mb-0.5 text-[10px] uppercase tracking-wider">Personal Annotations:</span>
-                      {mistake.notes}
-                    </div>
-                  )}
 
                   {/* Action Layout Interface Segments */}
                   <div className="flex justify-end pt-2 gap-2">

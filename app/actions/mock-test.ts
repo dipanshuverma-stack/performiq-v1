@@ -5,15 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache"; // ✅ Fixed: Unused revalidateTag removed
 import { z } from "zod";
 import { ExamType, MockType, Subject } from "@prisma/client";
-
-// ✅ UI Label to DB Enum token map resolver
-const SUBJECT_MAP = {
-  Reasoning: "REASONING_ABILITY",
-  Quant: "QUANTITATIVE_APTITUDE",
-  English: "ENGLISH_LANGUAGE",
-  GA: "GENERAL_AWARENESS",
-  Computer: "COMPUTER_AWARENESS",
-} as const;
+import { SUBJECT_MAP } from "@/config/subjects";
 
 const MockTestSchema = z.object({
   exam: z.string().min(1),

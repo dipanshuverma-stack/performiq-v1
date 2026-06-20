@@ -6,39 +6,73 @@ interface InsightsProps {
   weakestTopic: string;
   nextFocus: string;
   revisionsCount: number;
+  insightTitle: string;
+  insightMessage: string;
 }
 
-export function DashboardInsights({ strongestTopic, weakestTopic, nextFocus, revisionsCount }: InsightsProps) {
+export function DashboardInsights({
+  strongestTopic,
+  weakestTopic,
+  nextFocus,
+  revisionsCount,
+  insightTitle,
+  insightMessage,
+}: InsightsProps) {
+
   const insightMetrics = [
-    { label: "Strongest Topic", value: strongestTopic, icon: CheckCircle2, color: "text-emerald-400" },
-    { label: "Weakest Topic", value: weakestTopic, icon: AlertTriangle, color: "text-amber-500" },
-    { label: "Next Focus", value: nextFocus, icon: PlayCircle, color: "text-indigo-400" },
-    { label: "Revision Due", value: `${revisionsCount} Topics`, icon: Calendar, color: "text-slate-400" },
+    {
+      label: "Strongest Topic",
+      value: strongestTopic,
+      icon: CheckCircle2,
+      color: "text-emerald-400",
+    },
+    {
+      label: "Weakest Topic",
+      value: weakestTopic,
+      icon: AlertTriangle,
+      color: "text-amber-500",
+    },
+    {
+      label: "Next Focus",
+      value: nextFocus,
+      icon: PlayCircle,
+      color: "text-indigo-400",
+    },
+    {
+      label: "Revision Due",
+      value: `${revisionsCount} Topics`,
+      icon: Calendar,
+      color: "text-slate-400",
+    },
   ];
 
   return (
-    <section className="space-y-3">
+    <section className="space-y-4">
       <h3 className="text-[11px] font-bold text-slate-500 uppercase tracking-widest px-1">
         Performance Insights
       </h3>
+
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
         {insightMetrics.map((metric) => {
           const Icon = metric.icon;
+
           return (
-            <GlassCard 
-              key={metric.label} 
-              className="p-4 flex items-center gap-4 group hover:border-white/[0.12] hover:bg-white/[0.05] hover:-translate-y-0.5 hover:shadow-lg hover:shadow-indigo-500/5 transition-all duration-200"
+            <GlassCard
+              key={metric.label}
+              className="p-4 flex items-center gap-4 group hover:border-white/[0.12] hover:bg-white/[0.05] transition-all"
             >
-              {/* Premium Icon Container with scale-up on hover */}
-              <div className={`p-2 rounded-xl bg-white/[0.02] border border-white/[0.05] ${metric.color} group-hover:scale-110 transition-transform duration-300`}>
+              <div
+                className={`p-2 rounded-xl bg-white/[0.02] border border-white/[0.05] ${metric.color}`}
+              >
                 <Icon className="h-4 w-4" />
               </div>
-              
+
               <div className="overflow-hidden">
-                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500 group-hover:text-slate-400 transition-colors">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
                   {metric.label}
                 </p>
-                <p className="text-sm font-semibold text-slate-200 mt-0.5 truncate group-hover:text-white transition-colors">
+
+                <p className="text-sm font-semibold text-slate-200 truncate">
                   {metric.value}
                 </p>
               </div>
@@ -46,6 +80,18 @@ export function DashboardInsights({ strongestTopic, weakestTopic, nextFocus, rev
           );
         })}
       </div>
+
+      <GlassCard className="p-5 border border-indigo-500/20 bg-indigo-500/5">
+        <div className="space-y-2">
+          <p className="text-xs font-bold uppercase tracking-wider text-indigo-400">
+            🧠 {insightTitle}
+          </p>
+
+          <p className="text-sm leading-relaxed text-slate-300">
+            {insightMessage}
+          </p>
+        </div>
+      </GlassCard>
     </section>
   );
 }

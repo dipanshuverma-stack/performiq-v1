@@ -1,5 +1,4 @@
 import { auth } from "@/auth";
-import { prisma } from "@/lib/prisma";
 import {
   getPracticeAnalytics,
   TARGET_PRELIMS_QPM,
@@ -54,6 +53,7 @@ export default async function PracticeAnalyticsPage() {
     <div className="p-8 space-y-8">
       <h1 className="text-3xl font-bold">Practice Analytics</h1>
 
+      {/* Topline Metrics Grid */}
       <div className="grid md:grid-cols-4 gap-4">
         <div className="bg-white rounded-xl shadow p-6">
           <p className="text-gray-500">Sessions</p>
@@ -73,6 +73,7 @@ export default async function PracticeAnalyticsPage() {
         </div>
       </div>
 
+      {/* Mid-Level Analytical Breakdown */}
       <div className="grid md:grid-cols-2 gap-4">
         <div className="bg-white rounded-xl shadow p-6">
           <h2 className="font-semibold mb-4">Practice Summary</h2>
@@ -83,15 +84,61 @@ export default async function PracticeAnalyticsPage() {
           </div>
         </div>
 
+        {/* ✅ Updated Section: Enhanced Topic Performance Breakdown */}
         <div className="bg-white rounded-xl shadow p-6">
           <h2 className="font-semibold mb-4">Topic Performance</h2>
-          <div className="space-y-3">
-            <p>Best Topic: <strong>{analytics.bestTopic ?? "-"}</strong></p>
-            <p>Weakest Topic: <strong>{analytics.weakestTopic ?? "-"}</strong></p>
+
+          <div className="space-y-4">
+            <div>
+              <p className="text-gray-500 text-sm">Best Topic</p>
+
+              {analytics.bestTopic ? (
+                <>
+                  <p className="font-bold text-lg">
+                    {analytics.bestTopic.topic}
+                  </p>
+
+                  <p className="text-sm text-gray-600">
+                    Accuracy {analytics.bestTopic.accuracy}% •
+                    {" "}
+                    QPM {analytics.bestTopic.qpm} •
+                    {" "}
+                    {analytics.bestTopic.sessions} sessions
+                  </p>
+                </>
+              ) : (
+                <p className="text-gray-400 mt-1">-</p>
+              )}
+            </div>
+
+            <hr className="border-gray-100" />
+
+            <div>
+              <p className="text-gray-500 text-sm">Weakest Topic</p>
+
+              {analytics.weakestTopic ? (
+                <>
+                  <p className="font-bold text-lg text-red-600">
+                    {analytics.weakestTopic.topic}
+                  </p>
+
+                  <p className="text-sm text-gray-600">
+                    Accuracy {analytics.weakestTopic.accuracy}% •
+                    {" "}
+                    QPM {analytics.weakestTopic.qpm} •
+                    {" "}
+                    {analytics.weakestTopic.sessions} sessions
+                  </p>
+                </>
+              ) : (
+                <p className="text-gray-400 mt-1">-</p>
+              )}
+            </div>
           </div>
         </div>
       </div>
 
+      {/* Benchmarks & Trends Visualization */}
       <div className="bg-white rounded-xl shadow p-6">
         <h2 className="font-semibold mb-4">Banking PO Speed Benchmark</h2>
         <p>Target: <strong>100 Questions in 60 Minutes</strong></p>

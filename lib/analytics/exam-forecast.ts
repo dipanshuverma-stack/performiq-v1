@@ -1,4 +1,4 @@
-import { getReadinessV2 } from "./readiness-v2";
+import { getReadinessCore } from "./readiness-core";
 import { getPerformanceScore } from "./performance-score";
 
 export async function getExamForecast(
@@ -8,7 +8,7 @@ export async function getExamForecast(
     readiness,
     performance,
   ] = await Promise.all([
-    getReadinessV2(userId),
+    getReadinessCore(userId),
     getPerformanceScore(userId),
   ]);
 
