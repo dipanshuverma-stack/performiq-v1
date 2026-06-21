@@ -52,7 +52,6 @@ export const navigationGroups: NavigationGroups = [
     title: "Account",
     items: [
       { name: "Profile", href: "/profile", icon: User },
-      { name: "Settings", href: "/settings", icon: Settings },
     ],
   },
 ];

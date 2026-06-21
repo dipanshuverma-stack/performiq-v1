@@ -9,29 +9,32 @@ import { DashboardFocusGrid } from "@/components/dashboard/dashboard-focus-grid"
 import { DashboardStudyPlan } from "@/components/dashboard/dashboard-study-plan";
 
 import { getDashboardIntelligence } from "@/lib/analytics/dashboard-intelligence";
+import { BANKING_EXAMS } from "@/lib/exams";
+
+function getDaysLeft(date: Date) {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const target = new Date(date);
+  target.setHours(0, 0, 0, 0);
+  const diff = target.getTime() - today.getTime();
+  return Math.ceil(diff / (1000 * 60 * 60 * 24));
+}
 
 export default async function DashboardPage() {
   const session = await auth();
-
-  if (!session?.user?.email) {
-    redirect("/login");
-  }
+  if (!session?.user?.email) redirect("/login");
 
   const user = await prisma.user.findUnique({
-    where: {
-      email: session.user.email,
-    },
-    select: {
-      id: true,
-      name: true,
-    },
+    where: { email: session.user.email },
+    select: { id: true, name: true },
   });
-
-  if (!user) {
-    redirect("/login");
-  }
+  if (!user) redirect("/login");
 
   const dashboard = await getDashboardIntelligence(user.id);
+
+  // Find the active exam to feed into the DashboardHero
+  const activeExam = BANKING_EXAMS.find((e) => e.active) || BANKING_EXAMS[0];
+  const daysLeft = getDaysLeft(activeExam.date);
 
   return (
     <PageShell>
@@ -40,7 +43,8 @@ export default async function DashboardPage() {
         focusTopic={dashboard.nextFocusTopic}
         priorityTopicsCount={dashboard.priorities.length}
         revisionsDue={dashboard.revisionsDue}
-        activeExam="SBI PO"
+        activeExam={activeExam.name}
+        daysLeft={daysLeft}
       />
 
       <DashboardKPIGrid
@@ -50,13 +54,9 @@ export default async function DashboardPage() {
         consistencyStreak={dashboard.currentStreak}
       />
 
-      <DashboardFocusGrid
-        priorities={dashboard.priorities}
-      />
+      <DashboardFocusGrid priorities={dashboard.priorities} />
 
-      <DashboardStudyPlan
-        planItems={dashboard.studyPlan}
-      />
+      <DashboardStudyPlan planItems={dashboard.studyPlan} />
     </PageShell>
   );
 }
