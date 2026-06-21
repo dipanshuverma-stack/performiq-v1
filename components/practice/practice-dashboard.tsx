@@ -138,7 +138,6 @@ export function PracticeDashboard({ recentSessions: initialSessions }: PracticeD
 
   return (
     <div className="w-full max-w-6xl mx-auto p-4 space-y-8">
-      {/* Hero + Stats only visible in setup phase */}
       {phase === "setup" && (
         <>
           <PracticeHero subject={subject} topic={topic} difficulty={difficulty} />
@@ -151,7 +150,6 @@ export function PracticeDashboard({ recentSessions: initialSessions }: PracticeD
         </>
       )}
 
-      {/* Practice Workspace heading only in setup */}
       {phase === "setup" && (
         <div className="space-y-2">
           <h2 className="text-3xl font-bold tracking-tight">Practice Workspace</h2>
@@ -162,13 +160,7 @@ export function PracticeDashboard({ recentSessions: initialSessions }: PracticeD
       )}
 
       <div className="grid lg:grid-cols-3 gap-6">
-        <div
-          className={
-            phase === "setup"
-              ? "lg:col-span-2 space-y-6"
-              : "lg:col-span-3 space-y-6"
-          }
-        >
+        <div className={phase === "setup" ? "lg:col-span-2 space-y-6" : "lg:col-span-3 space-y-6"}>
           {errorBanner && (
             <div className="bg-destructive/10 border border-destructive/30 p-4 rounded-xl text-xs font-medium text-destructive">
               ⚠️ {errorBanner}
@@ -253,19 +245,14 @@ export function PracticeDashboard({ recentSessions: initialSessions }: PracticeD
   );
 }
 
-// ActiveWorkspaceWrapper (unchanged)
 interface ActiveWorkspaceWrapperProps {
   topic: string;
   subject: Subject;
   onHandshakeFinish: (finalSnapshot: CombinedSessionSnapshot) => void;
 }
 
-function ActiveWorkspaceWrapper({
-  topic,
-  subject,
-  onHandshakeFinish,
-}: ActiveWorkspaceWrapperProps) {
-  const { elapsedMs, start, finish } = usePracticeTimer();
+function ActiveWorkspaceWrapper({ topic, subject, onHandshakeFinish }: ActiveWorkspaceWrapperProps) {
+  const { elapsedMs, start, finish, pause, resume, isPaused } = usePracticeTimer();
   const [attempts, setAttempts] = React.useState<
     { result: "correct" | "incorrect"; durationMs: number }[]
   >([]);
@@ -301,6 +288,9 @@ function ActiveWorkspaceWrapper({
       currentQpm={currentQpm}
       targetQpm={targetQpm}
       elapsedMs={elapsedMs}
+      isPaused={isPaused}
+      onPause={pause}
+      onResume={resume}
       logQuestion={(result) =>
         setAttempts((prev) => [...prev, { result, durationMs: elapsedMs }])
       }
