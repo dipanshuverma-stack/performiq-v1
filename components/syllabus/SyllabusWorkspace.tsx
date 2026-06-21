@@ -12,6 +12,15 @@ interface SyllabusWorkspaceProps {
   data: SyllabusData;
 }
 
+// Map your internal keys to the database ENUM values expected by completeTopic
+const SUBJECT_MAP: Record<string, string> = {
+  quant: "QUANTITATIVE_APTITUDE",
+  reasoning: "REASONING_ABILITY",
+  english: "ENGLISH_LANGUAGE",
+  ga: "GENERAL_AWARENESS",
+  computer: "COMPUTER_AWARENESS",
+};
+
 export function SyllabusWorkspace({ data }: SyllabusWorkspaceProps) {
   const { progress, subjects } = data;
   const [openSubject, setOpenSubject] = useState<string | null>(null);
@@ -20,7 +29,7 @@ export function SyllabusWorkspace({ data }: SyllabusWorkspaceProps) {
     return (
       <EmptyState 
         title="Start your preparation" 
-        description="Complete your first topic..." 
+        description="Complete your first topic to see your progress here." 
         icon={BookOpen} 
       />
     );
@@ -49,6 +58,7 @@ export function SyllabusWorkspace({ data }: SyllabusWorkspaceProps) {
                 <TopicRow
                   key={topic.id}
                   title={topic.name}
+                  subject={SUBJECT_MAP[subject.key] || subject.key}
                   initialCompleted={topic.completed}
                   estimatedMinutes={topic.estimatedMinutes}
                   weightage={topic.weightage}
