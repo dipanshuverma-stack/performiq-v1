@@ -1,3 +1,4 @@
+import React from "react";
 import { GlassCard } from "@/components/ui/glass-card";
 import { SectionHeader } from "@/components/ui/section-header";
 import { ActionButton } from "@/components/ui/action-button";
@@ -13,7 +14,7 @@ interface DashboardFocusGridProps {
   priorities: PriorityTopic[];
 }
 
-// 👑 Clean helper function to isolate the business logic from the UI rendering
+// Pure helper – unchanged logic, just slightly cleaner
 function getPriorityBadge(score: number) {
   if (score > 70) {
     return {
@@ -33,26 +34,39 @@ function getPriorityBadge(score: number) {
   };
 }
 
-export function DashboardFocusGrid({ priorities }: DashboardFocusGridProps) {
+export const DashboardFocusGrid = React.memo(function DashboardFocusGrid({
+  priorities,
+}: DashboardFocusGridProps) {
+  if (priorities.length === 0) {
+    return (
+      <section className="space-y-3">
+        <SectionHeader title="Today's Focus" />
+        <GlassCard className="p-8 text-center text-slate-400">
+          No priority topics yet. Keep practicing!
+        </GlassCard>
+      </section>
+    );
+  }
+
   return (
     <section className="space-y-3">
       <SectionHeader title="Today's Focus" />
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {priorities.map((topic) => {
-          // Calculate the badge styling once per map iteration
           const badge = getPriorityBadge(topic.focusScore);
 
           return (
             <GlassCard
-              key={topic.topic}
+              key={topic.topic} // Stable key
               className="p-5 flex flex-col h-full hover:border-white/[0.12] hover:bg-white/[0.05] hover:-translate-y-0.5 hover:shadow-lg hover:shadow-indigo-500/5 transition-all duration-200"
             >
-              {/* Top Area: Content Container */}
+              {/* Top Area */}
               <div className="flex-1">
-                {/* 🎯 Dynamic Priority Badge Injected */}
                 <div className="mb-3">
-                  <span className={`inline-flex px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wider border ${badge.styles}`}>
+                  <span
+                    className={`inline-flex px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wider border ${badge.styles}`}
+                  >
                     {badge.label}
                   </span>
                 </div>
@@ -62,41 +76,47 @@ export function DashboardFocusGrid({ priorities }: DashboardFocusGridProps) {
                 </h3>
 
                 <div className="mt-4 space-y-4">
-                  {/* Mastery Track */}
+                  {/* Mastery Progress */}
                   <div>
                     <div className="flex items-center justify-between text-xs">
                       <span className="text-slate-500">Mastery</span>
-                      <span className="text-emerald-400 font-medium">{topic.mastery}%</span>
+                      <span className="text-emerald-400 font-medium">
+                        {topic.mastery}%
+                      </span>
                     </div>
                     <div className="mt-2 h-1.5 rounded-full bg-white/[0.05] overflow-hidden">
                       <div
                         className="h-full rounded-full bg-emerald-500 transition-all duration-500"
-                        style={{ width: `${topic.mastery}%` }}
+                        style={{ width: `${Math.min(Math.max(topic.mastery, 0), 100)}%` }}
                       />
                     </div>
                   </div>
 
-                  {/* Focus Score Track */}
+                  {/* Focus Score Progress */}
                   <div>
                     <div className="flex items-center justify-between text-xs">
                       <span className="text-slate-500">Focus Score</span>
-                      <span className="text-indigo-400 font-semibold">{topic.focusScore}</span>
+                      <span className="text-indigo-400 font-semibold">
+                        {topic.focusScore}
+                      </span>
                     </div>
                     <div className="mt-2 h-1.5 rounded-full bg-white/[0.05] overflow-hidden">
                       <div
                         className="h-full rounded-full bg-indigo-500 transition-all duration-500"
-                        style={{ width: `${topic.focusScore}%` }}
+                        style={{ width: `${Math.min(Math.max(topic.focusScore, 0), 100)}%` }}
                       />
                     </div>
                   </div>
                 </div>
               </div>
 
-              {/* Bottom Area: Pushed down cleanly */}
+              {/* Bottom Action */}
               <div className="mt-6 pt-2">
-                <ActionButton size="md" className="w-full flex items-center justify-center gap-1.5 group">
+                <ActionButton
+                  size="md"
+                  className="w-full flex items-center justify-center gap-1.5 group"
+                >
                   Start Studying
-                  {/* 🎯 Arrow icon added with group-hover translation for a premium feel */}
                   <ArrowRight className="h-3.5 w-3.5 transition-transform duration-200 group-hover:translate-x-0.5" />
                 </ActionButton>
               </div>
@@ -106,4 +126,4 @@ export function DashboardFocusGrid({ priorities }: DashboardFocusGridProps) {
       </div>
     </section>
   );
-}
+});

@@ -1,5 +1,6 @@
 "use client";
 
+import React from "react";
 import {
   ResponsiveContainer,
   LineChart,
@@ -7,7 +8,10 @@ import {
   XAxis,
   YAxis,
   Tooltip,
+  CartesianGrid,
 } from "recharts";
+import { GlassCard } from "@/components/ui/glass-card";
+import { SectionHeader } from "@/components/ui/section-header";
 
 interface Props {
   data: {
@@ -16,36 +20,71 @@ interface Props {
   }[];
 }
 
-export default function DashboardAccuracyChart({
-  data,
+export const DashboardAccuracyChart = React.memo(function DashboardAccuracyChart({
+  data = [],
 }: Props) {
+  if (data.length === 0) {
+    return (
+      <GlassCard className="p-8 text-center">
+        <SectionHeader title="Accuracy Trend" />
+        <p className="text-slate-400 mt-8">No accuracy data yet</p>
+        <p className="text-sm text-slate-500 mt-1">
+          Complete practice sessions to see your progress
+        </p>
+      </GlassCard>
+    );
+  }
+
   return (
-    <div className="bg-white rounded-xl shadow p-6">
-      <h2 className="text-xl font-semibold mb-4">
-        Accuracy Trend
-      </h2>
+    <GlassCard className="p-6">
+      <SectionHeader title="Accuracy Trend" />
 
-      <ResponsiveContainer
-        width="100%"
-        height={300}
-      >
-        <LineChart data={data}>
-          <XAxis dataKey="session" />
+      <div className="mt-6">
+        <ResponsiveContainer width="100%" height={320}>
+          <LineChart data={data} margin={{ top: 10, right: 20, bottom: 5, left: 0 }}>
+            <CartesianGrid
+              strokeDasharray="2 2"
+              stroke="rgba(255,255,255,0.08)"
+              vertical={false}
+            />
 
-          <YAxis
-            domain={[0, 100]}
-          />
+            <XAxis
+              dataKey="session"
+              tick={{ fill: "#64748b", fontSize: 12 }}
+              tickLine={{ stroke: "#334155" }}
+              axisLine={{ stroke: "#334155" }}
+            />
 
-          <Tooltip />
+            <YAxis
+              domain={[0, 100]}
+              tick={{ fill: "#64748b", fontSize: 12 }}
+              tickLine={{ stroke: "#334155" }}
+              axisLine={{ stroke: "#334155" }}
+              tickFormatter={(value) => `${value}%`}
+            />
 
-          <Line
-            type="monotone"
-            dataKey="accuracy"
-            stroke="#10b981"
-            strokeWidth={3}
-          />
-        </LineChart>
-      </ResponsiveContainer>
-    </div>
+            <Tooltip
+              contentStyle={{
+                backgroundColor: "#1e2937",
+                border: "1px solid rgba(255,255,255,0.1)",
+                borderRadius: "8px",
+                color: "#e2e8f0",
+              }}
+              labelStyle={{ color: "#94a3b8" }}
+              formatter={(value) => [`${value}%`, "Accuracy"] as [string, string]}
+            />
+
+            <Line
+              type="monotone"
+              dataKey="accuracy"
+              stroke="#10b981"
+              strokeWidth={3}
+              dot={{ fill: "#10b981", r: 4, strokeWidth: 2, stroke: "#0f172a" }}
+              activeDot={{ r: 6, fill: "#34d399" }}
+            />
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
+    </GlassCard>
   );
-}
+});

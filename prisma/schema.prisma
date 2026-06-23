@@ -7,78 +7,77 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-
-
-enum TaskPriority {
-  LOW
-  MEDIUM
-  HIGH
-}
-
-enum StudySessionType {
-  STUDY
-  REVISION
-  PRACTICE
-  MOCK_ANALYSIS
-}
-
-// ====================== MODELS ======================
 model User {
-  id                    String                @id @default(cuid())
-  email                 String?               @unique
-  name                  String?
-  emailVerified         DateTime?             @map("email_verified")
-  image                 String?
-
-  accounts              Account[]
-  examProfiles          ExamProfile[]
-  mistakeEntries        MistakeEntry[]
-  mistakes              Mistake[]
+  id                      String                   @id @default(cuid())
+  email                   String?                  @unique
+  name                    String?
+  emailVerified           DateTime?                @map("email_verified")
+  image                   String?
+  plannerRows Int @default(5)
+  weeklyPlans             WeeklyPlan[]
+  accounts                Account[]
+  examProfiles            ExamProfile[]
+  mistakeEntries          MistakeEntry[]
+  mistakes                Mistake[]
   mockSubjectPerformances MockSubjectPerformance[]
-  mockTests             MockTest[]
-  mockTopicPerformances MockTopicPerformance[]
-  notifications         Notification[]
-  notificationPreference NotificationPreference?
-  practiceSessions      PracticeSession[]     @relation("UserToPracticeSessions")
-  revisions             Revision[]
-  sessions              Session[]
-  studySessions         StudySession[]
-  tasks                 Task[]
-  topicProgress         TopicProgress[]
+  mockTests               MockTest[]
+  mockTopicPerformances   MockTopicPerformance[]
+  notificationPreference  NotificationPreference?
+  notifications           Notification[]
+  practiceSessions        PracticeSession[]        @relation("UserToPracticeSessions")
+  revisions               Revision[]
+  sessions                Session[]
+  studySessions           StudySession[]
+  tasks                   Task[]
+  topicProgress           TopicProgress[]
 
   @@map("users")
 }
 
+model WeeklyPlan {
+  id        String   @id @default(cuid())
+  userId    String
+  day       Int
+  rowIndex  Int
+  title     String
+  time      String?
+  category  String?               // You can keep or remove later
+  completed Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, day, rowIndex])   // Good for performance
+}
+
 model NotificationPreference {
-  id                 String   @id @default(cuid())
-  userId             String   @unique
-
-  revisionDue        Boolean  @default(true)
-  weakTopicAlert     Boolean  @default(true)
-  mockReminder       Boolean  @default(true)
-  studyReminder      Boolean  @default(true)
-  achievementAlert   Boolean  @default(true)
-
-  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id               String  @id @default(cuid())
+  userId           String  @unique
+  revisionDue      Boolean @default(true)
+  weakTopicAlert   Boolean @default(true)
+  mockReminder     Boolean @default(true)
+  studyReminder    Boolean @default(true)
+  achievementAlert Boolean @default(true)
+  user             User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("notification_preferences")
 }
 
 model Account {
-  id                 String  @id @default(cuid())
-  userId             String  @map("user_id")
-  type               String
-  provider           String
-  providerAccountId  String  @map("provider_account_id")
-  refresh_token      String?
-  access_token       String?
-  expires_at         Int?
-  token_type         String?
-  scope              String?
-  id_token           String?
-  session_state      String?
-
-  user               User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id                String  @id @default(cuid())
+  userId            String  @map("user_id")
+  type              String
+  provider          String
+  providerAccountId String  @map("provider_account_id")
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerAccountId])
   @@map("accounts")
@@ -103,21 +102,19 @@ model VerificationToken {
   @@map("verification_tokens")
 }
 
-// ====================== ENHANCED MODELS ======================
 model ExamProfile {
-  id           String     @id @default(cuid())
-  userId       String     @map("user_id")
-  name         String
-  targetDate   DateTime   @map("target_date")
-  attemptDate  DateTime?
-  readiness    Float      @default(0)
-  priority     Int        @default(1)
-  isActive     Boolean    @default(false) @map("is_active")
-  createdAt    DateTime   @default(now()) @map("created_at")
-  updatedAt    DateTime   @updatedAt @map("updated_at")
-  examType     ExamType
-
-  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id          String    @id @default(cuid())
+  userId      String    @map("user_id")
+  name        String
+  targetDate  DateTime  @map("target_date")
+  readiness   Float     @default(0)
+  isActive    Boolean   @default(false) @map("is_active")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  attemptDate DateTime?
+  examType    ExamType
+  priority    Int       @default(1)
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([isActive])
   @@index([userId])
@@ -126,19 +123,18 @@ model ExamProfile {
 }
 
 model Task {
-  id            String        @id @default(cuid())
-  userId        String        @map("user_id")
-  title         String
-  description   String?
-  completed     Boolean       @default(false)
-  priority      TaskPriority  @default(MEDIUM)
-  dueDate       DateTime?
-  completedAt   DateTime?
-  subject       Subject?
-  topic         String?
-  createdAt     DateTime      @default(now()) @map("created_at")
-
-  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id          String       @id @default(cuid())
+  userId      String       @map("user_id")
+  title       String
+  completed   Boolean      @default(false)
+  createdAt   DateTime     @default(now()) @map("created_at")
+  completedAt DateTime?
+  description String?
+  dueDate     DateTime?
+  priority    TaskPriority @default(MEDIUM)
+  subject     Subject?
+  topic       String?
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([userId, completed])
@@ -148,16 +144,15 @@ model Task {
 }
 
 model StudySession {
-  id            String            @id @default(cuid())
-  userId        String            @map("user_id")
-  createdAt     DateTime          @default(now()) @map("created_at")
-  completed     Boolean           @default(false)
-  duration      Int
-  topic         String
-  subject       Subject
-  sessionType   StudySessionType?
-
-  user          User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id          String            @id @default(cuid())
+  userId      String            @map("user_id")
+  createdAt   DateTime          @default(now()) @map("created_at")
+  completed   Boolean           @default(false)
+  duration    Int
+  topic       String
+  sessionType StudySessionType?
+  subject     Subject
+  user        User              @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([userId, subject])
@@ -170,15 +165,13 @@ model TopicProgress {
   userId          String    @map("user_id")
   topicName       String    @map("topic_name")
   completed       Boolean   @default(false)
-  confidence      Int       @default(0)
-  lastStudiedAt   DateTime?
-  lastPracticedAt DateTime?
-  lastRevisedAt   DateTime?
-
   createdAt       DateTime  @default(now()) @map("created_at")
   updatedAt       DateTime  @updatedAt @map("updated_at")
+  confidence      Int       @default(0)
+  lastPracticedAt DateTime?
+  lastRevisedAt   DateTime?
+  lastStudiedAt   DateTime?
   subject         Subject
-
   user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, subject, topicName])
@@ -187,26 +180,25 @@ model TopicProgress {
 }
 
 model PracticeSession {
-  id                  String         @id @default(cuid())
-  sessionUuid         String         @map("session_uuid")
-  userId              String         @map("user_id")
-  topic               String
-  difficulty          Difficulty?
-  totalQuestions      Int            @map("total_questions")
-  correctQuestions    Int            @map("correct_questions")
-  incorrectQuestions  Int            @map("incorrect_questions")
-  durationSeconds     Int            @map("duration_seconds")
-  accuracy            Float          @db.Real
-  qpm                 Float          @db.Real
-  mistakeCount        Int            @default(0) @map("mistake_count")
-  revisionStatus      RevisionStatus @default(UNRESOLVED) @map("revision_status")
-  confidenceScore     Int?           @map("confidence_score")
-  notes               String?
-  createdAt           DateTime       @default(now()) @map("created_at")
-  updatedAt           DateTime       @updatedAt @map("updated_at")
-  subject             Subject
-
-  user                User           @relation("UserToPracticeSessions", fields: [userId], references: [id], onDelete: Cascade)
+  id                 String         @id @default(cuid())
+  sessionUuid        String         @map("session_uuid")
+  userId             String         @map("user_id")
+  topic              String
+  difficulty         Difficulty?
+  totalQuestions     Int            @map("total_questions")
+  durationSeconds    Int            @map("duration_seconds")
+  accuracy           Float          @db.Real
+  qpm                Float          @db.Real
+  mistakeCount       Int            @default(0) @map("mistake_count")
+  revisionStatus     RevisionStatus @default(UNRESOLVED) @map("revision_status")
+  confidenceScore    Int?           @map("confidence_score")
+  notes              String?
+  createdAt          DateTime       @default(now()) @map("created_at")
+  updatedAt          DateTime       @updatedAt @map("updated_at")
+  correctQuestions   Int            @map("correct_questions")
+  incorrectQuestions Int            @map("incorrect_questions")
+  subject            Subject
+  user               User           @relation("UserToPracticeSessions", fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, sessionUuid])
   @@index([userId, confidenceScore])
@@ -228,7 +220,6 @@ model Mistake {
   updatedAt   DateTime    @updatedAt @map("updated_at")
   mistakeType MistakeType @map("mistake_type")
   subject     Subject
-
   user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([resolved])
@@ -250,7 +241,6 @@ model MistakeEntry {
   updatedAt   DateTime   @updatedAt @map("updated_at")
   difficulty  Difficulty @default(MEDIUM)
   subject     Subject
-
   mockTest    MockTest?  @relation(fields: [mockTestId], references: [id], onDelete: Cascade)
   user        User       @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -262,21 +252,20 @@ model MistakeEntry {
 }
 
 model MockSubjectPerformance {
-  id                 String  @id @default(cuid())
-  userId             String  @map("user_id")
-  mockId             String  @map("mock_id")
-  totalQuestions     Int     @map("total_questions")
-  attempted          Int
-  score              Float   @db.Real
-  accuracy           Float   @db.Real
-  timeSpent          Int?    @map("time_spent")
-  createdAt          DateTime @default(now()) @map("created_at")
-  subject            Subject
-  correct            Int     @map("correct_questions")
-  incorrect          Int     @map("incorrect_questions")
-
-  mockTest           MockTest @relation(fields: [mockId], references: [id], onDelete: Cascade)
-  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id             String   @id @default(cuid())
+  userId         String   @map("user_id")
+  mockId         String   @map("mock_id")
+  totalQuestions Int      @map("total_questions")
+  attempted      Int
+  score          Float    @db.Real
+  accuracy       Float    @db.Real
+  timeSpent      Int?     @map("time_spent")
+  createdAt      DateTime @default(now()) @map("created_at")
+  correct        Int      @map("correct_questions")
+  incorrect      Int      @map("incorrect_questions")
+  subject        Subject
+  mockTest       MockTest @relation(fields: [mockId], references: [id], onDelete: Cascade)
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([mockId])
   @@index([subject])
@@ -285,30 +274,28 @@ model MockSubjectPerformance {
 }
 
 model MockTest {
-  id                    String                  @id @default(cuid())
-  userId                String                  @map("user_id")
-  title                 String?
-  mockType              MockType?               @map("mock_type")
-  score                 Float                   @db.Real
-  totalQuestions        Int                     @map("total_questions")
-  attemptedQuestions    Int                     @default(0) @map("attempted_questions")
-  correctAnswers        Int                     @default(0) @map("correct_answers")
-  incorrectAnswers      Int                     @default(0) @map("incorrect_answers")
-  unattemptedQuestions  Int                     @default(0) @map("unattempted_questions")
-  accuracy              Float                   @db.Real
-  percentile            Float?                  @db.Real
-  rank                  Int?
-  duration              Int?
-  notes                 String?
-  createdAt             DateTime                @default(now()) @map("created_at")
-  updatedAt             DateTime                @updatedAt @map("updated_at")
-  exam                  ExamType
-
-  mistakeEntries        MistakeEntry[]
-  subjectPerformances   MockSubjectPerformance[]
-  topicPerformances     MockTopicPerformance[]
-
-  user                  User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id                   String                   @id @default(cuid())
+  userId               String                   @map("user_id")
+  title                String?
+  mockType             MockType?                @map("mock_type")
+  score                Float                    @db.Real
+  totalQuestions       Int                      @map("total_questions")
+  attemptedQuestions   Int                      @default(0) @map("attempted_questions")
+  unattemptedQuestions Int                      @default(0) @map("unattempted_questions")
+  accuracy             Float                    @db.Real
+  percentile           Float?                   @db.Real
+  rank                 Int?
+  duration             Int?
+  notes                String?
+  createdAt            DateTime                 @default(now()) @map("created_at")
+  updatedAt            DateTime                 @updatedAt @map("updated_at")
+  correctAnswers       Int                      @default(0) @map("correct_answers")
+  incorrectAnswers     Int                      @default(0) @map("incorrect_answers")
+  exam                 ExamType
+  mistakeEntries       MistakeEntry[]
+  subjectPerformances  MockSubjectPerformance[]
+  user                 User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  topicPerformances    MockTopicPerformance[]
 
   @@index([createdAt])
   @@index([mockType])
@@ -317,19 +304,18 @@ model MockTest {
 }
 
 model MockTopicPerformance {
-  id                String   @id @default(cuid())
-  userId            String   @map("user_id")
-  mockId            String   @map("mock_id")
-  topic             String
-  skipped           Int      @default(0)
-  accuracy          Float    @db.Real
-  createdAt         DateTime @default(now()) @map("created_at")
-  subject           Subject
-  correctQuestions  Int      @default(0) @map("correct_questions")
-  incorrectQuestions Int     @default(0) @map("incorrect_questions")
-
-  mockTest          MockTest @relation(fields: [mockId], references: [id], onDelete: Cascade)
-  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id                 String   @id @default(cuid())
+  userId             String   @map("user_id")
+  mockId             String   @map("mock_id")
+  topic              String
+  skipped            Int      @default(0)
+  accuracy           Float    @db.Real
+  createdAt          DateTime @default(now()) @map("created_at")
+  correctQuestions   Int      @default(0) @map("correct_questions")
+  incorrectQuestions Int      @default(0) @map("incorrect_questions")
+  subject            Subject
+  mockTest           MockTest @relation(fields: [mockId], references: [id], onDelete: Cascade)
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([mockId])
   @@index([subject])
@@ -345,7 +331,6 @@ model Notification {
   message   String
   read      Boolean  @default(false)
   createdAt DateTime @default(now()) @map("created_at")
-
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([read])
@@ -354,23 +339,34 @@ model Notification {
 }
 
 model Revision {
-  id           String   @id @default(cuid())
-  userId       String   @map("user_id")
-  topic        String
-  revisionCount Int     @default(0) @map("revision_count")
-  nextRevision DateTime @map("next_revision")
-  completed    Boolean  @default(false)
-  createdAt    DateTime @default(now()) @map("created_at")
-  subject      Subject
-
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id            String   @id @default(cuid())
+  userId        String   @map("user_id")
+  topic         String
+  revisionCount Int      @default(0) @map("revision_count")
+  nextRevision  DateTime @map("next_revision")
+  completed     Boolean  @default(false)
+  createdAt     DateTime @default(now()) @map("created_at")
+  subject       Subject
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, topic])
   @@index([userId, nextRevision])
   @@map("revisions")
 }
 
-// ====================== ENUMS (Existing) ======================
+enum TaskPriority {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum StudySessionType {
+  STUDY
+  REVISION
+  PRACTICE
+  MOCK_ANALYSIS
+}
+
 enum RevisionStatus {
   UNRESOLVED
   IN_PROGRESS

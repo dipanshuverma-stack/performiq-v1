@@ -22,23 +22,26 @@ interface SavePracticeSessionPayload {
 }
 
 export async function savePracticeSession(payload: SavePracticeSessionPayload) {
+  // Early auth check
   const session = await auth();
-
   if (!session?.user?.email) {
     throw new Error("Unauthorized");
   }
 
-  const user = await prisma.user.findUnique({
-    where: { email: session.user.email },
-    select: { id: true },
-  });
+  // Parallelize user fetch + metrics calculation
+  const [user, metrics] = await Promise.all([
+    prisma.user.findUnique({
+      where: { email: session.user.email },
+      select: { id: true },
+    }),
+    calculatePracticeMetrics(payload.attempts, payload.elapsedMs),
+  ]);
 
-  if (!user) {
+  if (!user?.id) {
     throw new Error("User not found");
   }
 
-  const metrics = calculatePracticeMetrics(payload.attempts, payload.elapsedMs);
-
+  // Create session with pre-calculated metrics
   const practiceSession = await createPracticeSession({
     userId: user.id,
     sessionUuid: payload.sessionUuid,
@@ -48,8 +51,8 @@ export async function savePracticeSession(payload: SavePracticeSessionPayload) {
     totalQuestions: metrics.total,
     correctQuestions: metrics.correct,
     incorrectQuestions: metrics.wrong,
-    accuracy: metrics.accuracy, 
-    qpm: metrics.pace,          
+    accuracy: metrics.accuracy,
+    qpm: metrics.pace,
     durationSeconds: metrics.durationSeconds,
     notes: payload.notes,
   });

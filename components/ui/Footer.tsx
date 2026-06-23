@@ -1,97 +1,58 @@
 import { appConfig } from "@/lib/app-config";
-import { SmartLink as Link } from "@/components/smart-link";
 
 export function Footer() {
-  const currentYear = new Date().getFullYear();
-
   return (
-    <footer className="w-full mt-20 border-t border-border bg-background shrink-0">
-      <div className="mx-auto max-w-7xl px-8 py-8">
-
-        <div className="flex flex-col gap-8 lg:flex-row lg:items-start lg:justify-between">
-
-          {/* Brand */}
-          <div className="space-y-2">
-            <h3 className="text-xl font-bold tracking-tight text-foreground">
-              {appConfig.name}
-            </h3>
-
-            <p className="text-sm text-muted-foreground">
-              Prepare • Analyze • Improve
-            </p>
+    <footer className="mt-24 pb-10">
+      <div className="mx-auto max-w-7xl px-8">
+        <div
+          className="
+            rounded-3xl
+            border
+            border-white/[0.06]
+            bg-gradient-to-b
+            from-white/[0.03]
+            to-white/[0.01]
+            backdrop-blur-xl
+            py-10 px-8
+            text-center
+            overflow-hidden
+            relative
+          "
+        >
+          {/* Ambient Glow */}
+          <div className="absolute inset-0 pointer-events-none">
+            <div className="absolute top-0 left-1/2 h-64 w-64 -translate-x-1/2 rounded-full bg-blue-500/10 blur-3xl" />
           </div>
 
-          {/* Navigation */}
-          <nav className="flex flex-wrap gap-x-6 gap-y-3 text-sm font-medium text-muted-foreground">
+          <div className="relative z-10 text-center">
+  <h2 className="text-2xl font-bold text-white">
+    {appConfig.name}
+  </h2>
 
-            <Link
-              href="/dashboard"
-              className="transition-colors hover:text-primary"
-            >
-              Dashboard
-            </Link>
+  <p className="mt-2 text-sm text-slate-400">
+    Banking Exam Preparation Operating System
+  </p>
 
-            <Link
-              href="/practice"
-              className="transition-colors hover:text-primary"
-            >
-              Practice
-            </Link>
+  <p className="mt-5 text-sm text-slate-300">
+    Built with ❤️ by{" "}
+    <span className="font-semibold text-white">
+      Dipanshu Verma
+    </span>
+  </p>
 
-            <Link
-              href="/mocks"
-              className="transition-colors hover:text-primary"
-            >
-              Mocks
-            </Link>
+  <div className="mt-5 flex items-center justify-center gap-3 text-xs text-slate-500">
+    <span>SBI PO</span>
+    <span>•</span>
+    <span>IBPS PO</span>
+    <span>•</span>
+    <span>RRB PO</span>
 
-            <Link
-              href="/mistakes"
-              className="transition-colors hover:text-primary"
-            >
-              Mistake Book
-            </Link>
+    <span className="mx-2 text-slate-700">|</span>
 
-            <Link
-              href="/revision"
-              className="transition-colors hover:text-primary"
-            >
-              Revision
-            </Link>
-
-            <Link
-              href="/analytics"
-              className="transition-colors hover:text-primary"
-            >
-              Analytics
-            </Link>
-
-            <Link
-              href="/profile"
-              className="transition-colors hover:text-primary"
-            >
-              Profile
-            </Link>
-
-          </nav>
-        </div>
-
-        <div className="mt-8 flex flex-col gap-3 border-t border-border pt-6 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
-
-  <span>
-    © {currentYear} {appConfig.name}. All rights reserved.
-  </span>
-
-  <span className="font-semibold text-foreground">
-    Built with <span className="text-red-500">💖</span> by Dipanshu
-  </span>
-
-  <span className="font-mono tracking-wide opacity-70">
-    v1.0.0 Stable Engine
-  </span>
-
+    <span>v1.0 Stable</span>
+  </div>
 </div>
-
+        </div>
       </div>
     </footer>
   );

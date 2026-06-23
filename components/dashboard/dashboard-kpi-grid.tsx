@@ -1,3 +1,4 @@
+import React from "react";
 import { Target, Trophy, RotateCcw, Flame } from "lucide-react";
 import { StatCard } from "@/components/ui/stat-card";
 import { SectionHeader } from "@/components/ui/section-header";
@@ -9,7 +10,7 @@ interface DashboardKPIGridProps {
   consistencyStreak: number;
 }
 
-export function DashboardKPIGrid({
+export const DashboardKPIGrid = React.memo(function DashboardKPIGrid({
   accuracy,
   avgMockScore,
   revisionCompletion,
@@ -22,7 +23,7 @@ export function DashboardKPIGrid({
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
         <StatCard
           title="Accuracy"
-          value={`${accuracy}%`}
+          value={`${Math.round(accuracy)}%`}
           label="Top KPI"
           icon={Target}
           iconColor="text-indigo-400"
@@ -30,7 +31,7 @@ export function DashboardKPIGrid({
 
         <StatCard
           title="Mock Score"
-          value={avgMockScore}
+          value={Math.round(avgMockScore)}
           label="Average"
           icon={Trophy}
           iconColor="text-amber-400"
@@ -38,7 +39,7 @@ export function DashboardKPIGrid({
 
         <StatCard
           title="Revision Completion"
-          value={`${revisionCompletion}%`}
+          value={`${Math.round(revisionCompletion)}%`}
           label="This Week"
           icon={RotateCcw}
           iconColor="text-emerald-400"
@@ -46,7 +47,7 @@ export function DashboardKPIGrid({
 
         <StatCard
           title="Consistency"
-          value={`${consistencyStreak}d`}
+          value={`${Math.max(0, Math.round(consistencyStreak))}d`}
           label="Current"
           icon={Flame}
           iconColor="text-orange-400"
@@ -54,4 +55,4 @@ export function DashboardKPIGrid({
       </div>
     </section>
   );
-}
+});
