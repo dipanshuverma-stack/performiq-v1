@@ -13,11 +13,9 @@ import {
 } from "@/lib/analytics/practice-trends";
 
 import { getPracticeSubjectAnalytics } from "@/lib/analytics/practice-subject-analytics";
-
-// ✅ 1. Added Difficulty Analytics Imports
 import { getPracticeDifficultyAnalytics } from "@/lib/analytics/practice-difficulty-analytics";
-import DifficultyPerformanceTable from "@/components/analytics/difficulty-performance-table";
 
+import DifficultyPerformanceTable from "@/components/analytics/difficulty-performance-table";
 import PracticeAccuracyChart from "@/components/charts/practice-accuracy-chart";
 import PracticeQpmChart from "@/components/charts/practice-qpm-chart";
 import SubjectPerformanceTable from "@/components/analytics/SubjectPerformanceTable";
@@ -30,19 +28,12 @@ export default async function PracticeAnalyticsPage() {
   }
 
   const user = await prisma.user.findUnique({
-    where: {
-      email: session.user.email,
-    },
-    select: {
-      id: true,
-    },
+    where: { email: session.user.email },
+    select: { id: true },
   });
 
-  if (!user) {
-    redirect("/login");
-  }
+  if (!user) redirect("/login");
 
-  // ✅ 2. Updated Promise.all to fetch difficulty trends concurrently
   const [
     accuracyTrend,
     qpmTrend,
@@ -59,24 +50,18 @@ export default async function PracticeAnalyticsPage() {
 
   if (analytics.totalSessions === 0) {
     return (
-      <div className="p-8">
-        <h1 className="text-3xl font-bold mb-8">Practice Analytics</h1>
-
-        <div className="bg-white rounded-xl shadow p-12 text-center">
-          <div className="text-6xl mb-4">📈</div>
-
-          <h2 className="text-2xl font-bold mb-3">No Practice Data Yet</h2>
-
-          <p className="text-gray-600 mb-6">
-            Complete your first practice session to unlock analytics, accuracy
-            trends, speed tracking, and performance insights.
+      <div className="min-h-screen flex items-center justify-center p-6">
+        <div className="max-w-md text-center">
+          <div className="text-6xl mb-6">📈</div>
+          <h2 className="text-3xl font-bold mb-4">No Practice Data Yet</h2>
+          <p className="text-slate-400 mb-8">
+            Complete your first practice session to unlock detailed analytics, accuracy trends, and performance insights.
           </p>
-
           <a
             href="/practice"
-            className="inline-flex items-center px-6 py-3 bg-black text-white rounded-lg hover:bg-gray-800"
+            className="inline-flex items-center px-8 py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-medium transition-colors"
           >
-            Start Practice Session
+            Start First Practice Session
           </a>
         </div>
       </div>
@@ -84,133 +69,108 @@ export default async function PracticeAnalyticsPage() {
   }
 
   return (
-    <div className="p-8 space-y-8 bg-slate-50 min-h-screen">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-10 space-y-8 sm:space-y-10">
       <div>
-        <h1 className="text-3xl font-bold">Practice Analytics</h1>
-        <p className="text-gray-500 mt-1">
-          Measure your speed, accuracy and consistency across every practice
-          session.
+        <h1 className="text-3xl sm:text-4xl font-bold tracking-tight">Practice Analytics</h1>
+        <p className="text-slate-400 mt-2 text-[15px]">
+          Measure your speed, accuracy, and consistency
         </p>
       </div>
 
       {/* KPI Cards */}
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <div className="bg-white rounded-2xl border shadow-sm p-6">
-          <p className="text-sm text-gray-500">Sessions</p>
-          <p className="text-4xl font-bold mt-2">{analytics.totalSessions}</p>
+      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="bg-[#0E121B] border border-white/[0.08] rounded-3xl p-6">
+          <p className="text-xs uppercase tracking-widest text-slate-400">Sessions</p>
+          <p className="text-4xl font-bold mt-3 text-white">{analytics.totalSessions}</p>
         </div>
 
-        <div className="bg-white rounded-2xl border shadow-sm p-6">
-          <p className="text-sm text-gray-500">Accuracy</p>
-          <p className="text-4xl font-bold mt-2">
-            {analytics.averageAccuracy}%
-          </p>
+        <div className="bg-[#0E121B] border border-white/[0.08] rounded-3xl p-6">
+          <p className="text-xs uppercase tracking-widest text-slate-400">Avg Accuracy</p>
+          <p className="text-4xl font-bold mt-3 text-white">{analytics.averageAccuracy}%</p>
         </div>
 
-        <div className="bg-white rounded-2xl border shadow-sm p-6">
-          <p className="text-sm text-gray-500">Average QPM</p>
-          <p className="text-4xl font-bold mt-2">{analytics.averageQPM}</p>
+        <div className="bg-[#0E121B] border border-white/[0.08] rounded-3xl p-6">
+          <p className="text-xs uppercase tracking-widest text-slate-400">Avg QPM</p>
+          <p className="text-4xl font-bold mt-3 text-white">{analytics.averageQPM}</p>
         </div>
 
-        <div className="bg-white rounded-2xl border shadow-sm p-6">
-          <p className="text-sm text-gray-500">Speed Score</p>
-          <p className="text-4xl font-bold mt-2">{analytics.speedScore}%</p>
-          <div className="mt-4 h-2 bg-slate-200 rounded-full overflow-hidden">
+        <div className="bg-[#0E121B] border border-white/[0.08] rounded-3xl p-6">
+          <p className="text-xs uppercase tracking-widest text-slate-400">Speed Score</p>
+          <p className="text-4xl font-bold mt-3 text-white">{analytics.speedScore}%</p>
+          <div className="mt-4 h-2 bg-white/[0.08] rounded-full overflow-hidden">
             <div
-              className="bg-green-500 h-full rounded-full"
-              style={{
-                width: `${analytics.speedScore}%`,
-              }}
+              className="h-full bg-emerald-500 rounded-full transition-all"
+              style={{ width: `${analytics.speedScore}%` }}
             />
           </div>
         </div>
       </div>
 
-      {/* Summary Matrix */}
+      {/* Summary + Intelligence */}
       <div className="grid lg:grid-cols-2 gap-6">
-        <div className="bg-white rounded-2xl border shadow-sm p-6">
+        <div className="bg-[#0E121B] border border-white/[0.08] rounded-3xl p-6 sm:p-8">
           <h2 className="font-semibold text-lg mb-5">Practice Summary</h2>
-          <div className="space-y-3">
+          <div className="space-y-4 text-sm">
             <div className="flex justify-between">
-              <span>Total Questions</span>
+              <span className="text-slate-400">Total Questions</span>
               <strong>{analytics.totalQuestions}</strong>
             </div>
             <div className="flex justify-between">
-              <span>Total Practice Hours</span>
+              <span className="text-slate-400">Total Practice Hours</span>
               <strong>{analytics.totalPracticeHours}</strong>
             </div>
             <div className="flex justify-between">
-              <span>Target QPM</span>
-              <strong>{TARGET_PRELIMS_QPM}</strong>
+              <span className="text-slate-400">Target QPM</span>
+              <strong className="text-emerald-400">{TARGET_PRELIMS_QPM}</strong>
             </div>
           </div>
         </div>
 
-        <div className="bg-white rounded-2xl border shadow-sm p-6">
+        <div className="bg-[#0E121B] border border-white/[0.08] rounded-3xl p-6 sm:p-8">
           <h2 className="font-semibold text-lg mb-5">Topic Intelligence</h2>
           <div className="space-y-6">
             <div>
-              <p className="text-xs uppercase tracking-wide text-gray-500">
-                Best Topic
-              </p>
+              <p className="text-xs uppercase tracking-widest text-emerald-400">Best Topic</p>
               {analytics.bestTopic ? (
-                <>
-                  <h3 className="font-bold text-lg mt-1">
-                    {analytics.bestTopic.topic}
-                  </h3>
-                  <p className="text-sm text-gray-500">
-                    Accuracy {analytics.bestTopic.accuracy}% • QPM{" "}
-                    {analytics.bestTopic.qpm} • {analytics.bestTopic.sessions}{" "}
-                    sessions
+                <div className="mt-2">
+                  <p className="font-semibold">{analytics.bestTopic.topic}</p>
+                  <p className="text-xs text-slate-400">
+                    {analytics.bestTopic.accuracy}% • {analytics.bestTopic.qpm} QPM
                   </p>
-                </>
+                </div>
               ) : (
-                "-"
+                <p className="text-slate-400 mt-2">—</p>
               )}
             </div>
 
             <div>
-              <p className="text-xs uppercase tracking-wide text-gray-500">
-                Weakest Topic
-              </p>
+              <p className="text-xs uppercase tracking-widest text-red-400">Weakest Topic</p>
               {analytics.weakestTopic ? (
-                <>
-                  <h3 className="font-bold text-lg mt-1 text-red-600">
-                    {analytics.weakestTopic.topic}
-                  </h3>
-                  <p className="text-sm text-gray-500">
-                    Accuracy {analytics.weakestTopic.accuracy}% • QPM{" "}
-                    {analytics.weakestTopic.qpm} • {analytics.weakestTopic.sessions}{" "}
-                    sessions
+                <div className="mt-2">
+                  <p className="font-semibold text-red-400">{analytics.weakestTopic.topic}</p>
+                  <p className="text-xs text-slate-400">
+                    {analytics.weakestTopic.accuracy}% • {analytics.weakestTopic.qpm} QPM
                   </p>
-                </>
+                </div>
               ) : (
-                "-"
+                <p className="text-slate-400 mt-2">—</p>
               )}
             </div>
           </div>
         </div>
       </div>
 
-      {/* Subject Performance Breakdown */}
+      {/* Charts & Tables */}
       <SubjectPerformanceTable data={subjectAnalytics} />
 
-      {/* Benchmarks & Charts */}
-      <div className="bg-white rounded-2xl border shadow-sm p-6">
-        <div className="mb-6">
-          <h2 className="font-semibold text-xl">Banking PO Speed Benchmark</h2>
-          <p className="text-gray-500 mt-1">
-            Target: 100 Questions in 60 Minutes ({TARGET_PRELIMS_QPM} QPM)
-          </p>
-        </div>
-
+      <div className="bg-[#0E121B] border border-white/[0.08] rounded-3xl p-6 sm:p-8">
+        <h2 className="font-semibold text-xl mb-6">Performance Trends</h2>
         <div className="grid lg:grid-cols-2 gap-8">
           <PracticeAccuracyChart data={accuracyTrend} />
           <PracticeQpmChart data={qpmTrend} />
         </div>
       </div>
 
-      {/* ✅ 3. Added Difficulty Performance Table at the bottom of the viewport stack */}
       <DifficultyPerformanceTable data={difficultyAnalytics} />
     </div>
   );

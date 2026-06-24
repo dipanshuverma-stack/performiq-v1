@@ -31,7 +31,9 @@ export default async function MistakesPage({ searchParams }: { searchParams: Pro
   const filtersConditions: Prisma.MistakeEntryWhereInput = {
     userId: user.id,
     ...(mappedSubject && { subject: mappedSubject }),
-    ...(resolvedParams.status && resolvedParams.status !== "All" && { resolved: resolvedParams.status === "RESOLVED" }),
+    ...(resolvedParams.status && resolvedParams.status !== "All" && { 
+      resolved: resolvedParams.status === "RESOLVED" 
+    }),
     ...(resolvedParams.search && {
       OR: [
         { topic: { contains: resolvedParams.search, mode: "insensitive" } },
@@ -60,12 +62,19 @@ export default async function MistakesPage({ searchParams }: { searchParams: Pro
   }));
 
   return (
-    <MistakesContent
-      analytics={analytics}
-      pendingReviewCount={totalPendingCount}
-      mistakes={serializedMistakes}
-      totalPages={Math.ceil(totalCount / ITEMS_PER_PAGE)}
-      currentPage={currentPage}
-    />
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-10 space-y-8">
+      <div>
+        <h1 className="text-3xl sm:text-4xl font-bold tracking-tight">Mistakes & Weak Areas</h1>
+        <p className="text-slate-400 mt-2">Review and fix your recurring errors</p>
+      </div>
+
+      <MistakesContent
+        analytics={analytics}
+        pendingReviewCount={totalPendingCount}
+        mistakes={serializedMistakes}
+        totalPages={Math.ceil(totalCount / ITEMS_PER_PAGE)}
+        currentPage={currentPage}
+      />
+    </div>
   );
 }

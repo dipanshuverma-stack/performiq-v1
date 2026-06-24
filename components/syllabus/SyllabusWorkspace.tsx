@@ -12,7 +12,6 @@ interface SyllabusWorkspaceProps {
   data: SyllabusData;
 }
 
-// Map your internal keys to the database ENUM values expected by completeTopic
 const SUBJECT_MAP: Record<string, string> = {
   quant: "QUANTITATIVE_APTITUDE",
   reasoning: "REASONING_ABILITY",
@@ -36,14 +35,16 @@ export function SyllabusWorkspace({ data }: SyllabusWorkspaceProps) {
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6 sm:space-y-8 pb-20">
+      {/* Progress Card */}
       <ProgressCard
         completed={progress.completedCount}
         total={progress.totalCount}
         percentage={progress.percentage}
       />
 
-      <div className="grid grid-cols-1 gap-5 pb-20">
+      {/* Subjects List */}
+      <div className="space-y-4">
         {subjects.map((subject) => (
           <SubjectAccordion
             key={subject.key}
@@ -53,7 +54,7 @@ export function SyllabusWorkspace({ data }: SyllabusWorkspaceProps) {
             isOpen={openSubject === subject.key}
             onToggle={() => setOpenSubject(openSubject === subject.key ? null : subject.key)}
           >
-            <div className="pl-4 border-l border-white/5 space-y-2 pt-2">
+            <div className="pl-4 sm:pl-6 border-l border-white/10 space-y-3 pt-4 pb-2">
               {subject.topics.map((topic) => (
                 <TopicRow
                   key={topic.id}

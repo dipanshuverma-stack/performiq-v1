@@ -1,9 +1,10 @@
 import { auth } from "@/auth";
+import { prisma } from "@/lib/prisma";
+import { redirect } from "next/navigation";
 import { getPracticeAnalytics, TARGET_PRELIMS_QPM } from "@/lib/analytics/practice-analytics";
+import { getPracticeAccuracyTrend, getPracticeQpmTrend } from "@/lib/analytics/practice-trends";
 import PracticeAccuracyChart from "@/components/charts/practice-accuracy-chart";
 import PracticeQpmChart from "@/components/charts/practice-qpm-chart";
-import { redirect } from "next/navigation";
-import { getPracticeAccuracyTrend, getPracticeQpmTrend } from "@/lib/analytics/practice-trends";
 
 export default async function PracticeAnalyticsPage() {
   const session = await auth();
@@ -17,100 +18,106 @@ export default async function PracticeAnalyticsPage() {
 
   if (analytics.totalSessions === 0) {
     return (
-      <div className="max-w-7xl mx-auto p-8">
-        <div className="rounded-3xl border border-dashed border-white/[0.08] bg-[#0E121B] p-12 text-center">
-          <div className="text-6xl mb-4">📈</div>
-          <h2 className="text-2xl font-bold mb-3">No Practice Data Yet</h2>
-          <p className="text-muted-foreground mb-8">Complete your first practice session to unlock performance insights.</p>
-          <a href="/practice" className="inline-flex items-center px-6 py-3 bg-blue-500 text-white font-semibold rounded-2xl hover:bg-blue-600 transition-all">Start Practice Session</a>
+      <div className="min-h-screen flex items-center justify-center p-6">
+        <div className="max-w-md text-center">
+          <div className="text-7xl mb-6">📈</div>
+          <h2 className="text-3xl font-bold mb-4">No Practice Data Yet</h2>
+          <p className="text-slate-400 mb-8">Complete your first practice session to unlock detailed analytics and trends.</p>
+          <a 
+            href="/practice" 
+            className="inline-flex px-8 py-4 bg-blue-600 hover:bg-blue-700 rounded-2xl font-semibold text-white transition"
+          >
+            Start First Practice Session
+          </a>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-6 py-8 space-y-8">
-      <h1 className="text-3xl font-black">Practice Health</h1>
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-10 space-y-8">
+      <div>
+        <h1 className="text-3xl sm:text-4xl font-bold tracking-tight">Practice Analytics</h1>
+        <p className="text-slate-400 mt-2">Track your speed, accuracy & consistency</p>
+      </div>
 
-      {/* 1. Practice Health Hero */}
-      <div className="rounded-3xl border border-white/[0.08] bg-[#0E121B] p-8">
-        <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Practice Health</p>
-        <div className="flex items-baseline gap-4 mt-2">
-          <span className="text-6xl font-black">{analytics.averageAccuracy} / 100</span>
-          <span className="text-emerald-400 font-semibold">↑ 6 this month</span>
+      {/* KPI Cards */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        <div className="bg-[#0E121B] border border-white/[0.08] rounded-3xl p-6">
+          <p className="text-xs uppercase tracking-widest text-slate-400">SESSIONS</p>
+          <p className="text-4xl font-bold mt-3 text-white">{analytics.totalSessions}</p>
         </div>
-        <p className="text-lg text-muted-foreground mt-2">Good Progress</p>
-      </div>
 
-      {/* 2. Metric Cards */}
-      <div className="grid md:grid-cols-4 gap-4">
-        {[
-          { label: "Sessions", value: analytics.totalSessions },
-          { label: "Accuracy Rate", value: `${analytics.averageAccuracy}%` },
-          { label: "Speed Performance", value: `${analytics.averageQPM} QPM` },
-          { label: "Exam Readiness", value: "74 / 100" },
-        ].map((stat) => (
-          <div key={stat.label} className="rounded-3xl border border-white/[0.08] bg-[#0E121B] p-6">
-            <p className="text-sm text-muted-foreground">{stat.label}</p>
-            <p className="text-2xl font-bold mt-2">{stat.value}</p>
-          </div>
-        ))}
-      </div>
+        <div className="bg-[#0E121B] border border-white/[0.08] rounded-3xl p-6">
+          <p className="text-xs uppercase tracking-widest text-slate-400">AVG ACCURACY</p>
+          <p className="text-4xl font-bold mt-3 text-white">{analytics.averageAccuracy}%</p>
+        </div>
 
-      {/* 3. Topic Intelligence */}
-      <div className="rounded-3xl border border-white/[0.08] bg-[#0E121B] p-8">
-        <h2 className="text-xl font-bold mb-6">TOPIC INTELLIGENCE</h2>
-        <div className="grid md:grid-cols-2 gap-8">
-          <div>
-            <p className="text-xs uppercase tracking-[0.1em] text-muted-foreground mb-2">Best Performing</p>
-            <p className="text-2xl font-bold">{analytics.bestTopic?.topic || "N/A"}</p>
-            <p className="text-emerald-400">{analytics.bestTopic?.accuracy}% Accuracy</p>
-          </div>
-          <div>
-            <p className="text-xs uppercase tracking-[0.1em] text-muted-foreground mb-2">Weakest Area</p>
-            <p className="text-2xl font-bold text-red-400">{analytics.weakestTopic?.topic || "N/A"}</p>
-            <p className="text-red-400">{analytics.weakestTopic?.accuracy}% Accuracy</p>
+        <div className="bg-[#0E121B] border border-white/[0.08] rounded-3xl p-6">
+          <p className="text-xs uppercase tracking-widest text-slate-400">AVG QPM</p>
+          <p className="text-4xl font-bold mt-3 text-white">{analytics.averageQPM}</p>
+        </div>
+
+        <div className="bg-[#0E121B] border border-white/[0.08] rounded-3xl p-6">
+          <p className="text-xs uppercase tracking-widest text-slate-400">SPEED SCORE</p>
+          <p className="text-4xl font-bold mt-3 text-white">{analytics.speedScore}%</p>
+          <div className="mt-4 h-2 bg-white/[0.08] rounded-full overflow-hidden">
+            <div 
+              className="h-full bg-emerald-500 rounded-full" 
+              style={{ width: `${analytics.speedScore}%` }}
+            />
           </div>
         </div>
       </div>
 
-      {/* 4. Exam Readiness */}
-      <div className="rounded-3xl border border-white/[0.08] bg-[#0E121B] p-8">
-        <h2 className="text-xl font-bold mb-6">EXAM READINESS</h2>
+      {/* Topic Intelligence */}
+      <div className="rounded-3xl border border-white/[0.08] bg-[#0E121B] p-6 sm:p-8">
+        <h2 className="text-xl font-semibold mb-6">Topic Intelligence</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
+          <div>
+            <p className="text-xs uppercase tracking-widest text-emerald-400">BEST TOPIC</p>
+            <p className="mt-2 text-xl font-bold">{analytics.bestTopic?.topic || "—"}</p>
+            <p className="text-emerald-400 text-sm">
+              {analytics.bestTopic?.accuracy}% Accuracy
+            </p>
+          </div>
+          <div>
+            <p className="text-xs uppercase tracking-widest text-red-400">WEAKEST TOPIC</p>
+            <p className="mt-2 text-xl font-bold text-red-400">{analytics.weakestTopic?.topic || "—"}</p>
+            <p className="text-red-400 text-sm">
+              {analytics.weakestTopic?.accuracy}% Accuracy
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Exam Readiness */}
+      <div className="rounded-3xl border border-white/[0.08] bg-[#0E121B] p-6 sm:p-8">
+        <h2 className="text-xl font-semibold mb-6">Exam Readiness</h2>
         <div className="flex justify-between items-end mb-4">
           <div>
-            <p className="text-muted-foreground">Current: <span className="text-white font-bold">{analytics.averageQPM} QPM</span></p>
-            <p className="text-muted-foreground">Target: <span className="text-white font-bold">{TARGET_PRELIMS_QPM} QPM</span></p>
+            <p className="text-slate-400">Current Speed</p>
+            <p className="text-3xl font-bold text-white">{analytics.averageQPM} QPM</p>
           </div>
           <div className="text-right">
-            <p className="text-sm text-muted-foreground">Gap</p>
-            <p className="text-xl font-bold">0.25 QPM</p>
+            <p className="text-slate-400">Target</p>
+            <p className="text-3xl font-bold text-emerald-400">{TARGET_PRELIMS_QPM} QPM</p>
           </div>
         </div>
-        <div className="h-2 rounded-full bg-white/5 overflow-hidden">
-          <div className="h-full bg-blue-500 rounded-full" style={{ width: `${analytics.speedScore}%` }} />
+        <div className="h-3 bg-white/[0.05] rounded-full overflow-hidden">
+          <div 
+            className="h-full bg-blue-500 rounded-full" 
+            style={{ width: `${analytics.speedScore}%` }} 
+          />
         </div>
       </div>
 
-      {/* 5. Performance Trends */}
-      <div className="rounded-3xl border border-white/[0.08] bg-[#0E121B] p-8">
-        <h2 className="text-xl font-bold mb-8">PERFORMANCE TRENDS</h2>
-        <div className="grid md:grid-cols-2 gap-8">
+      {/* Performance Trends */}
+      <div className="rounded-3xl border border-white/[0.08] bg-[#0E121B] p-6 sm:p-8">
+        <h2 className="text-xl font-semibold mb-6">Performance Trends</h2>
+        <div className="grid lg:grid-cols-2 gap-8">
           <PracticeAccuracyChart data={accuracyTrend} />
           <PracticeQpmChart data={qpmTrend} />
-        </div>
-      </div>
-
-      {/* 6. Weak Areas */}
-      <div className="rounded-3xl border border-white/[0.08] bg-[#0E121B] p-8">
-        <h2 className="text-xl font-bold mb-6">WEAK AREAS</h2>
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-          {["Data Interpretation", "Puzzle", "Probability", "Cloze Test", "Seating Arrangement"].map((topic, i) => (
-            <div key={topic} className="flex items-center gap-4 p-4 rounded-2xl bg-white/[0.02]">
-              <span className="text-xl font-bold text-muted-foreground/50">0{i + 1}</span>
-              <p className="font-semibold">{topic}</p>
-            </div>
-          ))}
         </div>
       </div>
     </div>

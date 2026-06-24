@@ -80,7 +80,6 @@ export function WeeklyPlanner({
     setSelectedCell(null);
   };
 
-  // Fixed Add Task - Modal closes instantly
   const handleAddTask = () => {
     if (!title.trim() || !selectedCell) return;
 
@@ -95,11 +94,9 @@ export function WeeklyPlanner({
     };
 
     startTransition(async () => {
-      // Optimistic update + close modal
       setOptimisticTasks({ type: "ADD", payload: newTask });
       resetAddForm();
 
-      // Background save
       try {
         await addWeeklyPlanTask({
           day: selectedCell.day,
@@ -108,8 +105,7 @@ export function WeeklyPlanner({
           time: newTask.time || undefined,
         });
         router.refresh();
-      } catch (err) {
-        console.error("Failed to add task:", err);
+      } catch {
         router.refresh();
       }
     });
@@ -162,40 +158,46 @@ export function WeeklyPlanner({
   };
 
   return (
-    <div className="rounded-3xl border border-white/[0.08] bg-[#0E121B] p-4 md:p-6">
+    <div className="rounded-3xl border border-white/[0.08] bg-[#0E121B] p-3 sm:p-6">
       <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-xl font-bold text-white">Weekly Study Planner</h2>
-          <p className="text-sm text-slate-400 mt-1">Instant updates • Drag to move</p>
+          <p className="text-sm text-slate-400 mt-1">Scroll horizontally • Drag tasks</p>
         </div>
         <div className="flex items-center gap-2">
-          <button onClick={() => handleRowChange(Math.max(1, rows - 1))} className="h-10 w-10 rounded-xl border border-white/[0.08] bg-white/[0.03] text-white hover:bg-white/[0.06]" disabled={isPending}>−</button>
+          <button onClick={() => handleRowChange(Math.max(1, rows - 1))} className="h-9 w-9 sm:h-10 sm:w-10 rounded-xl border border-white/[0.08] bg-white/[0.03] text-white hover:bg-white/[0.06]" disabled={isPending}>−</button>
           <span className="text-sm text-slate-400 px-3">{rows} Rows</span>
-          <button onClick={() => handleRowChange(rows + 1)} className="h-10 w-10 rounded-xl border border-white/[0.08] bg-white/[0.03] text-white hover:bg-white/[0.06]" disabled={isPending}>+</button>
+          <button onClick={() => handleRowChange(rows + 1)} className="h-9 w-9 sm:h-10 sm:w-10 rounded-xl border border-white/[0.08] bg-white/[0.03] text-white hover:bg-white/[0.06]" disabled={isPending}>+</button>
         </div>
       </div>
 
-      {/* Rest of your grid remains the same */}
-      <div className="overflow-x-auto pb-4">
-        <div className="min-w-[900px]">
-          <div className="grid grid-cols-7 gap-3 mb-3">
+      <div className="overflow-x-auto pb-4 -mx-1">
+        <div className="min-w-[1150px] sm:min-w-[1250px]">
+          <div className="grid grid-cols-7 gap-2 sm:gap-3 mb-3">
             {DAYS.map((day, index) => (
-              <div key={day} className={cn("rounded-2xl border p-3 text-center font-semibold", 
-                index === todayIndex ? "border-blue-500/30 bg-blue-500/10 text-blue-400" : "border-white/[0.08] bg-white/[0.03] text-white")}>
+              <div
+                key={day}
+                className={cn(
+                  "rounded-2xl border p-2 sm:p-3 text-center font-semibold text-sm sm:text-base",
+                  index === todayIndex
+                    ? "border-blue-500/30 bg-blue-500/10 text-blue-400"
+                    : "border-white/[0.08] bg-white/[0.03] text-white"
+                )}
+              >
                 {day}
               </div>
             ))}
           </div>
 
           {Array.from({ length: rows }).map((_, row) => (
-            <div key={row} className="grid grid-cols-7 gap-3 mb-3">
+            <div key={row} className="grid grid-cols-7 gap-2 sm:gap-3 mb-3">
               {DAYS.map((_, dayIndex) => (
                 <div
                   key={`${dayIndex}-${row}`}
                   onClick={() => setSelectedCell({ day: dayIndex, row })}
                   onDragOver={handleDragOver}
                   onDrop={(e) => handleDrop(e, dayIndex, row)}
-                  className="min-h-[120px] rounded-2xl border border-white/[0.08] bg-white/[0.02] p-3 transition-all hover:border-white/30 hover:bg-white/[0.04]"
+                  className="min-h-[130px] rounded-2xl border border-white/[0.08] bg-white/[0.02] p-2.5 sm:p-3 transition-all hover:border-white/30 hover:bg-white/[0.04]"
                 >
                   {taskMap[`${dayIndex}-${row}`]?.map((task: OptimisticTask) => (
                     <div
@@ -204,7 +206,7 @@ export function WeeklyPlanner({
                       onDragStart={(e) => handleDragStart(e, task)}
                       onClick={(e) => e.stopPropagation()}
                       className={cn(
-                        "group rounded-xl bg-white/[0.04] border border-white/10 p-3 mb-2 relative flex gap-3 hover:bg-white/[0.08] transition-all",
+                        "group rounded-xl bg-white/[0.04] border border-white/10 p-3 mb-2 relative flex items-start gap-3 hover:bg-white/[0.08] transition-all",
                         task.completed && "opacity-70",
                         task.isOptimistic && "opacity-75"
                       )}
@@ -216,14 +218,22 @@ export function WeeklyPlanner({
                         className="mt-1 accent-blue-600 cursor-pointer w-5 h-5 flex-shrink-0"
                       />
 
-                      <div className="flex-1 min-w-0">
+                      <div className="flex-1 min-w-[90px]">
                         {task.time && <div className="text-xs text-slate-400 mb-1">{task.time}</div>}
-                        <div className={cn("text-sm font-medium break-words", task.completed && "line-through text-slate-400")}>
+                        <div className={cn(
+                          "text-[13px] sm:text-sm font-medium leading-tight break-words whitespace-normal",
+                          task.completed && "line-through text-slate-400"
+                        )}
+                        style={{
+                          wordBreak: "normal",
+                          overflowWrap: "break-word",
+                        }}
+                        >
                           {task.title}
                         </div>
                       </div>
 
-                      <div className="opacity-0 group-hover:opacity-100 cursor-grab active:cursor-grabbing self-center">
+                      <div className="hidden sm:block opacity-0 group-hover:opacity-100 cursor-grab active:cursor-grabbing self-center flex-shrink-0">
                         <GripVertical className="h-5 w-5 text-slate-500" />
                       </div>
 
@@ -237,7 +247,7 @@ export function WeeklyPlanner({
                   ))}
 
                   {!taskMap[`${dayIndex}-${row}`] && (
-                    <div className="h-full flex items-center justify-center text-xs text-slate-500">+ Add Task</div>
+                    <div className="h-full flex items-center justify-center text-xs text-slate-500 py-8">+ Add Task</div>
                   )}
                 </div>
               ))}

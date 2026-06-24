@@ -1,6 +1,8 @@
+import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import { notFound } from "next/navigation";
+import { redirect } from "next/navigation";
 import { getMockIntelligence } from "@/lib/intelligence/mock-intelligence";
+import { cn } from "@/lib/utils";   // ← Added this import
 
 type Props = { params: Promise<{ id: string }> };
 
@@ -10,19 +12,34 @@ export default async function MockDetailsPage({ params }: Props) {
   const mock = await prisma.mockTest.findUnique({
     where: { id },
     select: {
-      id: true, exam: true, mockType: true, title: true, score: true, accuracy: true,
-      correctAnswers: true, incorrectAnswers: true, totalQuestions: true,
-      attemptedQuestions: true, unattemptedQuestions: true, duration: true, notes: true,
+      id: true,
+      exam: true,
+      mockType: true,
+      title: true,
+      score: true,
+      accuracy: true,
+      correctAnswers: true,
+      incorrectAnswers: true,
+      totalQuestions: true,
+      attemptedQuestions: true,
+      unattemptedQuestions: true,
+      duration: true,
+      notes: true,
       subjectPerformances: {
         select: {
-          id: true, subject: true, score: true, accuracy: true,
-          attempted: true, correct: true, incorrect: true,
+          id: true,
+          subject: true,
+          score: true,
+          accuracy: true,
+          attempted: true,
+          correct: true,
+          incorrect: true,
         },
       },
     },
   });
 
-  if (!mock) notFound();
+  if (!mock) redirect("/mocks");
 
   const intelligence = getMockIntelligence(
     mock.subjectPerformances.map((s) => ({
@@ -40,33 +57,44 @@ export default async function MockDetailsPage({ params }: Props) {
     : null;
 
   return (
-    <div className="p-8 max-w-7xl mx-auto space-y-6">
-      {/* Mock Intelligence Summary */}
-      <div className="bg-white rounded-xl shadow border border-gray-100 p-6">
-        <h2 className="text-xl font-semibold mb-4 text-gray-900">Mock Intelligence</h2>
-        <div className="grid md:grid-cols-5 gap-4">
-          <div className="bg-green-50 rounded-xl p-4">
-            <p className="text-sm text-green-600">Strongest Subject</p>
-            <p className="text-xl font-bold mt-2">{intelligence.strongestSubject ?? "-"}</p>
-            <p className="text-xs text-gray-500 mt-1">
-              {strongestRecord ? `${strongestRecord.accuracy.toFixed(1)}%` : "-"}
+    <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6 sm:py-10 space-y-8">
+      {/* Mock Title */}
+      <div>
+        <div className="text-sm text-muted-foreground mb-1">MOCK ANALYSIS</div>
+        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">{mock.title || mock.exam}</h1>
+        <p className="text-slate-400 mt-1">{mock.mockType} • {mock.exam}</p>
+      </div>
+
+      {/* Intelligence Summary */}
+      <div className="rounded-3xl border border-white/[0.08] bg-[#0E121B] p-6 sm:p-8">
+        <h2 className="text-xl font-semibold mb-6">Mock Intelligence</h2>
+        
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+          <div className="bg-green-500/10 border border-green-500/20 rounded-2xl p-5">
+            <p className="text-sm text-green-400">Strongest Subject</p>
+            <p className="text-xl font-bold mt-2 text-white">{intelligence.strongestSubject ?? "—"}</p>
+            <p className="text-xs text-green-500 mt-1">
+              {strongestRecord ? `${strongestRecord.accuracy.toFixed(1)}%` : "—"}
             </p>
           </div>
 
-          <div className="bg-red-50 rounded-xl p-4">
-            <p className="text-sm text-red-600">Weakest Subject</p>
-            <p className="text-xl font-bold mt-2">{intelligence.weakestSubject ?? "-"}</p>
-            <p className="text-xs text-gray-500 mt-1">
-              {weakestRecord ? `${weakestRecord.accuracy.toFixed(1)}%` : "-"}
+          <div className="bg-red-500/10 border border-red-500/20 rounded-2xl p-5">
+            <p className="text-sm text-red-400">Weakest Subject</p>
+            <p className="text-xl font-bold mt-2 text-white">{intelligence.weakestSubject ?? "—"}</p>
+            <p className="text-xs text-red-500 mt-1">
+              {weakestRecord ? `${weakestRecord.accuracy.toFixed(1)}%` : "—"}
             </p>
           </div>
 
-          <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 md:col-span-3">
-            <h3 className="font-bold text-blue-900 mb-2">🎯 Recommended Practice</h3>
+          <div className="lg:col-span-3 bg-blue-500/10 border border-blue-500/20 rounded-2xl p-5">
+            <h3 className="font-semibold text-blue-400 mb-3">🎯 Recommended Focus Areas</h3>
             <div className="flex flex-wrap gap-2">
-              {intelligence.recommendedPractice.map((s) => (
-                <span key={s} className="px-3 py-1 bg-white border border-blue-100 rounded-full text-xs font-semibold text-blue-700">
-                  {s}
+              {intelligence.recommendedPractice.map((subject, i) => (
+                <span 
+                  key={i}
+                  className="px-4 py-2 bg-white/5 border border-blue-500/20 rounded-full text-sm text-blue-300"
+                >
+                  {subject}
                 </span>
               ))}
             </div>
@@ -75,31 +103,46 @@ export default async function MockDetailsPage({ params }: Props) {
       </div>
 
       {/* Subject Breakdown */}
-      <div className="bg-white rounded-xl shadow border border-gray-100 p-6">
-        <h2 className="text-xl font-semibold mb-4 text-gray-900">Subject Breakdown</h2>
-        <div className="grid md:grid-cols-2 gap-4">
+      <div className="rounded-3xl border border-white/[0.08] bg-[#0E121B] p-6 sm:p-8">
+        <h2 className="text-xl font-semibold mb-6">Subject Breakdown</h2>
+        
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {mock.subjectPerformances.map((s) => {
             const isStrongest = strongestRecord?.id === s.id;
             const isWeakest = weakestRecord?.id === s.id;
-            
+
             return (
-              <div 
-                key={s.id} 
-                className={`border rounded-xl p-4 transition-colors ${
-                  isStrongest ? "border-green-300 bg-green-50/30" : 
-                  isWeakest ? "border-red-300 bg-red-50/30" : 
-                  "border-gray-100 bg-gray-50/50"
-                }`}
+              <div
+                key={s.id}
+                className={cn(
+                  "rounded-2xl border p-6 transition-all",
+                  isStrongest && "border-green-500/30 bg-green-500/5",
+                  isWeakest && "border-red-500/30 bg-red-500/5",
+                  !isStrongest && !isWeakest && "border-white/[0.08]"
+                )}
               >
-                <div className="flex justify-between items-center mb-3">
-                  <h3 className="font-bold text-gray-900">{s.subject}</h3>
-                  <span className="text-2xl font-black text-gray-400">{s.score}</span>
+                <div className="flex justify-between items-start mb-4">
+                  <h3 className="font-semibold text-lg">{s.subject}</h3>
+                  <span className="text-3xl font-bold text-white tabular-nums">{s.score}</span>
                 </div>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
-                  <div><p className="text-gray-500">Accuracy</p><p className="font-bold">{s.accuracy.toFixed(1)}%</p></div>
-                  <div><p className="text-gray-500">Attempted</p><p className="font-bold text-blue-600">{s.attempted}</p></div>
-                  <div><p className="text-gray-500">Correct</p><p className="font-bold text-green-600">{s.correct}</p></div>
-                  <div><p className="text-gray-500">Incorrect</p><p className="font-bold text-red-600">{s.incorrect}</p></div>
+
+                <div className="grid grid-cols-2 gap-x-8 gap-y-4 text-sm">
+                  <div>
+                    <p className="text-slate-400 text-xs">ACCURACY</p>
+                    <p className="font-semibold text-white">{s.accuracy.toFixed(1)}%</p>
+                  </div>
+                  <div>
+                    <p className="text-slate-400 text-xs">ATTEMPTED</p>
+                    <p className="font-semibold text-blue-400">{s.attempted}</p>
+                  </div>
+                  <div>
+                    <p className="text-slate-400 text-xs">CORRECT</p>
+                    <p className="font-semibold text-emerald-400">{s.correct}</p>
+                  </div>
+                  <div>
+                    <p className="text-slate-400 text-xs">INCORRECT</p>
+                    <p className="font-semibold text-red-400">{s.incorrect}</p>
+                  </div>
                 </div>
               </div>
             );

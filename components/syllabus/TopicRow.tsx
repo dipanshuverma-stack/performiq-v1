@@ -38,66 +38,82 @@ export function TopicRow({
       await completeTopic(formData);
     } catch (error) {
       console.error("Failed to update progress", error);
-      setIsCompleted(!nextValue); // Revert on error
+      setIsCompleted(!nextValue);
     } finally {
       setIsPending(false);
     }
   }
-
-  const weightageStyles = {
-    HIGH: "rounded-full border border-indigo-500/20 bg-indigo-500/10 px-3 py-1 text-[11px] font-semibold text-indigo-300",
-    MEDIUM: "rounded-full border border-amber-500/20 bg-amber-500/10 px-3 py-1 text-[11px] font-semibold text-amber-300",
-    LOW: "rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-[11px] font-semibold text-slate-400",
-  };
 
   return (
     <button
       onClick={handleToggle}
       disabled={isPending}
       className={cn(
-        "group w-full flex items-center justify-between rounded-2xl px-6 py-5 bg-[#0C111B] border transition-all duration-300",
+        "group w-full flex flex-col sm:flex-row sm:items-center justify-between rounded-2xl px-5 sm:px-6 py-5 bg-[#0C111B] border transition-all duration-300 text-left",
         isCompleted 
-          ? "border-emerald-500/15 bg-emerald-500/5" 
-          : "border-white/[0.05] hover:bg-white/[0.02] hover:border-white/[0.12] hover:-translate-y-[2px] hover:shadow-lg hover:shadow-indigo-500/5"
+          ? "border-emerald-500/20 bg-emerald-500/5" 
+          : "border-white/[0.05] hover:bg-white/[0.02] hover:border-white/[0.12]"
       )}
     >
-      <div className="flex items-center gap-4">
+      <div className="flex items-start gap-4 w-full">
+        {/* Checkbox */}
         <div className={cn(
-          "w-7 h-7 rounded-xl border flex items-center justify-center transition-all",
+          "w-7 h-7 rounded-xl border flex items-center justify-center transition-all flex-shrink-0 mt-0.5",
           isCompleted 
             ? "bg-emerald-500 border-emerald-500 text-white" 
             : "border-white/[0.08] bg-black/20 group-hover:border-indigo-400"
         )}>
           {isCompleted && <Check className="h-4 w-4" />}
         </div>
-        
-        <div className="text-left">
-          <h3 className={cn("text-lg font-semibold transition-colors", isCompleted ? "text-emerald-500" : "text-white")}>
+
+        {/* Title + Tags */}
+        <div className="flex-1 min-w-0">
+          <h3 className={cn(
+            "text-[15px] sm:text-lg font-semibold leading-tight break-words",
+            isCompleted ? "text-emerald-500" : "text-white"
+          )}>
             {title}
           </h3>
-          <div className="mt-3 flex flex-wrap gap-2">
-            {tags.map((tag) => (
-              <span key={tag} className="rounded-md border border-white/[0.08] bg-white/[0.05] px-2.5 py-1 text-[11px] font-medium text-slate-300">
-                {tag}
-              </span>
-            ))}
-          </div>
+
+          {tags.length > 0 && (
+            <div className="mt-3 flex flex-wrap gap-2">
+              {tags.map((tag) => (
+                <span 
+                  key={tag} 
+                  className="rounded-md border border-white/[0.08] bg-white/[0.05] px-2.5 py-1 text-[11px] font-medium text-slate-300"
+                >
+                  {tag}
+                </span>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
-      <div className="flex items-center gap-3">
+      {/* Right Side Info */}
+      <div className="flex items-center gap-2 sm:gap-3 mt-4 sm:mt-0">
         {weightage && (
-          <span className={isCompleted ? "rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 py-1 text-[11px] font-semibold text-emerald-300" : weightageStyles[weightage]}>
+          <span className={cn(
+            "rounded-full border px-3 py-1 text-[11px] font-semibold whitespace-nowrap",
+            isCompleted 
+              ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-300" 
+              : "border-white/[0.08] bg-white/[0.05] text-slate-300"
+          )}>
             {isCompleted ? "Completed" : weightage}
           </span>
         )}
+
         {estimatedMinutes && (
-          <span className="flex items-center gap-1.5 rounded-full border border-white/[0.08] bg-white/[0.05] px-3 py-1 text-[11px] font-medium text-slate-300">
-            <Clock3 className="h-3 w-3 text-slate-400" />
+          <span className="flex items-center gap-1.5 rounded-full border border-white/[0.08] bg-white/[0.05] px-3 py-1 text-[11px] font-medium text-slate-300 whitespace-nowrap">
+            <Clock3 className="h-3.5 w-3.5 text-slate-400" />
             {estimatedMinutes}m
           </span>
         )}
-        <ChevronRight className={cn("h-5 w-5 transition-all", isCompleted ? "text-emerald-500/50" : "text-slate-500 group-hover:translate-x-1 group-hover:text-indigo-400")} />
+
+        <ChevronRight className={cn(
+          "h-5 w-5 transition-all flex-shrink-0",
+          isCompleted ? "text-emerald-500/50" : "text-slate-500 group-hover:translate-x-1 group-hover:text-indigo-400"
+        )} />
       </div>
     </button>
   );

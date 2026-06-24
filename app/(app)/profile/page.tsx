@@ -37,24 +37,27 @@ export default async function ProfilePage() {
   const remainingExams = sortedExams.slice(1);
 
   return (
-    <div className="max-w-7xl mx-auto px-6 py-8 space-y-8">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-8">
       
-      {/* 1. Hero */}
+      {/* 1. Hero Section */}
       <div className="relative overflow-hidden rounded-3xl border border-white/[0.08] bg-[#0E121B]">
         <div className="absolute inset-0 bg-gradient-to-r from-transparent via-blue-500/[0.04] to-transparent" />
-        <div className="relative p-8">
+        <div className="relative p-6 sm:p-8">
           <span className="inline-flex rounded-full border border-white/[0.08] bg-white/[0.04] px-4 py-1 text-[11px] font-bold uppercase tracking-[0.2em] text-muted-foreground">PROFILE</span>
-          <div className="mt-6 flex items-center justify-between">
+          
+          <div className="mt-6 flex flex-col sm:flex-row sm:items-center justify-between gap-6">
             <div>
-              <h1 className="text-5xl font-black tracking-tight">{user.name || "Banking Aspirant"}</h1>
-              <p className="mt-3 text-xl text-muted-foreground">Banking Aspirant</p>
-              <div className="mt-3 flex items-center gap-2 text-blue-400 font-medium"><span>📍 {featuredExam.name} Target Mode</span></div>
-              <p className="mt-5 text-muted-foreground">Preparing for {sortedExams.length} Active Exam Targets</p>
+              <h1 className="text-3xl sm:text-5xl font-black tracking-tight">{user.name || "Banking Aspirant"}</h1>
+              <p className="mt-2 text-lg text-muted-foreground">Banking Aspirant</p>
+              <div className="mt-4 flex items-center gap-2 text-blue-400 font-medium">
+                📍 {featuredExam.name} Target Mode
+              </div>
             </div>
-            <div className="text-right">
-              <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Next Target</p>
-              <p className="mt-2 text-xl font-bold">{featuredExam.name}</p>
-              <div className="mt-4 text-6xl font-black tracking-tighter text-blue-400">{featuredExam.daysLeft}</div>
+
+            <div className="text-center sm:text-right">
+              <p className="text-xs uppercase tracking-widest text-muted-foreground">NEXT TARGET</p>
+              <p className="mt-1 text-xl font-bold">{featuredExam.name}</p>
+              <div className="mt-3 text-6xl font-black tracking-tighter text-blue-400">{featuredExam.daysLeft}</div>
               <p className="text-sm text-muted-foreground">Days Left</p>
             </div>
           </div>
@@ -62,82 +65,110 @@ export default async function ProfilePage() {
       </div>
 
       {/* 2. Quick Actions */}
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <button className="rounded-3xl border border-white/[0.08] bg-[#0E121B] p-6 text-left hover:border-blue-500/30 transition-all">
-          <div className="mb-3 text-2xl">📅</div>
-          <h3 className="font-semibold">Add Exam</h3>
-          <p className="mt-1 text-sm text-muted-foreground">Create target exam</p>
+          <div className="mb-3 text-3xl">📅</div>
+          <h3 className="font-semibold text-lg">Add Exam</h3>
+          <p className="mt-1 text-sm text-muted-foreground">Create new target</p>
         </button>
         <Link href="/dashboard" className="rounded-3xl border border-white/[0.08] bg-[#0E121B] p-6 hover:border-blue-500/30 transition-all">
-          <div className="mb-3 text-2xl">📊</div>
-          <h3 className="font-semibold">Dashboard</h3>
-          <p className="mt-1 text-sm text-muted-foreground">View progress</p>
+          <div className="mb-3 text-3xl">📊</div>
+          <h3 className="font-semibold text-lg">Dashboard</h3>
+          <p className="mt-1 text-sm text-muted-foreground">View overall progress</p>
         </Link>
         <Link href="/settings" className="rounded-3xl border border-white/[0.08] bg-[#0E121B] p-6 hover:border-blue-500/30 transition-all">
-          <div className="mb-3 text-2xl">⚙️</div>
-          <h3 className="font-semibold">Settings</h3>
-          <p className="mt-1 text-sm text-muted-foreground">Manage account</p>
+          <div className="mb-3 text-3xl">⚙️</div>
+          <h3 className="font-semibold text-lg">Settings</h3>
+          <p className="mt-1 text-sm text-muted-foreground">Account preferences</p>
         </Link>
       </div>
 
       {/* 3. Preparation Focus */}
-      <div className="rounded-3xl border border-white/[0.08] bg-[#0E121B] p-8">
+      <div className="rounded-3xl border border-white/[0.08] bg-[#0E121B] p-6 sm:p-8">
         <h2 className="text-xl font-semibold mb-6">Current Focus</h2>
-        <div className="grid gap-6 md:grid-cols-4">
-          <div><p className="text-sm text-muted-foreground">Exam</p><p className="mt-1 text-lg font-semibold">SBI PO</p></div>
-          <div><p className="text-sm text-muted-foreground">Stage</p><p className="mt-1 text-lg font-semibold">Prelims</p></div>
-          <div><p className="text-sm text-muted-foreground">Days Left</p><p className="mt-1 text-lg font-semibold text-blue-400">{featuredExam.daysLeft}</p></div>
-          <div><p className="text-sm text-muted-foreground">Priority Subject</p><p className="mt-1 text-lg font-semibold">Quantitative Aptitude</p></div>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 text-center sm:text-left">
+          <div>
+            <p className="text-xs text-muted-foreground">EXAM</p>
+            <p className="mt-1 font-semibold">SBI PO</p>
+          </div>
+          <div>
+            <p className="text-xs text-muted-foreground">STAGE</p>
+            <p className="mt-1 font-semibold">Prelims</p>
+          </div>
+          <div>
+            <p className="text-xs text-muted-foreground">DAYS LEFT</p>
+            <p className="mt-1 text-2xl font-bold text-blue-400">{featuredExam.daysLeft}</p>
+          </div>
+          <div>
+            <p className="text-xs text-muted-foreground">PRIORITY</p>
+            <p className="mt-1 font-semibold">Quantitative Aptitude</p>
+          </div>
         </div>
       </div>
 
       {/* 4. Upcoming Exams */}
-      <div className="rounded-3xl border border-white/[0.08] bg-[#0E121B] p-8">
-        <h2 className="text-2xl font-semibold mb-8">Upcoming Exams</h2>
-        <div className="rounded-3xl border border-blue-500/20 bg-blue-500/[0.03] p-8">
-          <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Closest Exam</p>
-          <h3 className="mt-4 text-3xl font-black">{featuredExam.name}</h3>
-          <p className="mt-2 text-muted-foreground">{featuredExam.date}</p>
+      <div className="rounded-3xl border border-white/[0.08] bg-[#0E121B] p-6 sm:p-8">
+        <h2 className="text-2xl font-semibold mb-6">Upcoming Exams</h2>
+        
+        {/* Featured Exam */}
+        <div className="rounded-3xl border border-blue-500/20 bg-blue-500/[0.03] p-6 sm:p-8 mb-6">
+          <p className="text-xs uppercase tracking-widest text-blue-400">CLOSEST EXAM</p>
+          <h3 className="mt-3 text-2xl font-bold">{featuredExam.name}</h3>
+          <p className="text-sm text-muted-foreground mt-1">{featuredExam.date}</p>
+          
           <div className="mt-6 flex items-end gap-3">
             <span className="text-6xl font-black text-blue-400">{featuredExam.daysLeft}</span>
-            <span className="pb-2 text-muted-foreground">Days Left</span>
-          </div>
-          <div className="mt-6">
-            <div className="h-2 rounded-full bg-white/5 overflow-hidden">
-              <div className="h-full rounded-full bg-blue-500" style={{ width: `${Math.min(100, ((120 - featuredExam.daysLeft) / 120) * 100)}%` }} />
-            </div>
+            <span className="pb-2 text-muted-foreground">days left</span>
           </div>
         </div>
-        <div className="mt-6 space-y-4">
+
+        {/* Remaining Exams */}
+        <div className="space-y-4">
           {remainingExams.map((exam) => (
             <div key={exam.name} className="flex items-center justify-between rounded-2xl border border-white/[0.06] p-5">
-              <div><p className="font-semibold">{exam.name}</p><p className="text-sm text-muted-foreground">{exam.date}</p></div>
-              <div className="text-right"><p className="text-xl font-semibold text-blue-400">{exam.daysLeft}</p><p className="text-xs text-muted-foreground">Days</p></div>
+              <div>
+                <p className="font-semibold">{exam.name}</p>
+                <p className="text-sm text-muted-foreground">{exam.date}</p>
+              </div>
+              <div className="text-right">
+                <p className="text-2xl font-semibold text-blue-400">{exam.daysLeft}</p>
+                <p className="text-xs text-muted-foreground">days</p>
+              </div>
             </div>
           ))}
         </div>
       </div>
 
       {/* 5. Account Information */}
-      <div className="rounded-3xl border border-white/[0.08] bg-[#0E121B] p-8">
+      <div className="rounded-3xl border border-white/[0.08] bg-[#0E121B] p-6 sm:p-8">
         <h2 className="text-xl font-semibold mb-6">Account Information</h2>
-        <div className="grid gap-8 md:grid-cols-2">
-          <div><p className="text-sm text-muted-foreground">Name</p><p className="mt-1 text-lg font-semibold">{user.name}</p></div>
-          <div><p className="text-sm text-muted-foreground">Email</p><p className="mt-1 text-lg font-semibold">{user.email}</p></div>
-          <div><p className="text-sm text-muted-foreground">Role</p><p className="mt-1 text-lg font-semibold">Banking Aspirant</p></div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
+          <div>
+            <p className="text-sm text-muted-foreground">NAME</p>
+            <p className="mt-1 text-lg font-semibold">{user.name}</p>
+          </div>
+          <div>
+            <p className="text-sm text-muted-foreground">EMAIL</p>
+            <p className="mt-1 text-lg font-semibold break-all">{user.email}</p>
+          </div>
+          <div>
+            <p className="text-sm text-muted-foreground">ROLE</p>
+            <p className="mt-1 text-lg font-semibold">Banking Aspirant</p>
+          </div>
         </div>
       </div>
 
-      {/* 6. Preferences */}
-      <div className="rounded-3xl border border-white/[0.08] bg-[#0E121B] p-8">
-        <h2 className="text-xl font-semibold mb-6">Preferences</h2>
-        <p className="text-sm text-muted-foreground">Notification and theme settings will be managed here.</p>
-      </div>
+      {/* 6. Preferences & Danger Zone */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="rounded-3xl border border-white/[0.08] bg-[#0E121B] p-6 sm:p-8">
+          <h2 className="text-xl font-semibold mb-4">Preferences</h2>
+          <p className="text-sm text-muted-foreground">Notification & theme settings coming soon.</p>
+        </div>
 
-      {/* 7. Danger Zone */}
-      <div className="rounded-3xl border border-red-500/20 bg-red-500/[0.03] p-6">
-        <h2 className="font-semibold text-red-500">Danger Zone</h2>
-        <p className="text-sm text-muted-foreground mt-1">These actions permanently affect your account and preparation data.</p>
+        <div className="rounded-3xl border border-red-500/20 bg-red-500/[0.03] p-6 sm:p-8">
+          <h2 className="font-semibold text-red-500">Danger Zone</h2>
+          <p className="text-sm text-muted-foreground mt-2">These actions are permanent.</p>
+        </div>
       </div>
     </div>
   );

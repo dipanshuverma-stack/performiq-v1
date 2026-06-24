@@ -2,7 +2,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import { Prisma, RevisionStatus } from "@prisma/client";
-import { getPracticeHistory } from "@/lib/practice/get-practice-history"; // ✅ Added paginated history utility import
+import { getPracticeHistory } from "@/lib/practice/get-practice-history";
 import { HistorySummary } from "@/components/practice/history/history-summary";
 import { HistorySearch } from "@/components/practice/history/HistorySearch";
 import { HistoryFilters } from "@/components/practice/history/HistoryFilters";
@@ -57,7 +57,6 @@ export default async function PracticeHistoryPage({ searchParams }: HistoryPageP
 
   const orderByCondition = SORT_MAP[resolvedParams.sortBy as keyof typeof SORT_MAP] || { createdAt: "desc" };
 
-  // Run database transactions and data service aggregations concurrently
   const [historyResult, aggregates, subjectGroups, weakTopicGroups] = await Promise.all([
     getPracticeHistory({
       where: filtersConditions,
@@ -84,7 +83,6 @@ export default async function PracticeHistoryPage({ searchParams }: HistoryPageP
     }),
   ]);
 
-  // ✅ Extracted sessions array and cursor marker from our historyResult service wrapper
   const { sessions, nextCursor } = historyResult;
 
   const summaryMetrics = {
@@ -95,30 +93,29 @@ export default async function PracticeHistoryPage({ searchParams }: HistoryPageP
   };
 
   return (
-    <div className="p-4 sm:p-8 max-w-5xl mx-auto space-y-6">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-10 space-y-8">
       <div>
-        <h1 className="text-3xl font-extrabold tracking-tight text-gray-900">Practice History</h1>
-        <p className="text-sm text-gray-500 mt-1">Review diagnostic timelines and velocity analytics records.</p>
+        <h1 className="text-3xl sm:text-4xl font-bold tracking-tight">Practice History</h1>
+        <p className="text-slate-400 mt-2">Review your practice sessions and performance patterns</p>
       </div>
 
       <HistorySummary metrics={summaryMetrics} />
-      
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="md:col-span-2 space-y-4">
+
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        {/* Main Content */}
+        <div className="lg:col-span-8 space-y-6">
           <HistorySearch />
           <HistoryFilters />
-          
+
           {sessions.length === 0 ? (
             <HistoryEmpty />
           ) : (
-            /* Pass sessions forward into your layout timeline component.
-              Note: nextCursor is now ready to be consumed here for infinite-scroll or pagination buttons!
-            */
             <HistoryTimeline sessions={sessions} />
           )}
         </div>
 
-        <div className="space-y-4 h-fit sticky top-6">
+        {/* Sidebar */}
+        <div className="lg:col-span-4 space-y-6">
           <SubjectStats stats={subjectGroups} />
           <WeakTopics topics={weakTopicGroups} />
         </div>
