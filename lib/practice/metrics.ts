@@ -1,33 +1,39 @@
 import {
   QuestionAttempt,
-  PracticePhase,
-  SessionSnapshot,
 } from "@/lib/practice/types";
-
 
 export interface PracticeSessionMetrics {
   total: number;
   correct: number;
   wrong: number;
   accuracy: number;
-  bestStreak: number; // Renamed explicitly to map clean domain properties
+  bestStreak: number;
   pace: number;
   durationSeconds: number;
   averageTimeSeconds: number;
 }
 
-function round2(value: number): number {
-  return Math.round(value * 100) / 100;
-}
-
 /**
- * Derives comprehensive session performance indicators using a high-efficiency single pass.
+ * Derives comprehensive session performance indicators using a single efficient pass.
  */
 export const calculatePracticeMetrics = (
   attempts: QuestionAttempt[],
   elapsedMs: number
 ): PracticeSessionMetrics => {
   const total = attempts.length;
+
+  if (total === 0) {
+    return {
+      total: 0,
+      correct: 0,
+      wrong: 0,
+      accuracy: 0,
+      bestStreak: 0,
+      pace: 0,
+      durationSeconds: Math.round(elapsedMs / 1000),
+      averageTimeSeconds: 0,
+    };
+  }
 
   let correct = 0;
   let currentStreak = 0;
@@ -37,27 +43,25 @@ export const calculatePracticeMetrics = (
     if (attempt.result === "correct") {
       correct++;
       currentStreak++;
-      if (currentStreak > bestStreak) {
-        bestStreak = currentStreak;
-      }
+      bestStreak = Math.max(bestStreak, currentStreak);
     } else {
       currentStreak = 0;
     }
   }
 
   const wrong = total - correct;
-  const accuracy = total === 0 ? 0 : Math.round((correct / total) * 100);
+  const accuracy = Math.round((correct / total) * 100);
   const minutes = elapsedMs / 60000;
-  const pace = minutes > 0 ? round2(total / minutes) : 0;
+  const pace = minutes > 0 ? Math.round((total / minutes) * 100) / 100 : 0;
 
   return {
     total,
     correct,
     wrong,
     accuracy,
-    bestStreak, // Symmetrical clean naming matching the contract interface
+    bestStreak,
     pace,
     durationSeconds: Math.round(elapsedMs / 1000),
-    averageTimeSeconds: total === 0 ? 0 : Math.round(elapsedMs / total / 1000),
+    averageTimeSeconds: Math.round(elapsedMs / total / 1000),
   };
 };

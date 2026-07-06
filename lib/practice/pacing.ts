@@ -25,7 +25,7 @@ export const TOPIC_BENCHMARKS: Record<string, Partial<Record<Difficulty, number>
   "Puzzles": { EASY: 0.9, MIXED: 0.6, MAINS: 0.4 },
   "Seating Arrangement": { EASY: 0.8, MIXED: 0.5, MAINS: 0.3 },
   "Syllogism": { EASY: 3.0, MIXED: 2.5, MAINS: 1.8 },
-  "Blood Relation": { EASY: 2.2, MIXED: 1.8, MAINS: 1.2 }
+  "Blood Relation": { EASY: 2.2, MIXED: 1.8, MAINS: 1.2 },
 };
 
 interface TargetPaceContext {
@@ -45,6 +45,7 @@ export function getTargetPace({
   accuracy,
 }: TargetPaceContext): number {
   let basePace = (SUBJECT_BASE_PACE[subject] ?? 1.7) + (DIFFICULTY_MODIFIER[difficulty] ?? 0);
+
   const normalizedTopic = topic.toLowerCase();
 
   for (const [key, benchmark] of Object.entries(TOPIC_BENCHMARKS)) {
@@ -62,5 +63,5 @@ export function getTargetPace({
     else if (accuracy <= 60) target *= 0.85;
   }
 
-  return target;
+  return Math.round(target * 100) / 100; // Clean rounding
 }

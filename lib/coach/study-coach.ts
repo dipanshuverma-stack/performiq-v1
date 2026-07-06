@@ -1,7 +1,17 @@
+import { cache } from "react";
 import { getTopicPriorities } from "@/lib/intelligence/topic-priority";
 import { getPerformanceScore } from "@/lib/analytics/performance-score";
 
-export async function getStudyCoach(userId: string) {
+export interface StudyCoachResponse {
+  focusTopics: any[]; // Refine type based on topic-priority
+  messages: string[];
+  performance: {
+    accuracy: number;
+    speedScore: number;
+  };
+}
+
+const cachedGetStudyCoach = cache(async (userId: string): Promise<StudyCoachResponse> => {
   const [priorities, performance] = await Promise.all([
     getTopicPriorities(userId),
     getPerformanceScore(userId),
@@ -11,44 +21,35 @@ export async function getStudyCoach(userId: string) {
   const messages: string[] = [];
 
   if (performance.accuracyScore < 60) {
-  messages.push(
-    "Accuracy is critically low. Focus on solving fewer questions with higher precision."
-  );
-} else if (performance.accuracyScore < 80) {
-  messages.push(
-    "Accuracy is improving, but should reach 80%+ before increasing difficulty."
-  );
-}
+    messages.push("Accuracy is critically low. Focus on solving fewer questions with higher precision.");
+  } else if (performance.accuracyScore < 80) {
+    messages.push("Accuracy is improving, but should reach 80%+ before increasing difficulty.");
+  }
 
   if (performance.speedScore < 50) {
-    messages.push(
-      "Speed is significantly below exam pace. Add timed practice sessions."
-    );
+    messages.push("Speed is significantly below exam pace. Add timed practice sessions.");
   } else if (performance.speedScore < 70) {
-    messages.push(
-      "Speed is improving. Continue practicing under time pressure."
-    );
+    messages.push("Speed is improving. Continue practicing under time pressure.");
   }
 
   if (top3.length > 0) {
-    messages.push(
-      `Your highest-priority topic is ${top3[0].topic}.`
-    );
+    messages.push(`Your highest-priority topic is ${top3[0].topic}.`);
   }
 
   if (top3.length > 1) {
-    messages.push(
-      `Secondary focus: ${top3[1].topic}.`
-    );
+    messages.push(`Secondary focus: ${top3[1].topic}.`);
   }
 
   return {
     focusTopics: top3,
     messages,
-
     performance: {
-  accuracy: performance.accuracyScore,
-  speedScore: performance.speedScore,
-},
+      accuracy: performance.accuracyScore,
+      speedScore: performance.speedScore,
+    },
   };
+});
+
+export async function getStudyCoach(userId: string): Promise<StudyCoachResponse> {
+  return cachedGetStudyCoach(userId);
 }

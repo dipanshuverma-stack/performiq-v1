@@ -1,57 +1,48 @@
+import { cache } from "react";
 import { prisma } from "@/lib/prisma";
 
-export async function getMistakeAnalytics(
-  userId: string
-) {
-  const mistakes =
-    await prisma.mistakeEntry.findMany({
-      where: {
-        userId,
-      },
-    });
+export interface MistakeAnalytics {
+  totalMistakes: number;
+  resolved: number;
+  pending: number;
+  resolutionRate: string;
+  topWeakSubject: string;
+  subjectBreakdown: Record<string, number>;
+}
 
-  const totalMistakes =
-    mistakes.length;
+const cachedGetMistakeAnalytics = cache(async (userId: string): Promise<MistakeAnalytics> => {
+  const [totalMistakes, resolvedCount, subjectGroups] = await Promise.all([
+    prisma.mistakeEntry.count({ where: { userId } }),
+    prisma.mistakeEntry.count({ where: { userId, resolved: true } }),
+    prisma.mistakeEntry.groupBy({
+      by: ["subject"],
+      where: { userId },
+      _count: { id: true },
+      orderBy: { _count: { id: "desc" } },
+    }),
+  ]);
 
-  const resolved =
-    mistakes.filter(
-      (m) => m.resolved
-    ).length;
+  const pending = totalMistakes - resolvedCount;
+  const resolutionRate = totalMistakes > 0
+    ? ((resolvedCount / totalMistakes) * 100).toFixed(1)
+    : "0";
 
-  const pending =
-    totalMistakes - resolved;
+  const topWeakSubject = subjectGroups[0]?.subject ?? "-";
 
-  const resolutionRate =
-    totalMistakes > 0
-      ? (
-          (resolved /
-            totalMistakes) *
-          100
-        ).toFixed(1)
-      : "0";
-
-  const subjectBreakdown =
-    mistakes.reduce(
-      (acc, mistake) => {
-        acc[mistake.subject] =
-          (acc[mistake.subject] || 0) + 1;
-
-        return acc;
-      },
-      {} as Record<string, number>
-    );
-
-  const topWeakSubject =
-    Object.entries(subjectBreakdown)
-      .sort((a, b) => b[1] - a[1])[0]?.[0] ??
-    "-";
+  const subjectBreakdown = Object.fromEntries(
+    subjectGroups.map((item) => [item.subject, item._count.id])
+  );
 
   return {
     totalMistakes,
-    resolved,
+    resolved: resolvedCount,
     pending,
     resolutionRate,
     topWeakSubject,
     subjectBreakdown,
   };
+});
+
+export async function getMistakeAnalytics(userId: string): Promise<MistakeAnalytics> {
+  return cachedGetMistakeAnalytics(userId);
 }

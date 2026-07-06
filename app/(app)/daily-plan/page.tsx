@@ -1,18 +1,17 @@
 import { auth } from "@/auth";
-import { prisma } from "@/lib/prisma";
-import { getDailyPlan } from "@/lib/intelligence/daily-target-generator";
 import { redirect } from "next/navigation";
+import { cache } from "react";
+
+import { getDailyPlan } from "@/lib/intelligence/daily-target-generator";
 import { SmartLink as Link } from "@/components/smart-link";
+
+const cachedGetDailyPlan = cache(async (userId: string) => getDailyPlan(userId));
+
 export default async function DailyPlanPage() {
   const session = await auth();
+  if (!session?.user?.id) redirect("/login");
 
-  // 🚀 OPTIMIZATION: Check for the ID directly on the session object
-  if (!session?.user?.id) {
-    redirect("/login");
-  }
-
-  // Bypassed the prisma.user.findUnique query completely!
-  const plan = await getDailyPlan(session.user.id);
+  const plan = await cachedGetDailyPlan(session.user.id);
 
   const hasPlan =
     plan.practiceTopics.length > 0 ||
@@ -51,7 +50,7 @@ export default async function DailyPlanPage() {
           </div>
 
           <div className="grid md:grid-cols-2 gap-6">
-            {/* Practice Targets Panel */}
+            {/* Practice Targets */}
             <div className="bg-white rounded-xl shadow border p-6">
               <h2 className="text-xl font-semibold mb-4 text-gray-900 border-b pb-2">
                 Practice Targets
@@ -67,7 +66,9 @@ export default async function DailyPlanPage() {
                       <div className="text-xs text-gray-400 mt-0.5">Suggested module track</div>
                     </div>
                     <div className="text-right shrink-0">
-                      <div className="text-sm font-bold text-gray-900">{topic.targetQuestions} Qs</div>
+                      <div className="text-sm font-bold text-gray-900">
+                        {topic.targetQuestions} Qs
+                      </div>
                       <div className="text-xs text-gray-500">Target Goal</div>
                     </div>
                   </div>
@@ -75,8 +76,8 @@ export default async function DailyPlanPage() {
               </div>
             </div>
 
+            {/* Revision + Mock Review */}
             <div className="space-y-6">
-              {/* Revision Targets Panel */}
               <div className="bg-white rounded-xl shadow border p-6">
                 <h2 className="text-xl font-semibold mb-4 text-gray-900 border-b pb-2">
                   Revision Queue
@@ -87,20 +88,22 @@ export default async function DailyPlanPage() {
                       key={`${topic}-${idx}`}
                       className="p-3 bg-gray-50 rounded-lg border border-gray-100 flex items-center gap-3 font-medium text-gray-700"
                     >
-                      <span className="h-2 w-2 rounded-full bg-orange-400 select-none" />
+                      <span className="h-2 w-2 rounded-full bg-orange-400" />
                       <span>{topic}</span>
                     </div>
                   ))}
                 </div>
               </div>
 
-              {/* Mock Review Panel */}
-              <div className="bg-white rounded-xl shadow p-6">
-                <h2 className="text-xl font-semibold mb-4">Mock Review</h2>
+              <div className="bg-white rounded-xl shadow border p-6">
+                <h2 className="text-xl font-semibold mb-4 text-gray-900">Mock Review</h2>
                 <div className="space-y-3">
                   {plan.mockReviewTopics.length > 0 ? (
                     plan.mockReviewTopics.map((topic) => (
-                      <div key={topic} className="font-medium text-gray-700 flex items-center gap-3">
+                      <div
+                        key={topic}
+                        className="font-medium text-gray-700 flex items-center gap-3"
+                      >
                         <span className="h-2 w-2 rounded-full bg-purple-400" />
                         {topic}
                       </div>

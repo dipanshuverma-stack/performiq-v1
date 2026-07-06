@@ -40,9 +40,7 @@ export interface MockAnalytics {
   };
 }
 
-export function buildMockAnalytics(
-  mocks: MockAnalyticsInput[]
-): MockAnalytics {
+export function buildMockAnalytics(mocks: MockAnalyticsInput[]): MockAnalytics {
   const totalMocks = mocks.length;
 
   if (totalMocks === 0) {
@@ -59,7 +57,6 @@ export function buildMockAnalytics(
         targetAccuracy: 0,
         confidenceScore: 0,
       },
-
       intelligence: {
         performanceLevel: "Beginner",
         confidenceScore: 0,
@@ -76,23 +73,11 @@ export function buildMockAnalytics(
       acc.totalAccuracy += mock.accuracy;
       acc.totalScore += mock.score;
 
-      acc.bestAccuracy = Math.max(
-        acc.bestAccuracy,
-        mock.accuracy
-      );
+      acc.bestAccuracy = Math.max(acc.bestAccuracy, mock.accuracy);
+      acc.bestScore = Math.max(acc.bestScore, mock.score);
 
-      acc.bestScore = Math.max(
-        acc.bestScore,
-        mock.score
-      );
-
-      if (mock.mockType === MockType.PRELIMS) {
-        acc.prelimsMocks++;
-      }
-
-      if (mock.mockType === MockType.MAINS) {
-        acc.mainsMocks++;
-      }
+      if (mock.mockType === MockType.PRELIMS) acc.prelimsMocks++;
+      if (mock.mockType === MockType.MAINS) acc.mainsMocks++;
 
       return acc;
     },
@@ -106,94 +91,50 @@ export function buildMockAnalytics(
     }
   );
 
-  const averageAccuracy =
-    summary.totalAccuracy / totalMocks;
-
-  const averageScore =
-    summary.totalScore / totalMocks;
+  const averageAccuracy = summary.totalAccuracy / totalMocks;
+  const averageScore = summary.totalScore / totalMocks;
 
   const performanceLevel =
-    averageAccuracy >= 80
-      ? "Advanced"
-      : averageAccuracy >= 65
-      ? "Intermediate"
-      : "Beginner";
+    averageAccuracy >= 80 ? "Advanced" :
+    averageAccuracy >= 65 ? "Intermediate" : "Beginner";
 
-  const targetAccuracy = Math.min(
-    90,
-    Math.round(averageAccuracy + 5)
-  );
+  const targetAccuracy = Math.min(90, Math.round(averageAccuracy + 5));
+  const confidenceScore = Math.min(100, Math.round(averageAccuracy * 1.1));
 
-  const confidenceScore = Math.min(
-    100,
-    Math.round(averageAccuracy * 1.1)
-  );
-
-  const subjectMap = new Map<
-    string,
-    {
-      total: number;
-      count: number;
-    }
-  >();
+  // Subject performance analysis
+  const subjectMap = new Map<string, { total: number; count: number }>();
 
   for (const mock of mocks) {
     for (const subject of mock.subjectPerformances) {
-      const existing = subjectMap.get(subject.subject);
-
-      if (existing) {
-        existing.total += subject.accuracy;
-        existing.count++;
-      } else {
-        subjectMap.set(subject.subject, {
-          total: subject.accuracy,
-          count: 1,
-        });
-      }
+      const existing = subjectMap.get(subject.subject) ?? { total: 0, count: 0 };
+      existing.total += subject.accuracy;
+      existing.count++;
+      subjectMap.set(subject.subject, existing);
     }
   }
 
-  let strongestSubject: {
-    subject: string;
-    accuracy: number;
-  } | null = null;
-
-  let weakestSubject: {
-    subject: string;
-    accuracy: number;
-  } | null = null;
+  let strongestSubject: { subject: string; accuracy: number } | null = null;
+  let weakestSubject: { subject: string; accuracy: number } | null = null;
 
   for (const [subject, data] of subjectMap.entries()) {
     const accuracy = data.total / data.count;
 
-    if (
-      !strongestSubject ||
-      accuracy > strongestSubject.accuracy
-    ) {
-      strongestSubject = {
-        subject,
-        accuracy,
-      };
+    if (!strongestSubject || accuracy > strongestSubject.accuracy) {
+      strongestSubject = { subject, accuracy };
     }
 
-    if (
-      !weakestSubject ||
-      accuracy < weakestSubject.accuracy
-    ) {
-      weakestSubject = {
-        subject,
-        accuracy,
-      };
+    if (!weakestSubject || accuracy < weakestSubject.accuracy) {
+      weakestSubject = { subject, accuracy };
     }
   }
 
   return {
     stats: {
       totalMocks,
-      averageAccuracy,
-      bestAccuracy: summary.bestAccuracy,
-      bestScore: summary.bestScore,
-      averageScore,
+      averageAccuracy: Math.round(averageAccuracy * 10) / 10,
+      bestAccuracy: Math.round(summary.bestAccuracy * 10) / 10,
+      bestScore: Math.round(summary.bestScore * 10) / 10,
+      averageScore: Math.round(averageScore * 10) / 10,
       prelimsMocks: summary.prelimsMocks,
       mainsMocks: summary.mainsMocks,
       performanceLevel,
@@ -207,8 +148,7 @@ export function buildMockAnalytics(
       targetAccuracy,
       strongestSubject,
       weakestSubject,
-      focusNext:
-        weakestSubject?.subject ?? null,
+      focusNext: weakestSubject?.subject ?? null,
     },
   };
 }

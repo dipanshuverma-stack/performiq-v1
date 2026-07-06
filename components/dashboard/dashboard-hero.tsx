@@ -23,12 +23,11 @@ export const DashboardHero = React.memo(function DashboardHero({
 
   return (
     <GlassCard className="p-8 relative overflow-hidden">
-      {/* Background glow layer - optimized */}
+      {/* Background glow */}
       <div className="absolute top-0 right-0 -mt-12 -mr-12 w-72 h-72 rounded-full bg-indigo-500/10 blur-3xl pointer-events-none" />
 
-      {/* Foreground content */}
       <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-8">
-        {/* Left: Greeting */}
+        {/* Greeting */}
         <div className="space-y-2 flex-1">
           <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-white">
             Welcome back, {userName}
@@ -49,7 +48,7 @@ export const DashboardHero = React.memo(function DashboardHero({
           </div>
         </div>
 
-        {/* Right: Metrics + Countdown */}
+        {/* Metrics & Countdown */}
         <div className="flex items-center gap-8 lg:border-l lg:border-white/[0.08] lg:pl-8">
           {/* Countdown */}
           <div className="text-center shrink-0">
@@ -80,9 +79,7 @@ export const DashboardHero = React.memo(function DashboardHero({
               <p className="text-sm font-semibold text-slate-300">
                 {priorityTopicsCount} Priority Topics •{" "}
                 <span
-                  className={
-                    revisionsDue === 0 ? "text-emerald-400" : "text-amber-400"
-                  }
+                  className={revisionsDue === 0 ? "text-emerald-400" : "text-amber-400"}
                 >
                   {revisionsDue} Revisions
                 </span>

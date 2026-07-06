@@ -5,95 +5,63 @@ import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 
 /**
- * Updates the notes associated with an existing practice session.
+ * Updates notes for a practice session with proper ownership check.
  */
-export async function updatePracticeSessionNotes(
-  sessionId: string,
-  notes: string
-) {
+export async function updatePracticeSessionNotes(sessionId: string, notes: string) {
   const session = await auth();
-
   if (!session?.user?.email) {
     throw new Error("Unauthorized");
   }
 
-  const user = await prisma.user.findUnique({
-    where: {
-      email: session.user.email,
-    },
-    select: {
-      id: true,
-    },
-  });
-
-  if (!user) {
-    throw new Error("User not found");
-  }
-
-  await prisma.practiceSession.update({
+  // Single query with ownership verification
+  const updated = await prisma.practiceSession.update({
     where: {
       id: sessionId,
-      userId: user.id,
+      userId: session.user.id, // Use session.user.id if available (faster)
     },
-    data: {
-      notes,
-    },
+    data: { notes },
+    select: { id: true },
   });
 
+  if (!updated) {
+    throw new Error("Practice session not found or access denied");
+  }
+
+  // Revalidate relevant pages
   revalidatePath("/practice/history");
   revalidatePath("/practice/analytics");
   revalidatePath("/dashboard");
+
+  return { success: true };
 }
 
 /**
- * Safely deletes a specific practice session after running multi-tenant ownership checks.
- * Triggers layout revalidation to refresh analytics across the dashboard.
+ * Safely deletes a practice session with ownership verification.
  */
-export async function deletePracticeSession(
-  sessionId: string
-) {
+export async function deletePracticeSession(sessionId: string) {
   const session = await auth();
-
   if (!session?.user?.email) {
     throw new Error("Unauthorized");
   }
 
-  const user = await prisma.user.findUnique({
+  const userId = session.user.id; // Prefer direct ID from session
+
+  // Atomic delete with ownership check (most efficient)
+  const deleted = await prisma.practiceSession.deleteMany({
     where: {
-      email: session.user.email,
-    },
-    select: {
-      id: true,
+      id: sessionId,
+      userId,
     },
   });
 
-  if (!user) {
-    throw new Error("User not found");
+  if (deleted.count === 0) {
+    throw new Error("Practice session not found or access denied");
   }
 
-  // ✅ Pre-flight verification: Ensure session exists and belongs to the user
-  const practiceSession =
-    await prisma.practiceSession.findFirst({
-      where: {
-        id: sessionId,
-        userId: user.id,
-      },
-      select: {
-        id: true,
-      },
-    });
-
-  if (!practiceSession) {
-    throw new Error("Practice session not found");
-  }
-
-  await prisma.practiceSession.delete({
-    where: {
-      id: practiceSession.id,
-    },
-  });
-
+  // Revalidate pages
   revalidatePath("/practice/history");
   revalidatePath("/practice/analytics");
   revalidatePath("/dashboard");
+
+  return { success: true };
 }

@@ -10,13 +10,16 @@ export const SUBJECTS = [
 
 export type SubjectId = typeof SUBJECTS[number]["id"];
 
+export type SubjectConfig = typeof SUBJECTS[number];
+
+// Lookup by ID
 export const SUBJECT_BY_ID = SUBJECTS.reduce((acc, subject) => {
   acc[subject.id] = subject;
   return acc;
-}, {} as Record<SubjectId, (typeof SUBJECTS)[number]>);
+}, {} as Record<SubjectId, SubjectConfig>);
 
 /**
- * Prisma Subject -> UI SubjectId
+ * Prisma Subject Enum -> UI SubjectId
  */
 export const SUBJECT_LOOKUP: Record<Subject, SubjectId> = {
   [Subject.QUANTITATIVE_APTITUDE]: "Quant",
@@ -24,10 +27,10 @@ export const SUBJECT_LOOKUP: Record<Subject, SubjectId> = {
   [Subject.ENGLISH_LANGUAGE]: "English",
   [Subject.GENERAL_AWARENESS]: "GA",
   [Subject.COMPUTER_AWARENESS]: "Computer",
-};
+} as const;
 
 /**
- * Badge styling
+ * Badge styling by SubjectId
  */
 export const SUBJECT_BADGE_CLASSES: Record<SubjectId, string> = {
   Quant: "bg-blue-500/10 text-blue-400 border-blue-500/20",
@@ -35,4 +38,4 @@ export const SUBJECT_BADGE_CLASSES: Record<SubjectId, string> = {
   English: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
   GA: "bg-amber-500/10 text-amber-400 border-amber-500/20",
   Computer: "bg-cyan-500/10 text-cyan-400 border-cyan-500/20",
-};
+} as const;

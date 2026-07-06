@@ -13,7 +13,8 @@ model User {
   name                    String?
   emailVerified           DateTime?                @map("email_verified")
   image                   String?
-  plannerRows Int @default(5)
+  plannerRows             Int                      @default(5)
+  mockTopicInsights       MockTopicInsight[]
   weeklyPlans             WeeklyPlan[]
   accounts                Account[]
   examProfiles            ExamProfile[]
@@ -21,7 +22,6 @@ model User {
   mistakes                Mistake[]
   mockSubjectPerformances MockSubjectPerformance[]
   mockTests               MockTest[]
-  mockTopicPerformances   MockTopicPerformance[]
   notificationPreference  NotificationPreference?
   notifications           Notification[]
   practiceSessions        PracticeSession[]        @relation("UserToPracticeSessions")
@@ -41,14 +41,13 @@ model WeeklyPlan {
   rowIndex  Int
   title     String
   time      String?
-  category  String?               // You can keep or remove later
   completed Boolean  @default(false)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-
+  category  String?
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@index([userId, day, rowIndex])   // Good for performance
+  @@index([userId, day, rowIndex])
 }
 
 model NotificationPreference {
@@ -161,18 +160,28 @@ model StudySession {
 }
 
 model TopicProgress {
-  id              String    @id @default(cuid())
-  userId          String    @map("user_id")
-  topicName       String    @map("topic_name")
-  completed       Boolean   @default(false)
-  createdAt       DateTime  @default(now()) @map("created_at")
-  updatedAt       DateTime  @updatedAt @map("updated_at")
-  confidence      Int       @default(0)
-  lastPracticedAt DateTime?
-  lastRevisedAt   DateTime?
-  lastStudiedAt   DateTime?
-  subject         Subject
-  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id                String    @id @default(cuid())
+  userId            String    @map("user_id")
+  topicName         String    @map("topic_name")
+  completed         Boolean   @default(false)
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+  confidence        Int       @default(0)
+  lastPracticedAt   DateTime?
+  lastRevisedAt     DateTime?
+  lastStudiedAt     DateTime?
+  subject           Subject
+  mistakeCount      Int       @default(0)
+  mockAccuracy      Float     @default(0) @db.Real
+  mockQuestions     Int       @default(0)
+  practiceAccuracy  Float     @default(0) @db.Real
+  practiceQuestions Int       @default(0)
+  practiceSessions  Int       @default(0)
+  revisionCount     Int       @default(0)
+  lastSeenInMock    DateTime?
+  mockStrongCount   Int       @default(0)
+  mockWeakCount     Int       @default(0)
+  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, subject, topicName])
   @@index([userId, subject, completed])
@@ -252,20 +261,21 @@ model MistakeEntry {
 }
 
 model MockSubjectPerformance {
-  id             String   @id @default(cuid())
-  userId         String   @map("user_id")
-  mockId         String   @map("mock_id")
-  totalQuestions Int      @map("total_questions")
-  attempted      Int
-  score          Float    @db.Real
-  accuracy       Float    @db.Real
-  timeSpent      Int?     @map("time_spent")
-  createdAt      DateTime @default(now()) @map("created_at")
-  correct        Int      @map("correct_questions")
-  incorrect      Int      @map("incorrect_questions")
-  subject        Subject
-  mockTest       MockTest @relation(fields: [mockId], references: [id], onDelete: Cascade)
-  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id                String             @id @default(cuid())
+  userId            String             @map("user_id")
+  mockId            String             @map("mock_id")
+  totalQuestions    Int                @map("total_questions")
+  attempted         Int
+  score             Float              @db.Real
+  accuracy          Float              @db.Real
+  timeSpent         Int?               @map("time_spent")
+  createdAt         DateTime           @default(now()) @map("created_at")
+  correct           Int                @map("correct_questions")
+  incorrect         Int                @map("incorrect_questions")
+  subject           Subject
+  mockTopicInsights MockTopicInsight[]
+  mockTest          MockTest           @relation(fields: [mockId], references: [id], onDelete: Cascade)
+  user              User               @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([mockId])
   @@index([subject])
@@ -292,10 +302,10 @@ model MockTest {
   correctAnswers       Int                      @default(0) @map("correct_answers")
   incorrectAnswers     Int                      @default(0) @map("incorrect_answers")
   exam                 ExamType
+  mockTopicInsights    MockTopicInsight[]
   mistakeEntries       MistakeEntry[]
   subjectPerformances  MockSubjectPerformance[]
   user                 User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  topicPerformances    MockTopicPerformance[]
 
   @@index([createdAt])
   @@index([mockType])
@@ -303,25 +313,24 @@ model MockTest {
   @@map("mock_tests")
 }
 
-model MockTopicPerformance {
-  id                 String   @id @default(cuid())
-  userId             String   @map("user_id")
-  mockId             String   @map("mock_id")
-  topic              String
-  skipped            Int      @default(0)
-  accuracy           Float    @db.Real
-  createdAt          DateTime @default(now()) @map("created_at")
-  correctQuestions   Int      @default(0) @map("correct_questions")
-  incorrectQuestions Int      @default(0) @map("incorrect_questions")
-  subject            Subject
-  mockTest           MockTest @relation(fields: [mockId], references: [id], onDelete: Cascade)
-  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+model MockTopicInsight {
+  id                       String                  @id @default(cuid())
+  userId                   String
+  mockId                   String
+  subject                  Subject
+  topic                    String
+  type                     TopicInsightType
+  createdAt                DateTime                @default(now())
+  mockSubjectPerformanceId String?
+  mock                     MockTest                @relation(fields: [mockId], references: [id], onDelete: Cascade)
+  MockSubjectPerformance   MockSubjectPerformance? @relation(fields: [mockSubjectPerformanceId], references: [id])
+  user                     User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@index([mockId])
-  @@index([subject])
-  @@index([topic])
-  @@index([userId])
-  @@map("mock_topic_performances")
+  // Composite indexes optimized for multi-column lookup patterns
+  @@index([userId, type])
+  @@index([userId, subject])
+  @@index([userId, subject, topic])
+  @@index([mockId]) // Maintained for loading a single mock's detail view
 }
 
 model Notification {
@@ -419,4 +428,10 @@ enum ExamType {
   RBI_GRADE_B
   NABARD
   LIC_AAO
+}
+
+enum TopicInsightType {
+  WEAK
+  STRONG
+  SKIPPED
 }

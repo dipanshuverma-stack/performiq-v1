@@ -1,54 +1,45 @@
+import { cache } from "react";
 import { prisma } from "@/lib/prisma";
 
-export async function getSubjectProgress(
-  userId: string
-) {
-  const topics =
-    await prisma.topicProgress.findMany({
-      where: {
-        userId,
-      },
-    });
+export interface SubjectProgress {
+  subject: string;
+  total: number;
+  completed: number;
+  percentage: number;
+}
 
-  const grouped = topics.reduce(
-    (acc, topic) => {
-      if (!acc[topic.subject]) {
-        acc[topic.subject] = {
-          total: 0,
-          completed: 0,
-        };
-      }
+const cachedGetSubjectProgress = cache(async (userId: string): Promise<SubjectProgress[]> => {
+  const grouped = await prisma.topicProgress.groupBy({
+    by: ["subject"],
+    where: { userId },
+    _count: { id: true },
+    // Use _sum only if you have a numeric field. Otherwise use separate count for completed
+  });
 
-      acc[topic.subject].total++;
+  // Separate query for completed count (more reliable)
+  const completedGrouped = await prisma.topicProgress.groupBy({
+    by: ["subject"],
+    where: { userId, completed: true },
+    _count: { id: true },
+  });
 
-      if (topic.completed) {
-        acc[topic.subject].completed++;
-      }
-
-      return acc;
-    },
-    {} as Record<
-      string,
-      {
-        total: number;
-        completed: number;
-      }
-    >
+  const completedMap = new Map(
+    completedGrouped.map(item => [item.subject, item._count.id])
   );
 
-  return Object.entries(grouped).map(
-    ([subject, data]) => ({
-      subject,
-      total: data.total,
-      completed: data.completed,
-      percentage:
-        data.total > 0
-          ? Math.round(
-              (data.completed /
-                data.total) *
-                100
-            )
-          : 0,
-    })
-  );
+  return grouped.map((item) => {
+    const total = item._count.id;
+    const completed = completedMap.get(item.subject) ?? 0;
+
+    return {
+      subject: item.subject,
+      total,
+      completed,
+      percentage: total > 0 ? Math.round((completed / total) * 100) : 0,
+    };
+  });
+});
+
+export async function getSubjectProgress(userId: string): Promise<SubjectProgress[]> {
+  return cachedGetSubjectProgress(userId);
 }

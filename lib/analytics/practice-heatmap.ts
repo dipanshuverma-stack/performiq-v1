@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { prisma } from "@/lib/prisma";
 
 export interface HeatmapDay {
@@ -7,47 +8,32 @@ export interface HeatmapDay {
   durationSeconds: number;
 }
 
-export async function getPracticeHeatmap(
-  userId: string
-): Promise<HeatmapDay[]> {
-  const sessions = await prisma.practiceSession.findMany({
-    where: {
-      userId,
-    },
-
-    select: {
-      createdAt: true,
+const cachedGetPracticeHeatmap = cache(async (userId: string): Promise<HeatmapDay[]> => {
+  const grouped = await prisma.practiceSession.groupBy({
+    by: ["createdAt"], // Group by date (we'll truncate in JS if needed)
+    where: { userId },
+    _count: { id: true },
+    _sum: {
       totalQuestions: true,
       durationSeconds: true,
     },
-
     orderBy: {
       createdAt: "asc",
     },
   });
 
-  const map = new Map<string, HeatmapDay>();
+  return grouped.map((group) => {
+    const date = group.createdAt.toISOString().split("T")[0];
 
-  for (const session of sessions) {
-    const date = session.createdAt
-      .toISOString()
-      .split("T")[0];
+    return {
+      date,
+      sessions: group._count.id,
+      questions: group._sum.totalQuestions ?? 0,
+      durationSeconds: group._sum.durationSeconds ?? 0,
+    };
+  });
+});
 
-    const existing = map.get(date);
-
-    if (existing) {
-      existing.sessions += 1;
-      existing.questions += session.totalQuestions;
-      existing.durationSeconds += session.durationSeconds;
-    } else {
-      map.set(date, {
-        date,
-        sessions: 1,
-        questions: session.totalQuestions,
-        durationSeconds: session.durationSeconds,
-      });
-    }
-  }
-
-  return [...map.values()];
+export async function getPracticeHeatmap(userId: string): Promise<HeatmapDay[]> {
+  return cachedGetPracticeHeatmap(userId);
 }

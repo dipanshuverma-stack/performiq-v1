@@ -14,7 +14,7 @@ interface DashboardFocusGridProps {
   priorities: PriorityTopic[];
 }
 
-// Pure helper – unchanged logic, just slightly cleaner
+// Pure helper function
 function getPriorityBadge(score: number) {
   if (score > 70) {
     return {
@@ -58,10 +58,9 @@ export const DashboardFocusGrid = React.memo(function DashboardFocusGrid({
 
           return (
             <GlassCard
-              key={topic.topic} // Stable key
+              key={topic.topic}
               className="p-5 flex flex-col h-full hover:border-white/[0.12] hover:bg-white/[0.05] hover:-translate-y-0.5 hover:shadow-lg hover:shadow-indigo-500/5 transition-all duration-200"
             >
-              {/* Top Area */}
               <div className="flex-1">
                 <div className="mb-3">
                   <span

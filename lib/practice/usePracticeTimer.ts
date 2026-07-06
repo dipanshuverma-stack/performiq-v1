@@ -1,17 +1,15 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 
 export function usePracticeTimer() {
   const [elapsedMs, setElapsedMs] = useState(0);
-  const [status, setStatus] = useState<
-    "idle" | "running" | "paused" | "finished"
-  >("idle");
+  const [status, setStatus] = useState<"idle" | "running" | "paused" | "finished">("idle");
 
   const startRef = useRef(0);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  const start = () => {
+  const start = useCallback(() => {
     if (status !== "idle") return;
 
     startRef.current = Date.now();
@@ -20,39 +18,51 @@ export function usePracticeTimer() {
     intervalRef.current = setInterval(() => {
       setElapsedMs(Date.now() - startRef.current);
     }, 1000);
-  };
+  }, [status]);
 
-  const pause = () => {
-    if (intervalRef.current) clearInterval(intervalRef.current);
+  const pause = useCallback(() => {
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
     setStatus("paused");
-  };
+  }, []);
 
-  const resume = () => {
+  const resume = useCallback(() => {
+    if (status !== "paused") return;
+
     startRef.current = Date.now() - elapsedMs;
     setStatus("running");
 
     intervalRef.current = setInterval(() => {
-      const value = Date.now() - startRef.current;
-      console.log("HOOK TIMER:", value);
-      setElapsedMs(value);
+      setElapsedMs(Date.now() - startRef.current);
     }, 1000);
-  };
+  }, [status, elapsedMs]);
 
-  const reset = () => {
-    if (intervalRef.current) clearInterval(intervalRef.current);
+  const reset = useCallback(() => {
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
     setElapsedMs(0);
     setStatus("idle");
-  };
+  }, []);
 
-  const finish = () => {
-    if (intervalRef.current) clearInterval(intervalRef.current);
+  const finish = useCallback(() => {
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
     setStatus("finished");
     return elapsedMs;
-  };
+  }, [elapsedMs]);
 
+  // Cleanup on unmount
   useEffect(() => {
     return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current);
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+      }
     };
   }, []);
 

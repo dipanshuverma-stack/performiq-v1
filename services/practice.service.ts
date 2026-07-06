@@ -23,7 +23,6 @@ export async function createPracticeSession(data: SavePracticeSessionInput) {
     data: {
       sessionUuid: data.sessionUuid,
       userId: data.userId,
-      // ✅ Fixed: Redundant, missing helper wrappers removed 
       subject: data.subject,
       topic: data.topic,
       difficulty: data.difficulty,

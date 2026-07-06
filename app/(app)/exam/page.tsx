@@ -1,21 +1,14 @@
 import { auth } from "@/auth";
+import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { cache } from "react";
+
 import ExamForm from "@/components/exams/exam-form";
 import ActivateButton from "@/components/exams/activate-button";
-import { redirect } from "next/navigation";
 
-export default async function ExamsPage() {
-  const session = await auth();
-
-  if (!session?.user?.email) {
-    redirect("/login");
-  }
-
-  // Optimized database query: fetch only essential user and relational profile data
-  const user = await prisma.user.findUnique({
-    where: {
-      email: session.user.email,
-    },
+const cachedGetUserExams = cache(async (email: string) => {
+  return prisma.user.findUnique({
+    where: { email },
     select: {
       id: true,
       examProfiles: {
@@ -30,15 +23,22 @@ export default async function ExamsPage() {
       },
     },
   });
+});
 
-  if (!user) {
-    redirect("/login");
-  }
+export default async function ExamsPage() {
+  const session = await auth();
+  if (!session?.user?.email) redirect("/login");
+
+  const user = await cachedGetUserExams(session.user.email);
+
+  if (!user) redirect("/login");
 
   const activeExam = user.examProfiles.find((exam) => exam.isActive) ?? null;
 
   const daysRemaining = activeExam
-    ? Math.ceil((activeExam.targetDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+    ? Math.ceil(
+        (activeExam.targetDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24)
+      )
     : null;
 
   return (
@@ -54,7 +54,7 @@ export default async function ExamsPage() {
 
       <ExamForm />
 
-      {/* Active Exam Dashboard Panel */}
+      {/* Active Exam Panel */}
       <div className="bg-white p-6 rounded-xl shadow border border-gray-100">
         <h2 className="text-lg font-semibold mb-4 text-gray-900 border-b pb-2">
           Active Focus Target
@@ -66,9 +66,7 @@ export default async function ExamsPage() {
               <h3 className="text-xl font-bold text-gray-900">
                 {activeExam.name}
               </h3>
-              <p className="text-gray-500 text-sm">
-                {activeExam.examType}
-              </p>
+              <p className="text-gray-500 text-sm">{activeExam.examType}</p>
             </div>
 
             <div className="space-y-2 sm:text-right sm:self-center">
@@ -78,11 +76,16 @@ export default async function ExamsPage() {
                   {activeExam.readiness.toFixed(1)}%
                 </span>
               </p>
-
               <p className="text-sm text-gray-700">
                 📅 Days Remaining:{" "}
-                <span className={`font-bold ${daysRemaining !== null && daysRemaining <= 10 ? 'text-red-600' : 'text-gray-900'}`}>
-                  {daysRemaining ?? "-"}
+                <span
+                  className={`font-bold ${
+                    daysRemaining !== null && daysRemaining <= 10
+                      ? "text-red-600"
+                      : "text-gray-900"
+                  }`}
+                >
+                  {daysRemaining ?? "—"}
                 </span>
               </p>
             </div>
@@ -94,36 +97,31 @@ export default async function ExamsPage() {
         )}
       </div>
 
-      {/* All Historical and Scheduled Profiles */}
+      {/* All Exam Profiles */}
       <div className="bg-white rounded-xl shadow border border-gray-100 overflow-hidden">
         <div className="p-6 border-b border-gray-100 bg-gray-50/50">
-          <h2 className="font-semibold text-gray-900">
-            Available Exam Profiles
-          </h2>
+          <h2 className="font-semibold text-gray-900">Available Exam Profiles</h2>
         </div>
 
         {user.examProfiles.length === 0 ? (
           <div className="p-8 text-center text-gray-500 text-sm">
-            No exam profiles compiled yet. Create your first timeline using the form tracker above.
+            No exam profiles compiled yet. Create your first timeline using the form above.
           </div>
         ) : (
           <div className="divide-y divide-gray-100">
-            {user.examProfiles.map((exam, index) => (
+            {user.examProfiles.map((exam) => (
               <div
-                key={`${exam.id}-${index}`}
+                key={exam.id}
                 className="p-6 flex justify-between items-center hover:bg-gray-50/50 transition-colors"
               >
                 <div className="space-y-1">
-                  <h3 className="font-semibold text-gray-900">
-                    {exam.name}
-                  </h3>
-
-                  <p className="text-sm text-gray-500">
-                    {exam.examType}
-                  </p>
-
+                  <h3 className="font-semibold text-gray-900">{exam.name}</h3>
+                  <p className="text-sm text-gray-500">{exam.examType}</p>
                   <p className="text-xs text-gray-400">
-                    Target Date: {exam.targetDate.toLocaleDateString(undefined, { dateStyle: 'medium' })}
+                    Target Date:{" "}
+                    {exam.targetDate.toLocaleDateString(undefined, {
+                      dateStyle: "medium",
+                    })}
                   </p>
                 </div>
 

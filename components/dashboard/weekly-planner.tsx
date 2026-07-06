@@ -1,12 +1,10 @@
 "use client";
 
-import { useState, useTransition, useOptimistic } from "react";
+import { useState, useTransition, useOptimistic, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { Trash2, GripVertical } from "lucide-react";
 import { addWeeklyPlanTask, deleteWeeklyPlanTask, updatePlannerRows, updateTaskPosition, toggleTaskCompletion } from "@/app/actions/planner";
 import { cn } from "@/lib/utils";
-
-const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
 type PlannerTask = {
   id: string;
@@ -18,6 +16,24 @@ type PlannerTask = {
 };
 
 type OptimisticTask = PlannerTask & { isOptimistic?: boolean };
+
+const DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+function getPlannerDays() {
+  const today = new Date();
+
+  return Array.from({ length: 7 }, (_, index) => {
+    const date = new Date(today);
+    date.setDate(today.getDate() + index);
+
+    return {
+      label: index === 0 ? "Today" : DAY_NAMES[date.getDay()],
+      date,
+      isToday: index === 0,
+      originalDay: date.getDay() === 0 ? 6 : date.getDay() - 1, // Monday = 0
+    };
+  });
+}
 
 export function WeeklyPlanner({
   plannerTasks: initialTasks,
@@ -52,14 +68,16 @@ export function WeeklyPlanner({
     }
   );
 
-  const taskMap = optimisticTasks.reduce((acc, task) => {
-    const key = `${task.day}-${task.rowIndex}`;
-    if (!acc[key]) acc[key] = [];
-    acc[key].push(task);
-    return acc;
-  }, {} as Record<string, OptimisticTask[]>);
+  const taskMap = useMemo(() => {
+    return optimisticTasks.reduce((acc, task) => {
+      const key = `${task.day}-${task.rowIndex}`;
+      if (!acc[key]) acc[key] = [];
+      acc[key].push(task);
+      return acc;
+    }, {} as Record<string, OptimisticTask[]>);
+  }, [optimisticTasks]);
 
-  const todayIndex = new Date().getDay() === 0 ? 6 : new Date().getDay() - 1;
+  const plannerDays = useMemo(() => getPlannerDays(), []);
 
   const handleRowChange = (newRows: number) => {
     const previousRows = rows;
@@ -74,11 +92,11 @@ export function WeeklyPlanner({
     });
   };
 
-  const resetAddForm = () => {
+  const resetAddForm = useCallback(() => {
     setTitle("");
     setTime("");
     setSelectedCell(null);
-  };
+  }, []);
 
   const handleAddTask = () => {
     if (!title.trim() || !selectedCell) return;
@@ -174,32 +192,48 @@ export function WeeklyPlanner({
       <div className="overflow-x-auto pb-4 -mx-1">
         <div className="min-w-[1150px] sm:min-w-[1250px]">
           <div className="grid grid-cols-7 gap-2 sm:gap-3 mb-3">
-            {DAYS.map((day, index) => (
+            {plannerDays.map((day) => (
               <div
-                key={day}
+                key={day.originalDay}
                 className={cn(
                   "rounded-2xl border p-2 sm:p-3 text-center font-semibold text-sm sm:text-base",
-                  index === todayIndex
+                  day.isToday
                     ? "border-blue-500/30 bg-blue-500/10 text-blue-400"
                     : "border-white/[0.08] bg-white/[0.03] text-white"
                 )}
               >
-                {day}
+                <div className="flex flex-row items-center justify-center gap-1.5">
+                  <span className="font-semibold">
+                    {day.label}
+                  </span>
+
+                  <span className="text-[11px] text-slate-500 font-normal">
+                    {day.isToday
+                      ? `• ${day.date.toLocaleDateString("en-GB", {
+                          day: "2-digit",
+                          month: "short",
+                        })}`
+                      : day.date.toLocaleDateString("en-GB", {
+                          day: "2-digit",
+                          month: "short",
+                        })}
+                  </span>
+                </div>
               </div>
             ))}
           </div>
 
           {Array.from({ length: rows }).map((_, row) => (
             <div key={row} className="grid grid-cols-7 gap-2 sm:gap-3 mb-3">
-              {DAYS.map((_, dayIndex) => (
+              {plannerDays.map((day) => (
                 <div
-                  key={`${dayIndex}-${row}`}
-                  onClick={() => setSelectedCell({ day: dayIndex, row })}
+                  key={`${day.originalDay}-${row}`}
+                  onClick={() => setSelectedCell({ day: day.originalDay, row })}
                   onDragOver={handleDragOver}
-                  onDrop={(e) => handleDrop(e, dayIndex, row)}
+                  onDrop={(e) => handleDrop(e, day.originalDay, row)}
                   className="min-h-[130px] rounded-2xl border border-white/[0.08] bg-white/[0.02] p-2.5 sm:p-3 transition-all hover:border-white/30 hover:bg-white/[0.04]"
                 >
-                  {taskMap[`${dayIndex}-${row}`]?.map((task: OptimisticTask) => (
+                  {taskMap[`${day.originalDay}-${row}`]?.map((task: OptimisticTask) => (
                     <div
                       key={task.id}
                       draggable={!task.isOptimistic}
@@ -246,7 +280,7 @@ export function WeeklyPlanner({
                     </div>
                   ))}
 
-                  {!taskMap[`${dayIndex}-${row}`] && (
+                  {!taskMap[`${day.originalDay}-${row}`] && (
                     <div className="h-full flex items-center justify-center text-xs text-slate-500 py-8">+ Add Task</div>
                   )}
                 </div>

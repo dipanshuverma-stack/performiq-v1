@@ -41,7 +41,7 @@ export const DashboardStudyPlan = React.memo(function DashboardStudyPlan({
       <div className="space-y-3">
         {planItems.map((item, index) => (
           <GlassCard
-            key={`${item.subject}-${item.topic}-${index}`} // More stable key
+            key={`${item.subject}-${item.topic}-${index}`}
             className="group p-4 hover:border-white/[0.12] hover:bg-white/[0.05] hover:-translate-y-0.5 hover:shadow-lg hover:shadow-indigo-500/5 transition-all duration-200"
           >
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">

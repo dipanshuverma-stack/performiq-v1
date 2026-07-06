@@ -1,9 +1,6 @@
 /**
  * PerformIQ Domain Types
- * These types are decoupled from Prisma to ensure:
- * 1. Frontend portability (no DB-specific imports)
- * 2. Easier testing and mocking
- * 3. Reduced bundle size
+ * Decoupled from Prisma for frontend portability, easier testing, and reduced bundle size.
  */
 
 export type Subject =
@@ -30,13 +27,13 @@ export type ExamType =
 export type TopicWeightage = "HIGH" | "MEDIUM" | "LOW";
 
 export interface SyllabusTopic {
-  id: string;               // Immutable system ID (e.g., "quant_percentage")
-  slug: string;             // URL-safe route (e.g., "percentages")
-  name: string;             // Display name (e.g., "Percentage & Applications")
+  id: string;                // Immutable system ID (e.g., "quant_percentage")
+  slug: string;              // URL-safe route (e.g., "percentages")
+  name: string;              // Display name (e.g., "Percentage & Applications")
   displayOrder: number;      // Sorting order
   section: SectionType;      // Classification
-  examTypes: ExamType[];    // Targeted exam alignment
-  tags: string[];           // Metadata for search & AI
+  examTypes: ExamType[];     // Targeted exam alignment
+  tags: string[];            // Metadata for search & AI
   weightage: TopicWeightage; // Dashboard/UI priority
   estimatedMinutes: number;  // Progress tracking
 }

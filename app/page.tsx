@@ -4,11 +4,11 @@ import Link from "next/link";
 
 const upcomingExams = [
   {
-    name: "SBI PO PRELIMS",
+    name: "SBI PO Prelims",
     days: 41,
   },
   {
-    name: "IBPS PO PRELIMS",
+    name: "IBPS PO Prelims",
     days: 57,
   },
   {
@@ -109,32 +109,14 @@ export default async function LandingPage() {
         <section className="pb-24">
           <div className="grid gap-5 md:grid-cols-4">
             {[
-              {
-                value: "5",
-                label: "Subjects",
-              },
-              {
-                value: "200+",
-                label: "Topics",
-              },
-              {
-                value: "∞",
-                label: "Revision Cycles",
-              },
-              {
-                value: "Advanced",
-                label: "Analytics",
-              },
+              { value: "5", label: "Subjects" },
+              { value: "200+", label: "Topics" },
+              { value: "∞", label: "Revision Cycles" },
+              { value: "Advanced", label: "Analytics" },
             ].map((stat) => (
               <div
                 key={stat.label}
-                className="
-                  rounded-3xl
-                  border
-                  border-white/[0.08]
-                  bg-[#0E121B]
-                  p-8
-                "
+                className="rounded-3xl border border-white/[0.08] bg-[#0E121B] p-8"
               >
                 <h3 className="text-4xl font-black text-blue-400">
                   {stat.value}
@@ -148,9 +130,7 @@ export default async function LandingPage() {
         {/* Features */}
         <section className="pb-24">
           <div className="text-center mb-12">
-            <h2 className="text-4xl font-black">
-              Everything You Need
-            </h2>
+            <h2 className="text-4xl font-black">Everything You Need</h2>
             <p className="mt-4 text-slate-400">
               Built specifically for serious banking aspirants.
             </p>
@@ -160,26 +140,10 @@ export default async function LandingPage() {
             {features.map((feature) => (
               <div
                 key={feature.title}
-                className="
-                  rounded-3xl
-                  border
-                  border-white/[0.08]
-                  bg-[#0E121B]
-                  p-8
-                  transition-all
-                  duration-300
-                  hover:border-blue-500/20
-                  hover:-translate-y-1
-                "
+                className="rounded-3xl border border-white/[0.08] bg-[#0E121B] p-8 transition-all duration-300 hover:border-blue-500/20 hover:-translate-y-1"
               >
-                <div className="text-4xl">
-                  {feature.icon}
-                </div>
-
-                <h3 className="mt-5 text-xl font-bold">
-                  {feature.title}
-                </h3>
-
+                <div className="text-4xl">{feature.icon}</div>
+                <h3 className="mt-5 text-xl font-bold">{feature.title}</h3>
                 <p className="mt-3 text-sm leading-6 text-slate-400">
                   {feature.description}
                 </p>
@@ -188,81 +152,16 @@ export default async function LandingPage() {
           </div>
         </section>
 
-        {/* Exam Countdown */}
-        <section className="pb-24">
-          <div className="rounded-3xl border border-white/[0.08] bg-[#0E121B] p-10">
-            <div className="flex items-center justify-between mb-10">
-              <div>
-                <p className="text-xs uppercase tracking-[0.2em] text-slate-500">
-                  Upcoming Exams
-                </p>
-
-                <h2 className="mt-3 text-4xl font-black">
-                  Stay Ahead
-                </h2>
-              </div>
-            </div>
-
-            <div className="grid gap-5 md:grid-cols-3">
-              {upcomingExams.map((exam) => (
-                <div
-                  key={exam.name}
-                  className="
-                    rounded-3xl
-                    border
-                    border-blue-500/20
-                    bg-blue-500/[0.03]
-                    p-8
-                  "
-                >
-                  <p className="text-sm text-slate-400">
-                    {exam.name}
-                  </p>
-
-                  <div className="mt-5 flex items-end gap-2">
-                    <span className="text-5xl font-black text-blue-400">
-                      {exam.days}
-                    </span>
-
-                    <span className="pb-2 text-slate-400">
-                      Days Left
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-
         {/* Final CTA */}
         <section className="pb-24 text-center">
-          <h2 className="text-5xl font-black">
-            Ready To Level Up?
-          </h2>
-
+          <h2 className="text-5xl font-black">Ready To Level Up?</h2>
           <p className="mt-4 text-slate-400">
             Join PerformIQ and transform preparation into measurable progress.
           </p>
 
           <Link
             href="/api/auth/signin"
-            className="
-              inline-flex
-              mt-8
-              h-14
-              items-center
-              justify-center
-              rounded-2xl
-              px-10
-              font-bold
-              bg-gradient-to-r
-              from-blue-600
-              to-indigo-600
-              hover:from-blue-500
-              hover:to-indigo-500
-              transition-all
-              hover:scale-105
-            "
+            className="inline-flex mt-8 h-14 items-center justify-center rounded-2xl px-10 font-bold bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 transition-all hover:scale-105"
           >
             Continue with Google
           </Link>

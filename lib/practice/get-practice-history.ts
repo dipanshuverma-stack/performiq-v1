@@ -11,7 +11,7 @@ interface GetPracticeHistoryArgs {
 
 export async function getPracticeHistory({
   where,
-  orderBy = { createdAt: "desc" }, // Defaults to newest first if not explicitly overridden
+  orderBy = { createdAt: "desc" },
   cursor,
 }: GetPracticeHistoryArgs) {
   const sessions = await prisma.practiceSession.findMany({
@@ -24,6 +24,19 @@ export async function getPracticeHistory({
         id: cursor,
       },
     }),
+    select: {
+      id: true,
+      subject: true,
+      topic: true,
+      accuracy: true,
+      qpm: true,
+      totalQuestions: true,
+      durationSeconds: true,
+      createdAt: true,
+      correctQuestions: true,   // Add if needed
+      incorrectQuestions: true, // Add if needed
+      // Add any other fields used in HistoryTimeline
+    },
   });
 
   let nextCursor: string | null = null;

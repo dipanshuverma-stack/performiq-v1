@@ -4,5 +4,9 @@ export const LAYOUT = {
   headerHeight: 64,
   footerHeight: 48,
   containerMaxWidth: "7xl",
-  pagePadding: 6, // maps to Tailwind's p-6 or p-8
+  pagePadding: 6, // Tailwind spacing scale (p-6)
+  contentMaxWidth: "max-w-7xl",
+  wideContentMaxWidth: "max-w-none",
 } as const;
+
+export type LayoutConfig = typeof LAYOUT;

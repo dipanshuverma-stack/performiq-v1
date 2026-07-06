@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { prisma } from "@/lib/prisma";
 import { 
   BANKING_SYLLABUS, 
@@ -33,18 +34,17 @@ export interface SyllabusData {
   subjects: SubjectViewModel[];
 }
 
-export async function getSyllabusData(userId: string): Promise<SyllabusData> {
+const cachedGetSyllabusData = cache(async (userId: string): Promise<SyllabusData> => {
   const completedTopics = await prisma.topicProgress.findMany({
     where: { userId, completed: true },
     select: { subject: true, topicName: true },
   });
 
-  const getTopicKey = (subject: string, topic: string) => `${subject}:${topic}`;
   const completionSet = new Set<string>();
   const subjectCounts = new Map<string, number>();
 
   completedTopics.forEach((item) => {
-    completionSet.add(getTopicKey(item.subject, item.topicName));
+    completionSet.add(`${item.subject}:${item.topicName}`);
     subjectCounts.set(item.subject, (subjectCounts.get(item.subject) ?? 0) + 1);
   });
 
@@ -54,8 +54,7 @@ export async function getSyllabusData(userId: string): Promise<SyllabusData> {
     const topics: TopicViewModel[] = rawTopics.map((topic) => ({
       id: topic.id,
       name: topic.name,
-      completed: completionSet.has(getTopicKey(subjectKey, topic.name)),
-      // Map these from your config object
+      completed: completionSet.has(`${subjectKey}:${topic.name}`),
       estimatedMinutes: topic.estimatedMinutes ?? 30,
       weightage: (topic.weightage as Weightage) ?? "LOW",
       tags: topic.tags ?? [],
@@ -74,8 +73,12 @@ export async function getSyllabusData(userId: string): Promise<SyllabusData> {
     progress: {
       completedCount: completedTopics.length,
       totalCount: TOTAL_TOPIC_COUNT,
-      percentage: TOTAL_TOPIC_COUNT === 0 ? 0 : (completedTopics.length / TOTAL_TOPIC_COUNT) * 100,
+      percentage: TOTAL_TOPIC_COUNT === 0 ? 0 : Math.round((completedTopics.length / TOTAL_TOPIC_COUNT) * 100),
     },
     subjects,
   };
+});
+
+export async function getSyllabusData(userId: string): Promise<SyllabusData> {
+  return cachedGetSyllabusData(userId);
 }

@@ -1,17 +1,22 @@
 import { auth } from "@/auth";
+import { redirect } from "next/navigation";
+import { cache } from "react";
+
 import { getSyllabusData } from "@/lib/syllabus/getSyllabusData";
 import { PageShell } from "@/components/ui/page-shell";
 import { PageContainer } from "@/components/layout/page-container";
 import { PageHeader } from "@/components/ui/page-header";
 import { SyllabusWorkspace } from "@/components/syllabus/SyllabusWorkspace";
 
+const cachedGetSyllabusData = cache(async (userId: string) => 
+  getSyllabusData(userId)
+);
+
 export default async function SyllabusPage() {
   const session = await auth();
-  if (!session?.user?.id) {
-    return <div className="text-muted-foreground p-8">Unauthorized</div>;
-  }
+  if (!session?.user?.id) redirect("/login");
 
-  const syllabusData = await getSyllabusData(session.user.id);
+  const syllabusData = await cachedGetSyllabusData(session.user.id);
 
   return (
     <PageShell>

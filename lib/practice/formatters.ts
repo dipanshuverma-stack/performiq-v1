@@ -1,8 +1,8 @@
 /**
- * Formats millisecond-based average durations into human-readable shorthand intervals.
+ * Formats average time per question (milliseconds) into human-readable shorthand.
  */
 export function formatAverageTime(elapsedMs: number, attempts: number): string {
-  if (attempts === 0) return "—";
+  if (attempts === 0 || elapsedMs <= 0) return "—";
 
   const avgSeconds = Math.round(elapsedMs / attempts / 1000);
 
@@ -17,7 +17,7 @@ export function formatAverageTime(elapsedMs: number, attempts: number): string {
 }
 
 /**
- * Formats milliseconds cleanly into standard, high-legibility stopwatch displays.
+ * Formats milliseconds into clean stopwatch display (HH:MM:SS or MM:SS).
  */
 export function formatTime(ms: number): string {
   if (ms <= 0) return "00:00";

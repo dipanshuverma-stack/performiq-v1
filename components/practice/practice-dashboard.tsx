@@ -1,13 +1,14 @@
 "use client";
+
 import React, { useState } from "react";
 import { Subject } from "@prisma/client";
 import { syllabus } from "@/config/syllabus";
-// Hooks & Domain Elements
+
 import { usePracticeTimer } from "@/lib/practice/usePracticeTimer";
 import { savePracticeSession } from "@/app/actions/practice";
 import { PracticeSessionData } from "./core/session-types";
 import { PracticeDifficulty } from "@/lib/practice/types";
-// Presentation Panels
+
 import { PracticeHero } from "./practice-hero";
 import { PracticeStatsGrid } from "@/components/practice/practice-stats-grid";
 import { PracticeSetup } from "@/components/practice/practice-setup";
@@ -19,10 +20,7 @@ import { GlassCard } from "@/components/ui/glass-card";
 type CombinedSessionSnapshot = {
   status: "finished";
   elapsedMs: number;
-  attempts: {
-    result: "correct" | "incorrect";
-    durationMs: number;
-  }[];
+  attempts: { result: "correct" | "incorrect"; durationMs: number }[];
 };
 
 interface PracticeDashboardProps {
@@ -35,15 +33,14 @@ export function PracticeDashboard({ recentSessions: initialSessions }: PracticeD
   const [errorBanner, setErrorBanner] = useState<string | null>(null);
   const savingRef = React.useRef(false);
   const [isSaving, setIsSaving] = useState(false);
+
   const [subject, setSubject] = useState<Subject>(Subject.QUANTITATIVE_APTITUDE);
   const [topic, setTopic] = useState<string>(() => syllabus[Subject.QUANTITATIVE_APTITUDE]?.[0] ?? "");
   const [difficulty, setDifficulty] = useState<PracticeDifficulty>("MIXED");
   const [sessionNotes, setSessionNotes] = useState<string>("");
   const [savedSnapshotCache, setSavedSnapshotCache] = useState<CombinedSessionSnapshot | null>(null);
 
-  const handleStartTransition = () => {
-    setPhase("running");
-  };
+  const handleStartTransition = () => setPhase("running");
 
   const handleRunningFinishHandshake = (finalSnapshot: CombinedSessionSnapshot) => {
     setSavedSnapshotCache(finalSnapshot);
@@ -51,8 +48,7 @@ export function PracticeDashboard({ recentSessions: initialSessions }: PracticeD
   };
 
   const handleCommitMetricsPipeline = async () => {
-    if (savingRef.current) return;
-    if (!savedSnapshotCache) return;
+    if (savingRef.current || !savedSnapshotCache) return;
     savingRef.current = true;
     setIsSaving(true);
     setErrorBanner(null);
@@ -108,7 +104,7 @@ export function PracticeDashboard({ recentSessions: initialSessions }: PracticeD
         setPhase("success");
       } else {
         setRecentSessions((prev) => prev.filter((item) => item.id !== optimisticRecord.id));
-        setErrorBanner(response.error ?? "Failed to save practice performance markers.");
+        setErrorBanner(response.error ?? "Failed to save practice session.");
       }
     } catch {
       setRecentSessions((prev) => prev.filter((item) => item.id !== optimisticRecord.id));
@@ -137,7 +133,8 @@ export function PracticeDashboard({ recentSessions: initialSessions }: PracticeD
   const totalPracticeHours = Number((recentSessions.reduce((sum, session) => sum + (session.durationSeconds ?? 0), 0) / 3600).toFixed(1));
 
   return (
-    <div className="w-full max-w-6xl mx-auto p-4 space-y-8">
+    <div className="w-full max-w-6xl mx-auto px-2 sm:px-4 lg:px-6 py-6 space-y-6">
+      {/* Header */}
       {phase === "setup" && (
         <>
           <PracticeHero subject={subject} topic={topic} difficulty={difficulty} />
@@ -151,24 +148,25 @@ export function PracticeDashboard({ recentSessions: initialSessions }: PracticeD
       )}
 
       {phase === "setup" && (
-        <div className="space-y-2">
+        <div>
           <h2 className="text-3xl font-bold tracking-tight">Practice Workspace</h2>
-          <p className="text-muted-foreground">
-            Configure and complete focused practice sessions while tracking your performance.
+          <p className="text-muted-foreground mt-1 text-[15px]">
+            Configure and complete focused practice sessions.
           </p>
         </div>
       )}
 
-      <div className="grid lg:grid-cols-3 gap-6">
-        <div className={phase === "setup" ? "lg:col-span-2 space-y-6" : "lg:col-span-3 space-y-6"}>
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-6">
+        {/* Main Setup Area - Wider on mobile */}
+        <div className="lg:col-span-8 space-y-6">
           {errorBanner && (
-            <div className="bg-destructive/10 border border-destructive/30 p-4 rounded-xl text-xs font-medium text-destructive">
+            <div className="bg-destructive/10 border border-destructive/30 p-4 rounded-xl text-sm text-destructive">
               ⚠️ {errorBanner}
             </div>
           )}
 
           {phase === "setup" && (
-            <GlassCard className="p-8 space-y-6">
+            <GlassCard className="p-1 sm:p-7 lg:p-8">
               <PracticeSetup
                 subject={subject}
                 setSubject={setSubject}
@@ -221,9 +219,7 @@ export function PracticeDashboard({ recentSessions: initialSessions }: PracticeD
               <GlassCard className="max-w-md mx-auto p-10 space-y-6">
                 <div className="text-6xl">✅</div>
                 <h3 className="text-3xl font-bold">Session Saved</h3>
-                <p className="text-muted-foreground">
-                  Your performance has been added to your analytics history.
-                </p>
+                <p className="text-muted-foreground">Your performance has been recorded.</p>
                 <button
                   onClick={handleResetTransition}
                   className="w-full h-14 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-semibold rounded-2xl transition-all"
@@ -235,8 +231,9 @@ export function PracticeDashboard({ recentSessions: initialSessions }: PracticeD
           )}
         </div>
 
+        {/* Recent Sessions - Stack below on mobile */}
         {phase === "setup" && (
-          <div className="space-y-6">
+          <div className="lg:col-span-4">
             <RecentSessionsPanel recentSessions={recentSessions} />
           </div>
         )}
@@ -245,6 +242,7 @@ export function PracticeDashboard({ recentSessions: initialSessions }: PracticeD
   );
 }
 
+// ActiveWorkspaceWrapper (unchanged)
 interface ActiveWorkspaceWrapperProps {
   topic: string;
   subject: Subject;

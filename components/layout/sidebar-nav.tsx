@@ -18,7 +18,6 @@ export function SidebarNav({ onItemSelect }: SidebarNavProps) {
       {navigationGroups.map((section) => (
         <SidebarSection key={section.title} title={section.title}>
           {section.items.map((item) => {
-            // Check if the current route matches the navigation item
             const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
             return (
               <SidebarItem

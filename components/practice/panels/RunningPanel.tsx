@@ -55,31 +55,34 @@ export function RunningPanel({
   const qualityBarClass = accuracy >= 85 ? "from-emerald-500 to-cyan-400" : accuracy >= 70 ? "from-amber-500 to-orange-400" : "from-rose-500 to-red-500";
 
   return (
-    <GlassCard className="p-8 space-y-10 animate-fade-in w-full">
+    <GlassCard className="p-5 md:p-8 space-y-6 md:space-y-10 animate-fade-in w-full">
       <div className="space-y-4">
         <p className="text-xs uppercase tracking-[0.25em] text-muted-foreground">PRACTICE SESSION</p>
         <h2 className="text-2xl font-bold">{topic}</h2>
       </div>
 
-      <GlassCard className="py-20 px-8 text-center border-primary/10 bg-gradient-to-b from-primary/5 to-transparent">
+      {/* Scaled down timer box for mobile viewports */}
+      <GlassCard className="py-10 md:py-20 px-5 md:px-8 text-center border-primary/10 bg-gradient-to-b from-primary/5 to-transparent">
         <div className={cn("inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs font-bold mb-6 border", isPaused ? "bg-amber-500/10 text-amber-400 border-amber-500/20" : "bg-emerald-500/10 text-emerald-400 border-emerald-500/20")}>
           <div className={cn("h-2 w-2 rounded-full", isPaused ? "bg-amber-400" : "bg-emerald-400 animate-pulse")} />
           {isPaused ? "SESSION PAUSED" : "SESSION ACTIVE"}
         </div>
-        <h1 className={cn("mt-4 text-7xl md:text-8xl xl:text-[7rem] leading-none font-black font-mono tabular-nums text-white transition-all", isPaused && "animate-pulse text-amber-400 drop-shadow-[0_0_30px_rgba(251,191,36,0.35)]")}>
+        <h1 className={cn("mt-3 text-6xl md:text-8xl xl:text-[7rem] leading-none font-black font-mono tabular-nums text-white transition-all", isPaused && "animate-pulse text-amber-400 drop-shadow-[0_0_30px_rgba(251,191,36,0.35)]")}>
           {formattedTime}
         </h1>
         <p className="mt-3 text-sm text-muted-foreground">Elapsed Time</p>
       </GlassCard>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* Tighter grid gap structure for standard screens */}
+      <div className="grid grid-cols-2 gap-3 md:gap-4 lg:grid-cols-4">
         <DashboardKPICard title="Questions" value={attemptsCount} label="Attempted" icon={FileText} />
         <DashboardKPICard title="Correct" value={correctCount} label="Solved" icon={CheckCircle2} />
         <DashboardKPICard title="Wrong" value={incorrectCount} label="Missed" icon={XCircle} />
         <DashboardKPICard title="Accuracy" value={`${accuracy}%`} label="Success Rate" icon={Target} valueClassName={accuracyColorClass} />
       </div>
 
-      <GlassCard className="p-6">
+      {/* Question Pace Card: Hidden on mobile to protect spatial viewports */}
+      <GlassCard className="hidden md:block p-6">
         <div className="flex justify-between items-start mb-4">
           <div>
             <div className="text-xs uppercase tracking-[0.2em] font-semibold text-muted-foreground">QUESTION PACE</div>
@@ -99,8 +102,8 @@ export function RunningPanel({
         </div>
       </GlassCard>
 
-      {/* SESSION QUALITY CARD RESTORED */}
-      <GlassCard className="p-6 space-y-4">
+      {/* Session Quality Card: Hidden on mobile to maintain vertical clearance */}
+      <GlassCard className="hidden md:block p-6 space-y-4">
         <div className="flex justify-between items-center">
           <span className="text-sm font-semibold">SESSION QUALITY</span>
           <span className={cn("px-3 py-1 rounded-full text-xs font-semibold border", badgeClass)}>
@@ -116,18 +119,77 @@ export function RunningPanel({
         </div>
       </GlassCard>
 
-      <div className="pt-8 border-t border-white/[0.06] space-y-4">
-        <div className="grid grid-cols-4 gap-4">
-          <button type="button" onClick={() => logQuestion("correct")} className="h-14 flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 rounded-2xl font-semibold"><CheckCircle2 className="w-5 h-5" /> Correct</button>
-          <button type="button" onClick={() => logQuestion("incorrect")} className="h-14 flex items-center justify-center gap-2 bg-rose-600 hover:bg-rose-700 rounded-2xl font-semibold"><XCircle className="w-5 h-5" /> Incorrect</button>
-          <button type="button" onClick={undoLastQuestion} disabled={attemptsCount === 0} className="h-14 flex items-center justify-center border border-border rounded-2xl hover:bg-card/50"><RotateCcw className="w-5 h-5" /></button>
+      {/* Sticky Premium Action Bar Interface */}
+      <div
+        className="
+          sticky
+          bottom-0
+          bg-[#090D16]/95
+          backdrop-blur-xl
+          pt-4
+          md:pt-8
+          border-t
+          border-white/[0.06]
+          space-y-4
+          -mx-5
+          md:mx-0
+          px-5
+          md:px-0
+          pb-[calc(env(safe-area-inset-bottom)+12px)]
+          z-20
+        "
+      >
+        {/* Responsive Control Layout Matrix */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+          <button 
+            type="button" 
+            onClick={() => logQuestion("correct")} 
+            className="w-full h-14 flex items-center justify-center gap-2 rounded-2xl bg-emerald-600 hover:bg-emerald-700 font-semibold transition-colors"
+          >
+            <CheckCircle2 className="w-5 h-5" /> Correct
+          </button>
+          
+          <button 
+            type="button" 
+            onClick={() => logQuestion("incorrect")} 
+            className="w-full h-14 flex items-center justify-center gap-2 rounded-2xl bg-rose-600 hover:bg-rose-700 font-semibold transition-colors"
+          >
+            <XCircle className="w-5 h-5" /> Incorrect
+          </button>
+          
+          <button 
+            type="button" 
+            onClick={undoLastQuestion} 
+            disabled={attemptsCount === 0} 
+            className="w-full h-14 flex items-center justify-center rounded-2xl border border-border hover:bg-card/50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            <RotateCcw className="w-5 h-5" />
+          </button>
+          
           {isPaused ? (
-            <button onClick={onResume} className="h-14 flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-500 rounded-2xl font-semibold"><Play className="w-5 h-5" /> Resume</button>
+            <button 
+              type="button" 
+              onClick={onResume} 
+              className="w-full h-14 flex items-center justify-center gap-2 rounded-2xl bg-emerald-600 hover:bg-emerald-500 font-semibold transition-colors"
+            >
+              <Play className="w-5 h-5" /> Resume
+            </button>
           ) : (
-            <button onClick={onPause} className="h-14 flex items-center justify-center gap-2 bg-amber-600 hover:bg-amber-500 rounded-2xl font-semibold"><Pause className="w-5 h-5" /> Pause</button>
+            <button 
+              type="button" 
+              onClick={onPause} 
+              className="w-full h-14 flex items-center justify-center gap-2 rounded-2xl bg-amber-600 hover:bg-amber-500 font-semibold transition-colors"
+            >
+              <Pause className="w-5 h-5" /> Pause
+            </button>
           )}
         </div>
-        <button type="button" onClick={onPauseAndReview} className="w-full h-16 text-lg font-bold rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white flex items-center justify-center gap-2">
+        
+        <button 
+          type="button" 
+          onClick={onPauseAndReview} 
+          className="w-full h-16 text-lg font-bold rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white flex items-center justify-center gap-2 shadow-lg shadow-indigo-600/10"
+        >
           Complete & Review <ArrowRight className="h-5 w-5" />
         </button>
       </div>

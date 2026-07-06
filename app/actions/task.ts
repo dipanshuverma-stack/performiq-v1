@@ -4,9 +4,6 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 
-/**
- * Helper to fetch user ID efficiently
- */
 async function getAuthenticatedUserId() {
   const session = await auth();
   if (!session?.user?.email) throw new Error("Unauthorized");
@@ -42,7 +39,6 @@ export async function createTask(formData: FormData) {
 export async function toggleTask(taskId: string) {
   const userId = await getAuthenticatedUserId();
 
-  // Use findUnique for primary key index efficiency
   const task = await prisma.task.findUnique({
     where: { id: taskId },
     select: { completed: true, userId: true },
@@ -64,7 +60,6 @@ export async function toggleTask(taskId: string) {
 export async function deleteTask(taskId: string) {
   const userId = await getAuthenticatedUserId();
 
-  // Explicit ownership check via findUnique
   const task = await prisma.task.findUnique({
     where: { id: taskId },
     select: { userId: true },

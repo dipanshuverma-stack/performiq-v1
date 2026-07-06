@@ -14,8 +14,6 @@
     "jsx": "react-jsx",
     "incremental": true,
 
-    "baseUrl": ".",
-
     "paths": {
       "@/*": ["./*"]
     },
@@ -25,7 +23,6 @@
         "name": "next"
       }
     ]
-  
   },
   "include": [
     "next-env.d.ts",
@@ -34,6 +31,6 @@
     ".next/types/**/*.ts",
     ".next/dev/types/**/*.ts",
     "**/*.mts"
-, "prisma/seed-syllabus.ts.bak"  ],
+  ],
   "exclude": ["node_modules"]
 }

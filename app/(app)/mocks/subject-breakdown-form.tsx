@@ -13,58 +13,44 @@ export async function saveSubjectPerformance(formData: FormData) {
     throw new Error("Missing mockId or userId.");
   }
 
-  const subjects = [
-    "Reasoning",
-    "Quant",
-    "English",
-    "GA",
-    "Computer",
-  ];
+  const subjects = ["Reasoning", "Quant", "English", "GA", "Computer"] as const;
 
-  const transactionPayload = [];
+  const transactionPayload: Array<{
+    userId: string;
+    mockId: string;
+    subject: Subject;
+    totalQuestions: number;
+    attempted: number;
+    correct: number;
+    incorrect: number;
+    score: number;
+    accuracy: number;
+  }> = [];
 
   for (const subjectName of subjects) {
-    const totalQuestions = Number(
-      formData.get(`${subjectName}_total`) || 0
-    );
+    const totalQuestions = Number(formData.get(`${subjectName}_total`) || 0);
+    if (totalQuestions <= 0) continue;
 
-    // Skip processing fields that have no assigned questions
-    if (totalQuestions === 0) continue;
+    const correct = Math.max(0, Number(formData.get(`${subjectName}_correctQuestions`) || 0));
+    const incorrect = Math.max(0, Number(formData.get(`${subjectName}_incorrectQuestions`) || 0));
 
-    // ✅ Fix #1: Extracted directly into 'correct' and 'incorrect' tokens 
-    // while keeping HTML string names fully operational
-    const correct = Math.max(
-      0,
-      Number(formData.get(`${subjectName}_correctQuestions`) || 0)
-    );
-
-    const incorrect = Math.max(
-      0,
-      Number(formData.get(`${subjectName}_incorrectQuestions`) || 0)
-    );
-
-    // ✅ Fix #2: Mathematical properties and accuracy calculations updated
     const attempted = correct + incorrect;
 
     if (attempted > totalQuestions) {
-      throw new Error(
-        `Attempted questions exceed total for ${subjectName}`
-      );
+      throw new Error(`Attempted questions exceed total for ${subjectName}`);
     }
 
-    const accuracy =
-      attempted > 0 ? (correct / attempted) * 100 : 0;
+    const accuracy = attempted > 0 ? Math.round((correct / attempted) * 100) : 0;
 
-    // ✅ Fix #2 continued: Object property payload tailored to match schema.prisma contracts
     transactionPayload.push({
       userId,
       mockId,
-      subject: SUBJECT_MAP[subjectName],
+      subject: SUBJECT_MAP[subjectName as keyof typeof SUBJECT_MAP],
       totalQuestions,
       attempted,
-      correct,   // ✅ Normalized property
-      incorrect, // ✅ Normalized property
-      score: correct,
+      correct,
+      incorrect,
+      score: correct,           // Usually score = correct answers
       accuracy,
     });
   }
@@ -72,9 +58,13 @@ export async function saveSubjectPerformance(formData: FormData) {
   if (transactionPayload.length > 0) {
     await prisma.mockSubjectPerformance.createMany({
       data: transactionPayload,
+      skipDuplicates: true,     // Safety against duplicate entries
     });
   }
 
+  // Revalidate relevant pages
   revalidatePath("/mocks");
   revalidatePath(`/mocks/${mockId}`);
+
+  return { success: true };
 }

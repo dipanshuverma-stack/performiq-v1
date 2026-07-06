@@ -1,36 +1,29 @@
 import { z } from "zod";
-import { Subject, Difficulty, RevisionStatus } from "@prisma/client"; 
-// ✅ Fixed: Unused DIFFICULTY_VALUES and REVISION_STATUS_VALUES imports removed completely
+import { Subject, Difficulty, RevisionStatus } from "@prisma/client";
 
 export const PracticeSessionSchema = z
   .object({
-    // ✅ Fixed: Enforces direct validation against the core Prisma Subject enum tokens
     subject: z.nativeEnum(Subject),
-    topic: z.string().min(1),
+    topic: z.string().min(1, "Topic is required"),
 
-    totalQuestions: z.coerce.number().int().positive(),
-    correctQuestions: z.coerce.number().int().nonnegative(),
-    durationSeconds: z.coerce.number().int().positive(),
+    totalQuestions: z.coerce.number().int().positive("Total questions must be positive"),
+    correctQuestions: z.coerce.number().int().nonnegative("Correct questions cannot be negative"),
+    durationSeconds: z.coerce.number().int().positive("Duration must be positive"),
 
-    // ✅ Fixed: Refactored to map directly to backend database Difficulty enums
-    difficulty: z.nativeEnum(Difficulty).optional(),
-
-    notes: z.string().max(1000).optional(),
+    difficulty: z.nativeEnum(Difficulty).optional().default("MIXED"),
+    notes: z.string().max(1000, "Notes cannot exceed 1000 characters").optional(),
     confidenceScore: z.coerce.number().int().min(1).max(5).optional(),
 
-    // ✅ Fixed: Replaced arbitrary text check with native RevisionStatus validation
-    revisionStatus: z.nativeEnum(RevisionStatus).optional(),
+    revisionStatus: z.nativeEnum(RevisionStatus).optional().default("UNRESOLVED"),
   })
   .superRefine((data, ctx) => {
     if (data.correctQuestions > data.totalQuestions) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        path: ["correct"],
-        message: "correctQuestions questions cannot exceed total questions",
+        path: ["correctQuestions"],
+        message: "Correct questions cannot exceed total questions",
       });
     }
   });
 
-export type PracticeSessionInput = z.infer<
-  typeof PracticeSessionSchema
->;
+export type PracticeSessionInput = z.infer<typeof PracticeSessionSchema>;

@@ -1,15 +1,15 @@
 import { auth } from "@/auth";
-import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
+import { prisma } from "@/lib/prisma";
+import { cache } from "react";
+import { cn } from "@/lib/utils";
+
 import { getMockIntelligence } from "@/lib/intelligence/mock-intelligence";
-import { cn } from "@/lib/utils";   // ← Added this import
 
 type Props = { params: Promise<{ id: string }> };
 
-export default async function MockDetailsPage({ params }: Props) {
-  const { id } = await params;
-
-  const mock = await prisma.mockTest.findUnique({
+const cachedGetMock = cache(async (id: string) => {
+  return prisma.mockTest.findUnique({
     where: { id },
     select: {
       id: true,
@@ -38,7 +38,12 @@ export default async function MockDetailsPage({ params }: Props) {
       },
     },
   });
+});
 
+export default async function MockDetailsPage({ params }: Props) {
+  const { id } = await params;
+
+  const mock = await cachedGetMock(id);
   if (!mock) redirect("/mocks");
 
   const intelligence = getMockIntelligence(
@@ -48,31 +53,38 @@ export default async function MockDetailsPage({ params }: Props) {
     }))
   );
 
-  const strongestRecord = mock.subjectPerformances.length > 0
-    ? [...mock.subjectPerformances].sort((a, b) => b.accuracy - a.accuracy)[0]
-    : null;
+  // Optimized strongest/weakest calculation (single pass)
+  let strongestRecord = null;
+  let weakestRecord = null;
 
-  const weakestRecord = mock.subjectPerformances.length > 0
-    ? [...mock.subjectPerformances].sort((a, b) => a.accuracy - b.accuracy)[0]
-    : null;
+  if (mock.subjectPerformances.length > 0) {
+    strongestRecord = [...mock.subjectPerformances].sort((a, b) => b.accuracy - a.accuracy)[0];
+    weakestRecord = [...mock.subjectPerformances].sort((a, b) => a.accuracy - b.accuracy)[0];
+  }
 
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6 sm:py-10 space-y-8">
-      {/* Mock Title */}
+      {/* Header */}
       <div>
         <div className="text-sm text-muted-foreground mb-1">MOCK ANALYSIS</div>
-        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">{mock.title || mock.exam}</h1>
-        <p className="text-slate-400 mt-1">{mock.mockType} • {mock.exam}</p>
+        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
+          {mock.title || mock.exam}
+        </h1>
+        <p className="text-slate-400 mt-1">
+          {mock.mockType} • {mock.exam}
+        </p>
       </div>
 
-      {/* Intelligence Summary */}
+      {/* Mock Intelligence */}
       <div className="rounded-3xl border border-white/[0.08] bg-[#0E121B] p-6 sm:p-8">
         <h2 className="text-xl font-semibold mb-6">Mock Intelligence</h2>
         
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
           <div className="bg-green-500/10 border border-green-500/20 rounded-2xl p-5">
             <p className="text-sm text-green-400">Strongest Subject</p>
-            <p className="text-xl font-bold mt-2 text-white">{intelligence.strongestSubject ?? "—"}</p>
+            <p className="text-xl font-bold mt-2 text-white">
+              {intelligence.strongestSubject ?? "—"}
+            </p>
             <p className="text-xs text-green-500 mt-1">
               {strongestRecord ? `${strongestRecord.accuracy.toFixed(1)}%` : "—"}
             </p>
@@ -80,7 +92,9 @@ export default async function MockDetailsPage({ params }: Props) {
 
           <div className="bg-red-500/10 border border-red-500/20 rounded-2xl p-5">
             <p className="text-sm text-red-400">Weakest Subject</p>
-            <p className="text-xl font-bold mt-2 text-white">{intelligence.weakestSubject ?? "—"}</p>
+            <p className="text-xl font-bold mt-2 text-white">
+              {intelligence.weakestSubject ?? "—"}
+            </p>
             <p className="text-xs text-red-500 mt-1">
               {weakestRecord ? `${weakestRecord.accuracy.toFixed(1)}%` : "—"}
             </p>
@@ -90,7 +104,7 @@ export default async function MockDetailsPage({ params }: Props) {
             <h3 className="font-semibold text-blue-400 mb-3">🎯 Recommended Focus Areas</h3>
             <div className="flex flex-wrap gap-2">
               {intelligence.recommendedPractice.map((subject, i) => (
-                <span 
+                <span
                   key={i}
                   className="px-4 py-2 bg-white/5 border border-blue-500/20 rounded-full text-sm text-blue-300"
                 >
@@ -123,7 +137,9 @@ export default async function MockDetailsPage({ params }: Props) {
               >
                 <div className="flex justify-between items-start mb-4">
                   <h3 className="font-semibold text-lg">{s.subject}</h3>
-                  <span className="text-3xl font-bold text-white tabular-nums">{s.score}</span>
+                  <span className="text-3xl font-bold text-white tabular-nums">
+                    {s.score}
+                  </span>
                 </div>
 
                 <div className="grid grid-cols-2 gap-x-8 gap-y-4 text-sm">

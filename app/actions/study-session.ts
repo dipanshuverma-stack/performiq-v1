@@ -3,18 +3,14 @@
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
-import { Subject } from "@prisma/client"; // ✅ Fix #1: Imported the direct Subject enum
+import { Subject } from "@prisma/client";
 
-// ✅ Fix #2: Refactored schema validation to match explicit database enum tokens
 const StudySessionSchema = z.object({
   subject: z.nativeEnum(Subject),
   topic: z.string().min(1),
   duration: z.coerce.number().min(1),
 });
 
-/**
- * Helper to fetch user ID efficiently
- */
 async function getAuthenticatedUserId() {
   const session = await auth();
   if (!session?.user?.email) throw new Error("Unauthorized");
@@ -31,11 +27,10 @@ async function getAuthenticatedUserId() {
 export async function startStudySession(subject: Subject, topic: string, duration: number) {
   const userId = await getAuthenticatedUserId();
 
-  // Validate inputs - Type checking succeeds cleanly since schema expects native Subject enums now
   const validation = StudySessionSchema.safeParse({ subject, topic, duration });
   if (!validation.success) throw new Error("Invalid session data");
 
-  // Atomic-like check: Prevent starting duplicate active sessions for the same topic
+  // Prevent duplicate active sessions for the same topic
   const existing = await prisma.studySession.findFirst({
     where: {
       userId,

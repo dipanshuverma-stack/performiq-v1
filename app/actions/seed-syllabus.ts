@@ -2,9 +2,9 @@
 
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import { syllabus } from "@/config/syllabus"; // 🎯 Unified source of truth using DB enum keys
-import { revalidatePath, revalidateTag } from "next/cache";
-import { Subject } from "@prisma/client"; // ✅ Type safety verified
+import { syllabus } from "@/config/syllabus";
+import { revalidatePath } from "next/cache";
+import { Subject } from "@prisma/client";
 
 export async function seedSyllabus() {
   const session = await auth();
@@ -17,23 +17,22 @@ export async function seedSyllabus() {
 
   if (!user) throw new Error("User not found");
 
-  // 1. Flatten the syllabus into a single array of records for batch insertion
-  const recordsToCreate = Object.entries(syllabus).flatMap(([subject, topics]) =>
+  // Flatten syllabus into records for batch creation
+  const recordsToCreate = Object.entries(syllabus).flatMap(([subjectKey, topics]) =>
     topics.map((topic) => ({
       userId: user.id,
-      // ✅ Type-safe cast: config keys match the database enums identically
-      subject: subject as Subject,
+      subject: subjectKey as Subject,
       topicName: topic,
     }))
   );
 
-  // 2. Perform a single batch operation
+  // Batch insert with duplicate skipping
   await prisma.topicProgress.createMany({
     data: recordsToCreate,
     skipDuplicates: true,
   });
 
-  // ⚡ Compliant Cache Invalidation matching project framework versions
-  revalidateTag("stats", "max");
   revalidatePath("/syllabus");
+  revalidatePath("/progress");
+  revalidatePath("/dashboard");
 }

@@ -4,12 +4,11 @@ import { getReadinessEngine } from "./readiness-engine";
 import { getWeakTopics } from "./weak-topic-analytics";
 import { getPracticeConsistency } from "./practice-consistency";
 
-const getCachedReadiness = cache(async (userId: string) => getReadinessEngine(userId));
-const getCachedWeakTopics = cache(async (userId: string) => getWeakTopics(userId));
-const getCachedConsistency = cache(async (userId: string) => getPracticeConsistency(userId));
+const getCachedReadiness = cache((userId: string) => getReadinessEngine(userId));
+const getCachedWeakTopics = cache((userId: string) => getWeakTopics(userId));
+const getCachedConsistency = cache((userId: string) => getPracticeConsistency(userId));
 
 export async function getDashboardIntelligence(userId: string) {
-  // Keep parallel execution
   const [readiness, weakTopics, consistency] = await Promise.all([
     getCachedReadiness(userId),
     getCachedWeakTopics(userId),
@@ -24,8 +23,9 @@ export async function getDashboardIntelligence(userId: string) {
       focusScore: 100 - Math.round(topic.accuracy),
     }));
 
-  const nextFocusTopic =
-    priorities.length > 0 ? priorities[0].topic : "Continue Practice";
+  const nextFocusTopic = priorities.length > 0 
+    ? priorities[0].topic 
+    : "Continue Practice";
 
   return {
     readiness,

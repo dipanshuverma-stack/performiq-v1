@@ -71,7 +71,7 @@ export const DashboardQpmChart = React.memo(function DashboardQpmChart({
                 color: "#e2e8f0",
               }}
               labelStyle={{ color: "#94a3b8" }}
-              formatter={(value) => [`${Number(value).toFixed(2)}`, "QPM"] as [string, string]}
+              formatter={(value) => [`${Number(value).toFixed(2)}`, "QPM"]}
             />
 
             <ReferenceLine
@@ -83,7 +83,7 @@ export const DashboardQpmChart = React.memo(function DashboardQpmChart({
                 value: "Target (1.67)",
                 fill: "#ef4444",
                 fontSize: 12,
-                position: "top",           // Fixed: Use valid position
+                position: "top",
               }}
             />
 

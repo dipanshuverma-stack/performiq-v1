@@ -8,6 +8,11 @@ export const config = {
     "/revision/:path*",
     "/tasks/:path*",
     "/profile/:path*",
-    "/settings/:path*",
+    "/progress/:path*",
+    "/analytics/:path*",
+    "/mocks/:path*",
+    "/mistakes/:path*",
+    "/history/:path*",
+    "/exams/:path*",
   ],
 };

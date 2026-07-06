@@ -1,29 +1,22 @@
 import { auth } from "@/auth";
+import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { cache } from "react";
+
 import ReadButton from "@/components/notifications/read-button";
 import { generateNotifications } from "@/lib/notifications/generate-notifications";
-import { redirect } from "next/navigation";
 import { cn } from "@/lib/utils";
 
-export default async function NotificationsPage() {
-  const session = await auth();
-
-  if (!session?.user?.email) {
-    redirect("/login");
-  }
-
-  const user = await prisma.user.findUnique({
-    where: { email: session.user.email },
+const cachedGetUser = cache(async (email: string) => {
+  return prisma.user.findUnique({
+    where: { email },
     select: { id: true },
   });
+});
 
-  if (!user) redirect("/login");
-
-  // Generate fresh notifications
-  await generateNotifications(user.id);
-
-  const notifications = await prisma.notification.findMany({
-    where: { userId: user.id },
+const cachedGetNotifications = cache(async (userId: string) => {
+  return prisma.notification.findMany({
+    where: { userId },
     select: {
       id: true,
       title: true,
@@ -34,6 +27,20 @@ export default async function NotificationsPage() {
     orderBy: { createdAt: "desc" },
     take: 50,
   });
+});
+
+export default async function NotificationsPage() {
+  const session = await auth();
+  if (!session?.user?.email) redirect("/login");
+
+  const user = await cachedGetUser(session.user.email);
+  if (!user) redirect("/login");
+
+  // Generate fresh notifications (runs every visit)
+  await generateNotifications(user.id);
+
+  // Cached fetch for better performance on repeated visits
+  const notifications = await cachedGetNotifications(user.id);
 
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6 sm:py-10 space-y-8">
@@ -62,15 +69,15 @@ export default async function NotificationsPage() {
             >
               <div className="flex justify-between items-start gap-4">
                 <div className="flex-1">
-                  <h3 className="font-semibold text-lg leading-tight">{notification.title}</h3>
+                  <h3 className="font-semibold text-lg leading-tight">
+                    {notification.title}
+                  </h3>
                   <p className="text-slate-400 mt-2 leading-relaxed">
                     {notification.message}
                   </p>
                 </div>
 
-                {!notification.read && (
-                  <ReadButton id={notification.id} />
-                )}
+                {!notification.read && <ReadButton id={notification.id} />}
               </div>
 
               <div className="mt-4 text-xs text-slate-500">

@@ -1,19 +1,29 @@
 import { auth } from "@/auth";
-import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
+import { Suspense } from "react";
+import { cache } from "react";
+
 import { getPracticeAnalytics, TARGET_PRELIMS_QPM } from "@/lib/analytics/practice-analytics";
 import { getPracticeAccuracyTrend, getPracticeQpmTrend } from "@/lib/analytics/practice-trends";
+
 import PracticeAccuracyChart from "@/components/charts/practice-accuracy-chart";
 import PracticeQpmChart from "@/components/charts/practice-qpm-chart";
+
+const cachedGetPracticeAnalytics = cache(async (userId: string) => getPracticeAnalytics(userId));
+const cachedGetAccuracyTrend = cache(async (userId: string) => getPracticeAccuracyTrend(userId));
+const cachedGetQpmTrend = cache(async (userId: string) => getPracticeQpmTrend(userId));
 
 export default async function PracticeAnalyticsPage() {
   const session = await auth();
   if (!session?.user?.id) redirect("/login");
 
-  const [accuracyTrend, qpmTrend, analytics] = await Promise.all([
-    getPracticeAccuracyTrend(session.user.id),
-    getPracticeQpmTrend(session.user.id),
-    getPracticeAnalytics(session.user.id),
+  const userId = session.user.id;
+
+  // Parallel + Cached fetching
+  const [analytics, accuracyTrend, qpmTrend] = await Promise.all([
+    cachedGetPracticeAnalytics(userId),
+    cachedGetAccuracyTrend(userId),
+    cachedGetQpmTrend(userId),
   ]);
 
   if (analytics.totalSessions === 0) {
@@ -112,12 +122,17 @@ export default async function PracticeAnalyticsPage() {
         </div>
       </div>
 
-      {/* Performance Trends */}
+      {/* Performance Trends - Streamed */}
       <div className="rounded-3xl border border-white/[0.08] bg-[#0E121B] p-6 sm:p-8">
         <h2 className="text-xl font-semibold mb-6">Performance Trends</h2>
         <div className="grid lg:grid-cols-2 gap-8">
-          <PracticeAccuracyChart data={accuracyTrend} />
-          <PracticeQpmChart data={qpmTrend} />
+          <Suspense fallback={<div className="h-[380px] bg-[#1A1F2E] rounded-2xl animate-pulse" />}>
+            <PracticeAccuracyChart data={accuracyTrend} />
+          </Suspense>
+          
+          <Suspense fallback={<div className="h-[380px] bg-[#1A1F2E] rounded-2xl animate-pulse" />}>
+            <PracticeQpmChart data={qpmTrend} />
+          </Suspense>
         </div>
       </div>
     </div>

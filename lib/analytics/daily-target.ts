@@ -5,6 +5,9 @@ export interface DailyTarget {
   studyMinutesPerDay: number;
 }
 
+/**
+ * Calculates realistic daily targets based on remaining time and workload.
+ */
 export function calculateDailyTarget(
   daysRemaining: number,
   topicsRemaining: number,
@@ -20,24 +23,15 @@ export function calculateDailyTarget(
   }
 
   return {
-    topicsPerDay: Number(
-      (topicsRemaining / daysRemaining).toFixed(1)
-    ),
+    topicsPerDay: Math.round((topicsRemaining / daysRemaining) * 10) / 10,
 
-    revisionsPerDay: Number(
-      (revisionsRemaining / daysRemaining).toFixed(1)
-    ),
+    revisionsPerDay: Math.round((revisionsRemaining / daysRemaining) * 10) / 10,
 
-    mocksPerWeek: Math.max(
-      1,
-      Math.ceil(daysRemaining / 30)
-    ),
+    mocksPerWeek: Math.max(1, Math.ceil(daysRemaining / 30)),
 
     studyMinutesPerDay: Math.max(
       60,
-      Math.ceil(
-        (topicsRemaining * 30) / daysRemaining
-      )
+      Math.ceil((topicsRemaining * 30) / daysRemaining)
     ),
   };
 }

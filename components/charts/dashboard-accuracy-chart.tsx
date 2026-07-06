@@ -71,7 +71,7 @@ export const DashboardAccuracyChart = React.memo(function DashboardAccuracyChart
                 color: "#e2e8f0",
               }}
               labelStyle={{ color: "#94a3b8" }}
-              formatter={(value) => [`${value}%`, "Accuracy"] as [string, string]}
+              formatter={(value) => [`${value}%`, "Accuracy"]}
             />
 
             <Line

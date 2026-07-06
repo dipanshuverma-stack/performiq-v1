@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { prisma } from "@/lib/prisma";
 
 export interface PracticeConsistency {
@@ -8,28 +9,15 @@ export interface PracticeConsistency {
   consistencyScore: number;
 }
 
-export async function getPracticeConsistency(
-  userId: string
-): Promise<PracticeConsistency> {
+const cachedGetPracticeConsistency = cache(async (userId: string): Promise<PracticeConsistency> => {
+  // Get only necessary data - sorted by date
   const sessions = await prisma.practiceSession.findMany({
     where: { userId },
-    select: {
-      createdAt: true,
-    },
-    orderBy: {
-      createdAt: "asc",
-    },
+    select: { createdAt: true },
+    orderBy: { createdAt: "asc" },
   });
 
-  const uniqueDays = [
-    ...new Set(
-      sessions.map((s) =>
-        s.createdAt.toISOString().split("T")[0]
-      )
-    ),
-  ];
-
-  if (uniqueDays.length === 0) {
+  if (sessions.length === 0) {
     return {
       currentStreak: 0,
       longestStreak: 0,
@@ -39,59 +27,58 @@ export async function getPracticeConsistency(
     };
   }
 
-  const dates = uniqueDays
-    .map((d) => new Date(d))
-    .sort((a, b) => a.getTime() - b.getTime());
+  // Extract unique dates
+  const uniqueDates = [...new Set(
+    sessions.map(s => s.createdAt.toISOString().split("T")[0])
+  )].sort();
 
-  let longest = 1;
+  const dates = uniqueDates.map(d => new Date(d));
+
+  // Calculate streaks
   let currentRun = 1;
+  let longestStreak = 1;
 
   for (let i = 1; i < dates.length; i++) {
-    const diff =
-      (dates[i].getTime() - dates[i - 1].getTime()) /
-      86400000;
-
+    const diff = (dates[i].getTime() - dates[i - 1].getTime()) / 86400000;
     if (diff === 1) {
       currentRun++;
-      longest = Math.max(longest, currentRun);
+      longestStreak = Math.max(longestStreak, currentRun);
     } else {
       currentRun = 1;
     }
   }
 
+  // Calculate current streak (from today backwards)
   let currentStreak = 0;
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-
-  const daySet = new Set(uniqueDays);
+  const daySet = new Set(uniqueDates);
 
   while (true) {
     const key = today.toISOString().split("T")[0];
-
     if (!daySet.has(key)) break;
-
     currentStreak++;
-
     today.setDate(today.getDate() - 1);
   }
 
-  const first = dates[0];
-  const last = dates[dates.length - 1];
+  // Total span
+  const firstDate = dates[0];
+  const lastDate = dates[dates.length - 1];
+  const totalDays = Math.floor(
+    (lastDate.getTime() - firstDate.getTime()) / 86400000
+  ) + 1;
 
-  const totalDays =
-    Math.floor(
-      (last.getTime() - first.getTime()) / 86400000
-    ) + 1;
-
-  const consistencyScore = Math.round(
-    (uniqueDays.length / totalDays) * 100
-  );
+  const consistencyScore = Math.round((uniqueDates.length / totalDays) * 100);
 
   return {
     currentStreak,
-    longestStreak: longest,
-    activeDays: uniqueDays.length,
+    longestStreak,
+    activeDays: uniqueDates.length,
     totalDays,
-    consistencyScore,
+    consistencyScore: Math.min(100, consistencyScore),
   };
+});
+
+export async function getPracticeConsistency(userId: string): Promise<PracticeConsistency> {
+  return cachedGetPracticeConsistency(userId);
 }

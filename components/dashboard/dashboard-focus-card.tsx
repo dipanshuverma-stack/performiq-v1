@@ -21,7 +21,7 @@ export const DashboardFocusCard = React.memo(function DashboardFocusCard({
         <h4 className="text-sm font-semibold text-white truncate max-w-[180px] sm:max-w-xs group-hover:text-indigo-50 transition-colors duration-200">
           {topic}
         </h4>
-        
+
         <div className="flex items-center gap-2">
           <span className="text-xs text-slate-500">Knowledge:</span>
           <span className={`text-xs font-medium ${masteryColor}`}>

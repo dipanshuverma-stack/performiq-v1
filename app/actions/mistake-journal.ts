@@ -6,7 +6,6 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { Subject } from "@prisma/client";
 
-// Define schema for Mistake entry validation
 const CreateMistakeSchema = z.object({
   subject: z.string().min(1, "Subject is required"),
   topic: z.string().min(1, "Topic is required"),
@@ -15,9 +14,6 @@ const CreateMistakeSchema = z.object({
   source: z.string().optional(),
 });
 
-/**
- * Helper: Reusable auth check to fetch user database ID
- */
 async function getAuthenticatedUserId() {
   const session = await auth();
   if (!session?.user?.email) throw new Error("Unauthorized");
@@ -43,18 +39,19 @@ export async function createMistake(formData: FormData) {
   });
 
   if (!validation.success) {
-    throw new Error("Invalid form data");
+    throw new Error(validation.error.issues[0].message);
   }
 
-  // ✅ Replaced completely: Unpacked explicitly with strict Type Casting to match Prisma Enum
+  const { subject, topic, question, explanation, source } = validation.data;
+
   await prisma.mistakeEntry.create({
     data: {
       userId,
-      subject: validation.data.subject as Subject,
-      topic: validation.data.topic,
-      question: validation.data.question,
-      explanation: validation.data.explanation,
-      source: validation.data.source,
+      subject: subject as Subject,
+      topic,
+      question,
+      explanation,
+      source,
     },
   });
 
@@ -64,7 +61,6 @@ export async function createMistake(formData: FormData) {
 export async function resolveMistake(mistakeId: string) {
   const userId = await getAuthenticatedUserId();
 
-  // Security: Ensure the mistake belongs to the user before resolving
   const mistake = await prisma.mistakeEntry.findFirst({
     where: { id: mistakeId, userId },
   });

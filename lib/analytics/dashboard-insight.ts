@@ -1,17 +1,16 @@
 import type { DashboardIntelligence } from "./dashboard-intelligence";
 
 /**
- * Evaluates compiled dashboard analytical markers to output custom tactical notices.
- * ✅ Pure Function: Fast, lightweight, no side effects.
+ * Generates contextual tactical insight for the dashboard.
+ * Pure, fast, and safe with optional chaining.
  */
 export function getDashboardInsight(intelligence: DashboardIntelligence) {
-  // Prioritized checks (most critical first for early return)
+  // Early returns in priority order (most important first)
   if (intelligence.readiness?.readiness < 70) {
     return {
       type: "warning" as const,
       title: "Focus on Readiness",
-      message:
-        "Complete more syllabus topics and revision sessions to improve your readiness score.",
+      message: "Complete more syllabus topics and revision sessions to improve your readiness score.",
     };
   }
 
@@ -19,8 +18,7 @@ export function getDashboardInsight(intelligence: DashboardIntelligence) {
     return {
       type: "speed" as const,
       title: "Increase Your Speed",
-      message:
-        "Your question-solving speed is below the target. Practice timed sessions regularly.",
+      message: "Your question-solving speed is below the target. Practice timed sessions regularly.",
     };
   }
 
@@ -28,8 +26,7 @@ export function getDashboardInsight(intelligence: DashboardIntelligence) {
     return {
       type: "streak" as const,
       title: "Restart Your Streak",
-      message:
-        "You don't have an active practice streak. Complete a session today.",
+      message: "You don't have an active practice streak. Complete a session today.",
     };
   }
 
@@ -44,7 +41,6 @@ export function getDashboardInsight(intelligence: DashboardIntelligence) {
   return {
     type: "success" as const,
     title: "Great Progress",
-    message:
-      "Your preparation is on track. Maintain consistency and continue practicing.",
+    message: "Your preparation is on track. Maintain consistency and continue practicing.",
   };
 }

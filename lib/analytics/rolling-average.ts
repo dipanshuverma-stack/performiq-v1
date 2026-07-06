@@ -1,16 +1,29 @@
+/**
+ * Calculates rolling average with a given window size.
+ * Optimized for performance using sliding window technique.
+ */
 export function calculateRollingAverage(
   values: number[],
   window = 3
 ): number[] {
-  return values.map((_, index) => {
-    const start = Math.max(0, index - window + 1);
+  if (values.length === 0) return [];
 
-    const slice = values.slice(start, index + 1);
+  const result: number[] = [];
+  let sum = 0;
 
-    const average =
-      slice.reduce((sum, value) => sum + value, 0) /
-      slice.length;
+  for (let i = 0; i < values.length; i++) {
+    sum += values[i];
 
-    return Math.round(average * 10) / 10;
-  });
+    // Remove element that is no longer in the window
+    if (i >= window) {
+      sum -= values[i - window];
+    }
+
+    const currentWindowSize = Math.min(i + 1, window);
+    const average = sum / currentWindowSize;
+
+    result.push(Math.round(average * 10) / 10);
+  }
+
+  return result;
 }

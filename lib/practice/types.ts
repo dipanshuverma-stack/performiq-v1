@@ -1,22 +1,10 @@
 import { Subject, Difficulty } from "@prisma/client";
 
-export type PracticePhase =
-  | "setup"
-  | "running"
-  | "paused"
-  | "review"
-  | "success";
+export type PracticePhase = "setup" | "running" | "paused" | "review" | "success";
 
-export type TimerStatus =
-  | "idle"
-  | "running"
-  | "paused"
-  | "finished";
+export type TimerStatus = "idle" | "running" | "paused" | "finished";
 
-export type PracticeDifficulty =
-  | "EASY"
-  | "MIXED"
-  | "MAINS";
+export type PracticeDifficulty = "EASY" | "MIXED" | "MAINS";
 
 export interface SessionSnapshot {
   status: TimerStatus;

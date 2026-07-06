@@ -6,8 +6,12 @@ export const REVISION_STATUS = {
   MASTERED: "MASTERED",
 } as const;
 
-// Derived array to keep Zod validations synced automatically
-export const REVISION_STATUS_VALUES = Object.values(REVISION_STATUS);
+// ✅ Fixed: Proper type assertion for Object.values
+export const REVISION_STATUS_VALUES = Object.values(REVISION_STATUS) as [
+  "UNRESOLVED",
+  "IN_PROGRESS",
+  "MASTERED"
+];
 
 export const CONFIDENCE_LEVELS = {
   1: { label: "Very Weak", color: "text-rose-600 bg-rose-50 border-rose-200" },

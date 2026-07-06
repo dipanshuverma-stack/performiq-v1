@@ -1,4 +1,10 @@
-export const dailyPlan = [
+export interface DailyPlanItem {
+  subject: string;
+  topic: string;
+  duration: number; // in minutes
+}
+
+export const dailyPlan: DailyPlanItem[] = [
   {
     subject: "Quantitative Aptitude",
     topic: "Simplification",

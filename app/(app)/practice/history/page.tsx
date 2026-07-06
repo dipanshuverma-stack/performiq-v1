@@ -1,7 +1,9 @@
 import { auth } from "@/auth";
-import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
+import { prisma } from "@/lib/prisma";
+import { cache } from "react";
 import { Prisma, RevisionStatus } from "@prisma/client";
+
 import { getPracticeHistory } from "@/lib/practice/get-practice-history";
 import { HistorySummary } from "@/components/practice/history/history-summary";
 import { HistorySearch } from "@/components/practice/history/HistorySearch";
@@ -12,14 +14,14 @@ import { SubjectStats } from "@/components/practice/history/SubjectStats";
 import { WeakTopics } from "@/components/practice/history/WeakTopics";
 import { SUBJECT_MAP } from "@/config/subjects";
 
-interface HistoryPageProps {
-  searchParams: Promise<{
-    search?: string;
-    subject?: string;
-    status?: string;
-    sortBy?: string;
-  }>;
-}
+const ITEMS_PER_PAGE = 20;
+
+const cachedGetUser = cache(async (email: string) =>
+  prisma.user.findUnique({
+    where: { email },
+    select: { id: true },
+  })
+);
 
 const SORT_MAP = {
   createdAt_DESC: { createdAt: "desc" },
@@ -30,28 +32,29 @@ const SORT_MAP = {
   qpm_ASC: { qpm: "asc" },
 } satisfies Record<string, Prisma.PracticeSessionOrderByWithRelationInput>;
 
-export default async function PracticeHistoryPage({ searchParams }: HistoryPageProps) {
+export default async function PracticeHistoryPage({ searchParams }: { 
+  searchParams: Promise<{ search?: string; subject?: string; status?: string; sortBy?: string; }> 
+}) {
   const session = await auth();
   if (!session?.user?.email) redirect("/login");
 
   const resolvedParams = await searchParams;
 
-  const user = await prisma.user.findUnique({
-    where: { email: session.user.email },
-    select: { id: true },
-  });
+  const user = await cachedGetUser(session.user.email);
   if (!user) redirect("/login");
 
+  const userId = user.id;
+
   const filtersConditions: Prisma.PracticeSessionWhereInput = {
-    userId: user.id,
-    ...(resolvedParams.subject && resolvedParams.subject !== "All" && { 
-      subject: SUBJECT_MAP[resolvedParams.subject] 
+    userId,
+    ...(resolvedParams.subject && resolvedParams.subject !== "All" && {
+      subject: SUBJECT_MAP[resolvedParams.subject]
     }),
-    ...(resolvedParams.status && resolvedParams.status !== "All" && { 
-      revisionStatus: resolvedParams.status as RevisionStatus 
+    ...(resolvedParams.status && resolvedParams.status !== "All" && {
+      revisionStatus: resolvedParams.status as RevisionStatus
     }),
-    ...(resolvedParams.search && { 
-      topic: { contains: resolvedParams.search, mode: "insensitive" } 
+    ...(resolvedParams.search && {
+      topic: { contains: resolvedParams.search, mode: "insensitive" }
     }),
   };
 
@@ -76,14 +79,14 @@ export default async function PracticeHistoryPage({ searchParams }: HistoryPageP
     }),
     prisma.practiceSession.groupBy({
       by: ["topic"],
-      where: { userId: user.id, mistakeCount: { gt: 0 } },
+      where: { userId, mistakeCount: { gt: 0 } },
       _sum: { mistakeCount: true },
       orderBy: { _sum: { mistakeCount: "desc" } },
       take: 5,
     }),
   ]);
 
-  const { sessions, nextCursor } = historyResult;
+  const { sessions } = historyResult;
 
   const summaryMetrics = {
     totalSessions: aggregates._count.id ?? 0,

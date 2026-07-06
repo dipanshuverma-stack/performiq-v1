@@ -5,12 +5,10 @@ import { Suspense } from "react";
 import { cache } from "react";
 
 import { PageShell } from "@/components/ui/page-shell";
+
 import { DashboardHero } from "@/components/dashboard/dashboard-hero";
 import { DashboardKPIGrid } from "@/components/dashboard/dashboard-kpi-grid";
-import { DashboardFocusGrid } from "@/components/dashboard/dashboard-focus-grid";
-import { DashboardStudyPlan } from "@/components/dashboard/dashboard-study-plan";
-import { PrioritiesWidget } from "@/components/dashboard/PrioritiesWidget";
-import { WeeklyPlanner } from "@/components/dashboard/weekly-planner";
+import { DashboardTodaysTasks } from "@/components/dashboard/dashboard-todays-tasks";
 
 import { getDashboardIntelligence } from "@/lib/analytics/dashboard-intelligence";
 import { BANKING_EXAMS } from "@/lib/exams";
@@ -24,8 +22,28 @@ const getDaysLeft = (date: Date): number => {
   return Math.ceil(diff / (1000 * 60 * 60 * 24));
 };
 
-const cachedDashboardIntelligence = cache(async (email: string) => {
-  return getDashboardIntelligence(email);
+const cachedDashboardIntelligence = cache(async (email: string) => 
+  getDashboardIntelligence(email)
+);
+
+const cachedTodayPlannerTasks = cache(async (userId: string) => {
+  const today = new Date().getDay() === 0 ? 6 : new Date().getDay() - 1;
+
+  return prisma.weeklyPlan.findMany({
+    where: {
+      userId,
+      day: today,
+    },
+    select: {
+      id: true,
+      title: true,
+      time: true,
+      completed: true,
+    },
+    orderBy: {
+      rowIndex: "asc",
+    },
+  });
 });
 
 export default async function DashboardPage() {
@@ -34,37 +52,10 @@ export default async function DashboardPage() {
 
   const email = session.user.email;
 
-  // 1. Fetch User first
-  const user = await prisma.user.findUnique({
-    where: { email },
-    select: { 
-      id: true, 
-      name: true, 
-      plannerRows: true 
-    },
-  });
-
-  if (!user) redirect("/login");
-
-  // 2. Fetch other data in parallel
-  const [dashboard, plannerTasks] = await Promise.all([
+  // Parallel + Cached critical data
+  const [dashboard, todayTasks] = await Promise.all([
     cachedDashboardIntelligence(email),
-
-    prisma.weeklyPlan.findMany({
-      where: { userId: user.id },
-      select: {
-        id: true,
-        day: true,
-        rowIndex: true,
-        title: true,
-        time: true,
-        completed: true,
-      },
-      orderBy: [
-        { day: "asc" },
-        { rowIndex: "asc" },
-      ],
-    }),
+    cachedTodayPlannerTasks(session.user.id!),
   ]);
 
   const activeExam = BANKING_EXAMS.find((e) => e.active) || BANKING_EXAMS[0];
@@ -72,6 +63,7 @@ export default async function DashboardPage() {
 
   return (
     <PageShell>
+      {/* Critical content loads immediately */}
       <DashboardHero
         userName={session.user.name ?? "Aspirant"}
         focusTopic={dashboard.nextFocusTopic}
@@ -88,30 +80,10 @@ export default async function DashboardPage() {
         consistencyStreak={dashboard.currentStreak}
       />
 
-      <Suspense fallback={<div className="h-80 rounded-3xl bg-white/[0.03] animate-pulse" />}>
-        <WeeklyPlanner 
-          plannerTasks={plannerTasks} 
-          initialRows={user.plannerRows ?? 5} 
-        />
-      </Suspense>
+      {/* Today's Tasks */}
+      <DashboardTodaysTasks tasks={todayTasks} />
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 mt-6">
-        <div className="lg:col-span-7">
-          <Suspense fallback={<div className="h-96 rounded-2xl bg-white/[0.03] animate-pulse" />}>
-            <DashboardFocusGrid priorities={dashboard.priorities} />
-          </Suspense>
-        </div>
-
-        <div className="lg:col-span-5">
-          <Suspense fallback={<div className="h-96 rounded-2xl bg-white/[0.03] animate-pulse" />}>
-            <PrioritiesWidget userId={user.id} />
-          </Suspense>
-        </div>
-      </div>
-
-      <Suspense fallback={<div className="h-96 rounded-2xl bg-white/[0.03] animate-pulse" />}>
-        <DashboardStudyPlan planItems={dashboard.studyPlan} />
-      </Suspense>
+      {/* Focus + Priorities Sections Currently Commented Out */}
     </PageShell>
   );
 }

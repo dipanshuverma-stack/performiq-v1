@@ -1,30 +1,46 @@
 import { auth } from "@/auth";
-import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
+import { prisma } from "@/lib/prisma";
+import { cache } from "react";
+import { cn } from "@/lib/utils";
+
 import { getSyllabusData } from "@/lib/syllabus/getSyllabusData";
-import { cn } from "@/lib/utils";   // ← Added this import
+
+const cachedGetUser = cache(async (email: string) =>
+  prisma.user.findUnique({
+    where: { email },
+    select: { id: true },
+  })
+);
+
+const cachedGetSyllabusData = cache(async (userId: string) =>
+  getSyllabusData(userId)
+);
+
+const cachedGetRecentActivity = cache(async (userId: string) =>
+  prisma.topicProgress.findMany({
+    where: { userId, completed: true },
+    orderBy: { updatedAt: "desc" },
+    take: 5,
+  })
+);
 
 export default async function ProgressPage() {
   const session = await auth();
   if (!session?.user?.email) redirect("/login");
 
-  const user = await prisma.user.findUnique({
-    where: { email: session.user.email },
-    select: { id: true },
-  });
+  const user = await cachedGetUser(session.user.email);
   if (!user) redirect("/login");
 
-  const syllabusData = await getSyllabusData(user.id);
-  const hasProgress = syllabusData.subjects.length > 0;
+  const userId = user.id;
 
-  const recentActivity = await prisma.topicProgress.findMany({
-    where: { 
-      userId: user.id, 
-      completed: true 
-    },
-    orderBy: { updatedAt: "desc" },
-    take: 5,
-  });
+  // Parallel fetching of heavy data
+  const [syllabusData, recentActivity] = await Promise.all([
+    cachedGetSyllabusData(userId),
+    cachedGetRecentActivity(userId),
+  ]);
+
+  const hasProgress = syllabusData.subjects.length > 0;
 
   const completedTopics = syllabusData.progress.completedCount;
   const totalTopics = syllabusData.progress.totalCount;
@@ -40,8 +56,8 @@ export default async function ProgressPage() {
   const strongSubjects = subjectStats.filter((s) => s.percentage >= 75).length;
   const averageSubjects = subjectStats.filter((s) => s.percentage >= 40 && s.percentage < 75).length;
   const weakSubjects = subjectStats.filter((s) => s.percentage < 40).length;
-  const readinessScore = subjectStats.length > 0 
-    ? Math.round(subjectStats.reduce((sum, s) => sum + s.percentage, 0) / subjectStats.length) 
+  const readinessScore = subjectStats.length > 0
+    ? Math.round(subjectStats.reduce((sum, s) => sum + s.percentage, 0) / subjectStats.length)
     : 0;
 
   const spotlightSubject = [...subjectStats].sort((a, b) => b.percentage - a.percentage)[0];
@@ -53,8 +69,8 @@ export default async function ProgressPage() {
           <div className="text-7xl mb-6">📚</div>
           <h2 className="text-3xl font-bold mb-4">No Progress Yet</h2>
           <p className="text-slate-400 mb-8">Start tracking your syllabus to unlock detailed progress insights.</p>
-          <a 
-            href="/syllabus" 
+          <a
+            href="/syllabus"
             className="inline-flex px-8 py-4 bg-blue-600 hover:bg-blue-700 rounded-2xl font-semibold text-white transition"
           >
             Begin Syllabus Tracking
@@ -112,7 +128,7 @@ export default async function ProgressPage() {
         </div>
       </div>
 
-      {/* Subject Spotlight */}
+      {/* Spotlight + Subject Grid + Recent Activity */}
       {spotlightSubject && (
         <div className="rounded-3xl border border-blue-500/20 bg-blue-500/[0.03] p-6 sm:p-8">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">

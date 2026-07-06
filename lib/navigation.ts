@@ -16,9 +16,7 @@ export interface NavigationGroup {
   items: NavigationItem[];
 }
 
-export type NavigationGroups = NavigationGroup[];
-
-export const navigationGroups: NavigationGroups = [
+export const navigationGroups: NavigationGroup[] = [
   {
     title: "Overview",
     items: [
@@ -52,6 +50,7 @@ export const navigationGroups: NavigationGroups = [
     title: "Account",
     items: [
       { name: "Profile", href: "/profile", icon: User },
+      // { name: "Settings", href: "/settings", icon: Settings },
     ],
   },
 ];

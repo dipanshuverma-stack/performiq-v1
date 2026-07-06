@@ -11,28 +11,12 @@ interface InsightsProps {
   insightMessage: string;
 }
 
-// Static metrics definition (moved outside to avoid recreation on every render)
+// Static metrics definition
 const insightMetrics = [
-  {
-    label: "Strongest Topic",
-    icon: CheckCircle2,
-    color: "text-emerald-400",
-  },
-  {
-    label: "Weakest Topic",
-    icon: AlertTriangle,
-    color: "text-amber-500",
-  },
-  {
-    label: "Next Focus",
-    icon: PlayCircle,
-    color: "text-indigo-400",
-  },
-  {
-    label: "Revision Due",
-    icon: Calendar,
-    color: "text-slate-400",
-  },
+  { label: "Strongest Topic", icon: CheckCircle2, color: "text-emerald-400" },
+  { label: "Weakest Topic", icon: AlertTriangle, color: "text-amber-500" },
+  { label: "Next Focus", icon: PlayCircle, color: "text-indigo-400" },
+  { label: "Revision Due", icon: Calendar, color: "text-slate-400" },
 ];
 
 export const DashboardInsights = React.memo(function DashboardInsights({
@@ -46,13 +30,10 @@ export const DashboardInsights = React.memo(function DashboardInsights({
   const metricsWithValues = insightMetrics.map((metric, index) => ({
     ...metric,
     value:
-      index === 0
-        ? strongestTopic || "—"
-        : index === 1
-        ? weakestTopic || "—"
-        : index === 2
-        ? nextFocus || "Continue Practice"
-        : `${revisionsCount} Topics`,
+      index === 0 ? (strongestTopic || "—") :
+      index === 1 ? (weakestTopic || "—") :
+      index === 2 ? (nextFocus || "Continue Practice") :
+      `${revisionsCount} Topics`,
   }));
 
   return (
@@ -70,9 +51,7 @@ export const DashboardInsights = React.memo(function DashboardInsights({
               key={metric.label}
               className="p-4 flex items-center gap-4 group hover:border-white/[0.12] hover:bg-white/[0.05] transition-all duration-200"
             >
-              <div
-                className={`p-2 rounded-xl bg-white/[0.02] border border-white/[0.05] ${metric.color}`}
-              >
+              <div className={`p-2 rounded-xl bg-white/[0.02] border border-white/[0.05] ${metric.color}`}>
                 <Icon className="h-4 w-4" />
               </div>
 
@@ -89,7 +68,6 @@ export const DashboardInsights = React.memo(function DashboardInsights({
         })}
       </div>
 
-      {/* Insight Card */}
       <GlassCard className="p-5 border border-indigo-500/20 bg-indigo-500/5">
         <div className="space-y-2">
           <p className="text-xs font-bold uppercase tracking-wider text-indigo-400">

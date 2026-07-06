@@ -4,7 +4,7 @@ import React from "react";
 import { X } from "lucide-react";
 import { LAYOUT } from "@/lib/layout-constants";
 import { SidebarBrand } from "./sidebar-brand";
-import { SidebarNav } from "./sidebar-nav"; // You will also need to create this file!
+import { SidebarNav } from "./sidebar-nav";
 
 interface AppSidebarProps {
   isOpen?: boolean;
@@ -26,7 +26,7 @@ export function AppSidebar({ isOpen = true, onClose }: AppSidebarProps) {
         {onClose && (
           <button 
             onClick={onClose} 
-            className="md:hidden text-slate-400 hover:text-white transition-colors duration-200"
+            className="md:hidden text-slate-400 hover:text-white transition-colors duration-200 p-2"
           >
             <X className="h-5 w-5" />
           </button>

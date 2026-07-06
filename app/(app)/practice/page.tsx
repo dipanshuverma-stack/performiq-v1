@@ -1,27 +1,14 @@
 import { auth } from "@/auth";
-import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
+import { prisma } from "@/lib/prisma";
+import { cache } from "react";
+
 import { PracticeDashboard } from "@/components/practice/practice-dashboard";
 import { PracticeSessionData } from "@/components/practice/core/session-types";
 
-export default async function PracticePage() {
-  const session = await auth();
-
-  if (!session?.user?.email) {
-    redirect("/login");
-  }
-
-  const user = await prisma.user.findUnique({
-    where: { email: session.user.email },
-    select: { id: true },
-  });
-
-  if (!user) {
-    redirect("/login");
-  }
-
-  const rawSessions = await prisma.practiceSession.findMany({
-    where: { userId: user.id },
+const cachedGetRecentSessions = cache(async (userId: string) =>
+  prisma.practiceSession.findMany({
+    where: { userId },
     select: {
       id: true,
       subject: true,
@@ -31,11 +18,16 @@ export default async function PracticePage() {
       createdAt: true,
       totalQuestions: true,
     },
-    orderBy: {
-      createdAt: "desc",
-    },
+    orderBy: { createdAt: "desc" },
     take: 5,
-  });
+  })
+);
+
+export default async function PracticePage() {
+  const session = await auth();
+  if (!session?.user?.id) redirect("/login");
+
+  const rawSessions = await cachedGetRecentSessions(session.user.id);
 
   const recentSessions: PracticeSessionData[] = rawSessions.map((s) => ({
     id: s.id,

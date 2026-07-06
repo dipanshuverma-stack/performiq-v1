@@ -10,13 +10,12 @@ export default function OnboardingPage() {
     event.preventDefault();
     const formData = new FormData(event.currentTarget);
 
-    // Safe execution within a transition lifecycle lane
     startTransition(async () => {
       try {
         await createExamProfile(formData);
       } catch (error) {
         console.error("Failed to set up exam profile:", error);
-        alert("Something went incorrectQuestions. Please check your network connection and try again.");
+        alert("Something went wrong. Please check your input and try again.");
       }
     });
   };
@@ -32,9 +31,8 @@ export default function OnboardingPage() {
           <label className="block mb-1 font-medium text-gray-700">
             Exam Name
           </label>
-
           <input
-            name="examName"
+            name="name"
             type="text"
             className="border p-2 w-full rounded disabled:bg-gray-100"
             placeholder="SBI PO, IBPS PO, etc."
@@ -45,16 +43,29 @@ export default function OnboardingPage() {
 
         <div>
           <label className="block mb-1 font-medium text-gray-700">
-            Target Year
+            Exam Type
           </label>
-
-          <input
-            name="targetYear"
-            type="number"
-            min={2026}
-            max={2035}
+          <select
+            name="examType"
             className="border p-2 w-full rounded disabled:bg-gray-100"
-            placeholder="2026"
+            disabled={isPending}
+            required
+          >
+            <option value="">Select Exam Type</option>
+            <option value="SBI_PO">SBI PO</option>
+            <option value="IBPS_PO">IBPS PO</option>
+            <option value="RRB_PO">RRB PO</option>
+          </select>
+        </div>
+
+        <div>
+          <label className="block mb-1 font-medium text-gray-700">
+            Target Date
+          </label>
+          <input
+            name="targetDate"
+            type="date"
+            className="border p-2 w-full rounded disabled:bg-gray-100"
             disabled={isPending}
             required
           />

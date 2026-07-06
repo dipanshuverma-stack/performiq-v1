@@ -1,17 +1,23 @@
+import { cache } from "react";
 import { prisma } from "@/lib/prisma";
 
-export async function getMockTrends(
-  userId: string
-) {
-  const mocks =
-    await prisma.mockTest.findMany({
-      where: {
-        userId,
-      },
-      orderBy: {
-        createdAt: "asc",
-      },
-    });
+export interface MockTrends {
+  averageAccuracy: number;
+  bestAccuracy: number;
+  latestAccuracy: number;
+  improvement: number;
+}
+
+const cachedGetMockTrends = cache(async (userId: string): Promise<MockTrends> => {
+  const mocks = await prisma.mockTest.findMany({
+    where: { userId },
+    select: {
+      accuracy: true,
+    },
+    orderBy: {
+      createdAt: "asc",
+    },
+  });
 
   if (mocks.length === 0) {
     return {
@@ -22,35 +28,21 @@ export async function getMockTrends(
     };
   }
 
-  const accuracies = mocks.map(
-    (m) => m.accuracy ?? 0
-  );
+  const accuracies = mocks.map((m) => m.accuracy ?? 0);
 
-  const averageAccuracy =
-    accuracies.reduce(
-      (a, b) => a + b,
-      0
-    ) / accuracies.length;
-
-  const bestAccuracy =
-    Math.max(...accuracies);
-
-  const latestAccuracy =
-    accuracies[
-      accuracies.length - 1
-    ];
-
-  const firstAccuracy =
-    accuracies[0];
-
-  const improvement =
-    latestAccuracy -
-    firstAccuracy;
+  const averageAccuracy = accuracies.reduce((a, b) => a + b, 0) / accuracies.length;
+  const bestAccuracy = Math.max(...accuracies);
+  const latestAccuracy = accuracies[accuracies.length - 1];
+  const firstAccuracy = accuracies[0];
 
   return {
-    averageAccuracy,
-    bestAccuracy,
-    latestAccuracy,
-    improvement,
+    averageAccuracy: Math.round(averageAccuracy * 10) / 10,
+    bestAccuracy: Math.round(bestAccuracy * 10) / 10,
+    latestAccuracy: Math.round(latestAccuracy * 10) / 10,
+    improvement: Math.round((latestAccuracy - firstAccuracy) * 10) / 10,
   };
+});
+
+export async function getMockTrends(userId: string): Promise<MockTrends> {
+  return cachedGetMockTrends(userId);
 }

@@ -1,60 +1,65 @@
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import { completeRevision } from "@/app/actions/revision";
 import { redirect } from "next/navigation";
-import Link from "next/link";
+import { cache } from "react";
 import { cn } from "@/lib/utils";
+
+import { completeRevision } from "@/app/actions/revision";
+import Link from "next/link";
 import { SUBJECT_LABELS } from "@/config/syllabus";
+
+const cachedGetUserRevisions = cache(async (email: string) =>
+  prisma.user.findUnique({
+    where: { email },
+    select: {
+      id: true,
+      revisions: {
+        select: {
+          id: true,
+          subject: true,
+          topic: true,
+          revisionCount: true,
+          nextRevision: true,
+        },
+        orderBy: { nextRevision: "asc" },
+      },
+    },
+  })
+);
 
 export default async function RevisionPage() {
   const session = await auth();
   if (!session?.user?.email) redirect("/login");
 
-  const user = await prisma.user.findUnique({
-    where: { email: session.user.email },
-    select: {
-      id: true,
-      revisions: {
-        select: { id: true, subject: true, topic: true, revisionCount: true, nextRevision: true },
-        orderBy: { nextRevision: "asc" },
-      },
-    },
-  });
+  const userData = await cachedGetUserRevisions(session.user.email);
+  if (!userData) redirect("/login");
 
-  if (!user) redirect("/login");
+  const { revisions } = userData;
 
-  // 1. Mutually Exclusive Bucket Logic
+  // Date calculations
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const tomorrow = new Date(today);
   tomorrow.setDate(today.getDate() + 1);
 
-  const overdue = user.revisions.filter((r) => new Date(r.nextRevision) < today);
-  const dueToday = user.revisions.filter((r) => {
+  const overdue = revisions.filter((r) => new Date(r.nextRevision) < today);
+  const dueToday = revisions.filter((r) => {
     const date = new Date(r.nextRevision);
     return date >= today && date < tomorrow;
   });
-  const upcoming = user.revisions.filter((r) => new Date(r.nextRevision) >= tomorrow);
+  const upcoming = revisions.filter((r) => new Date(r.nextRevision) >= tomorrow);
 
-  // 2. Metrics
-  const retentionHealth =
-    user.revisions.length === 0
-      ? 100
-      : Math.round(((user.revisions.length - overdue.length) / user.revisions.length) * 100);
+  const retentionHealth = revisions.length === 0
+    ? 100
+    : Math.round(((revisions.length - overdue.length) / revisions.length) * 100);
 
   const nextTarget = overdue[0] || dueToday[0] || upcoming[0];
 
   return (
-    <div className="p-8 max-w-5xl mx-auto space-y-8">
-      {/* Debug Block */}
-      <div className="rounded-xl border border-red-500/20 bg-red-950/5 p-4 text-xs font-mono text-slate-400">
-        <p>Total Revisions: {user.revisions.length}</p>
-        <p>Overdue: {overdue.length} | Due Today: {dueToday.length} | Upcoming: {upcoming.length}</p>
-      </div>
-
+    <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6 sm:py-10 space-y-8">
       {/* Hero */}
       <div className="rounded-3xl border border-white/[0.08] bg-[#0E121B] p-8">
-        <span className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Revision Engine</span>
+        <span className="text-xs uppercase tracking-[0.2em] text-muted-foreground">REVISION ENGINE</span>
         <h1 className="mt-4 text-4xl font-black">Stay Retention Focused</h1>
         <p className="mt-3 text-muted-foreground max-w-2xl">
           Track upcoming revisions, clear overdue topics and maintain long-term memory retention.
@@ -64,28 +69,28 @@ export default async function RevisionPage() {
       {/* KPI Cards */}
       <div className="grid gap-5 md:grid-cols-4">
         <div className="md:col-span-1 rounded-3xl border border-white/[0.08] bg-[#0E121B] p-6">
-          <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Retention Health</p>
+          <p className="text-xs uppercase tracking-widest text-muted-foreground">RETENTION HEALTH</p>
           <h2 className="mt-2 text-4xl font-black text-blue-400">{retentionHealth}%</h2>
         </div>
         <div className="rounded-3xl border border-red-500/20 bg-red-500/[0.03] p-6">
-          <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Overdue</p>
+          <p className="text-xs uppercase tracking-widest text-muted-foreground">OVERDUE</p>
           <h2 className="mt-2 text-4xl font-black text-red-400">{overdue.length}</h2>
         </div>
         <div className="rounded-3xl border border-amber-500/20 bg-amber-500/[0.03] p-6">
-          <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Due Today</p>
+          <p className="text-xs uppercase tracking-widest text-muted-foreground">DUE TODAY</p>
           <h2 className="mt-2 text-4xl font-black text-amber-400">{dueToday.length}</h2>
         </div>
         <div className="rounded-3xl border border-blue-500/20 bg-blue-500/[0.03] p-6">
-          <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Upcoming</p>
+          <p className="text-xs uppercase tracking-widest text-muted-foreground">UPCOMING</p>
           <h2 className="mt-2 text-4xl font-black text-blue-400">{upcoming.length}</h2>
         </div>
       </div>
 
-      {/* Featured Revision */}
+      {/* Next Target / Featured Revision */}
       {nextTarget && (
-        <div className="rounded-3xl border border-amber-500/30 bg-amber-500/5 p-8 flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <div className="rounded-3xl border border-amber-500/30 bg-amber-500/[0.03] p-8 flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div>
-            <span className="text-xs font-bold text-amber-400 uppercase tracking-[0.2em]">Next Revision</span>
+            <span className="text-xs font-bold text-amber-400 uppercase tracking-widest">NEXT REVISION</span>
             <h2 className="text-3xl font-black mt-2 text-white">{nextTarget.topic}</h2>
             <p className="text-amber-400/80 mt-1 font-medium">Cycle #{nextTarget.revisionCount + 1}</p>
           </div>
@@ -97,7 +102,11 @@ export default async function RevisionPage() {
               START REVISION →
             </Link>
             <form action={completeRevision.bind(null, nextTarget.id)}>
-              <button className="h-full px-6 rounded-2xl border border-amber-500/30 text-amber-500 hover:bg-amber-500/10 font-bold transition-all" title="Mark as Complete">
+              <button
+                type="submit"
+                className="h-full px-6 rounded-2xl border border-amber-500/30 text-amber-500 hover:bg-amber-500/10 font-bold transition-all"
+                title="Mark as Complete"
+              >
                 ✓
               </button>
             </form>
@@ -105,7 +114,7 @@ export default async function RevisionPage() {
         </div>
       )}
 
-      {/* Segmented Queue */}
+      {/* Revision Queues */}
       <div className="space-y-12">
         {[
           { title: "Overdue", list: overdue, color: "text-red-400" },
@@ -120,11 +129,11 @@ export default async function RevisionPage() {
               {section.list.map((r) => (
                 <div
                   key={r.id}
-                  className="rounded-3xl border border-white/[0.08] bg-[#0E121B] p-6 flex flex-col justify-between transition-all duration-300 hover:border-white/[0.12] hover:bg-white/[0.02]"
+                  className="rounded-3xl border border-white/[0.08] bg-[#0E121B] p-6 flex flex-col justify-between hover:border-white/[0.12] transition-all"
                 >
                   <div className="space-y-4">
                     <div className="flex justify-between items-start">
-                      <span className="text-[10px] font-bold text-blue-400 uppercase tracking-[0.2em] bg-blue-500/10 px-3 py-1 rounded-full">
+                      <span className="text-[10px] font-bold text-blue-400 uppercase tracking-widest bg-blue-500/10 px-3 py-1 rounded-full">
                         {SUBJECT_LABELS[r.subject] ?? r.subject.replaceAll("_", " ")}
                       </span>
                       <span className="text-[10px] text-slate-500 font-mono">
@@ -135,10 +144,11 @@ export default async function RevisionPage() {
                       {r.topic}
                     </h4>
                   </div>
+
                   <form action={completeRevision.bind(null, r.id)} className="mt-6">
                     <button
                       type="submit"
-                      className="w-full bg-blue-600 hover:bg-blue-500 text-white font-semibold py-3 rounded-2xl transition-all shadow-lg shadow-blue-900/20"
+                      className="w-full bg-blue-600 hover:bg-blue-500 text-white font-semibold py-3 rounded-2xl transition-all"
                     >
                       Mark as Complete
                     </button>

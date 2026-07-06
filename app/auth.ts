@@ -3,12 +3,7 @@ import Google from "next-auth/providers/google";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import { prisma } from "@/lib/prisma";
 
-export const {
-  handlers,
-  auth,
-  signIn,
-  signOut,
-} = NextAuth({
+export const { handlers, auth, signIn, signOut } = NextAuth({
   adapter: PrismaAdapter(prisma),
 
   providers: [
@@ -20,6 +15,7 @@ export const {
 
   session: {
     strategy: "database",
+    maxAge: 30 * 24 * 60 * 60, // 30 days
   },
 
   callbacks: {
@@ -27,7 +23,6 @@ export const {
       if (session.user) {
         session.user.id = user.id;
       }
-
       return session;
     },
   },

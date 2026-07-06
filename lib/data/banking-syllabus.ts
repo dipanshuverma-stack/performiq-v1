@@ -66,4 +66,10 @@ export const BANKING_SYLLABUS = {
     "Operating System",
     "Cyber Security",
   ],
-};
+} as const;
+
+export type SubjectKey = keyof typeof BANKING_SYLLABUS;
+export type TopicList = (typeof BANKING_SYLLABUS)[SubjectKey];
+
+// Helper to get topics for a subject
+export const getSubjectTopics = (subject: SubjectKey) => BANKING_SYLLABUS[subject];

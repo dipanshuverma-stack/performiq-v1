@@ -7,16 +7,22 @@ import {
   MistakeType,
 } from "@prisma/client";
 
-export const asSubject = (v: string) => v as Subject;
+/**
+ * Safe type assertions for Prisma enums.
+ * Use these when converting string values from forms or API.
+ */
 
-export const asExamType = (v: string) => v as ExamType;
+export const asSubject = (value: string): Subject => value as Subject;
 
-export const asDifficulty = (v: string) => v as Difficulty;
+export const asExamType = (value: string): ExamType => value as ExamType;
 
-export const asMockType = (v: string) => v as MockType;
+export const asDifficulty = (value: string): Difficulty => value as Difficulty;
 
-export const asRevisionStatus = (v: string) =>
-  v as RevisionStatus;
+export const asMockType = (value: string): MockType => value as MockType;
 
-export const asMistakeType = (v: string) =>
-  v as MistakeType;
+export const asRevisionStatus = (value: string): RevisionStatus => value as RevisionStatus;
+
+export const asMistakeType = (value: string): MistakeType => value as MistakeType;
+
+// Optional: Helper to assert any Prisma enum
+export const asPrismaEnum = <T extends string>(value: string, _enum: T[]): T => value as T;

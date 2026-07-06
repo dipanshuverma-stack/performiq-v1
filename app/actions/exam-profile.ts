@@ -6,16 +6,9 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { ExamType } from "@prisma/client";
 
-// 1. Define schema requirements for Form validation
 const CreateProfileSchema = z.object({
   name: z.string().min(1, "Profile name is required"),
-  
-  // ✅ Direct cast bypass: Expects a valid option token matching the Enum string variants
-  examType: z
-    .string()
-    .min(1, "Exam type is required")
-    .transform((val) => val as ExamType),
-    
+  examType: z.nativeEnum(ExamType),
   targetDate: z
     .string()
     .min(1, "Valid target date is required")
@@ -25,9 +18,6 @@ const CreateProfileSchema = z.object({
     .transform((val) => new Date(val)),
 });
 
-/**
- * Helper to authenticate user session and return database user ID
- */
 async function getAuthenticatedUserId() {
   const session = await auth();
   if (!session?.user?.email) {
@@ -49,7 +39,6 @@ async function getAuthenticatedUserId() {
 export async function createExamProfile(formData: FormData) {
   const userId = await getAuthenticatedUserId();
 
-  // Validate form data fields
   const validation = CreateProfileSchema.safeParse({
     name: formData.get("name"),
     examType: formData.get("examType"),
@@ -57,29 +46,27 @@ export async function createExamProfile(formData: FormData) {
   });
 
   if (!validation.success) {
-    throw new Error(`Validation Error: ${validation.error.message}`);
+    throw new Error(`Validation Error: ${validation.error.issues[0].message}`);
   }
 
   const { name, examType, targetDate } = validation.data;
 
-  // ✅ Clean, map-free insert execution pass
   await prisma.examProfile.create({
     data: {
       userId,
       name,
-      examType, 
+      examType,
       targetDate,
     },
   });
 
   revalidatePath("/exams");
-  revalidatePath("/onboarding");
+  revalidatePath("/dashboard");
 }
 
 export async function activateExamProfile(examId: string) {
   const userId = await getAuthenticatedUserId();
 
-  // Verify ownership before modification
   const examProfile = await prisma.examProfile.findFirst({
     where: { id: examId, userId },
   });
@@ -88,7 +75,6 @@ export async function activateExamProfile(examId: string) {
     throw new Error("Exam profile not found or access denied");
   }
 
-  // Atomic transaction ensures consistent active status
   await prisma.$transaction([
     prisma.examProfile.updateMany({
       where: { userId },

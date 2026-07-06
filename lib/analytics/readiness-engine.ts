@@ -21,9 +21,8 @@ export interface ReadinessEngine {
   grade: "S" | "A" | "B" | "C" | "D";
 }
 
-// Cache individual calls
-const cachedReadinessCore = cache(async (userId: string) => getReadinessCore(userId));
-const cachedPerformanceScore = cache(async (userId: string) => getPerformanceScore(userId));
+const cachedReadinessCore = cache((userId: string) => getReadinessCore(userId));
+const cachedPerformanceScore = cache((userId: string) => getPerformanceScore(userId));
 
 export async function getReadinessEngine(userId: string): Promise<ReadinessEngine> {
   const [preparation, performance] = await Promise.all([
