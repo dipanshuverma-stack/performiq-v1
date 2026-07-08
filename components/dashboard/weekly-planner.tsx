@@ -6,6 +6,7 @@ import { Trash2, GripVertical } from "lucide-react";
 import { addWeeklyPlanTask, deleteWeeklyPlanTask, updatePlannerRows, updateTaskPosition, toggleTaskCompletion } from "@/app/actions/planner";
 import { cn } from "@/lib/utils";
 
+// --- Types Updated ---
 type PlannerTask = {
   id: string;
   day: number;
@@ -13,11 +14,17 @@ type PlannerTask = {
   title: string;
   time?: string | null;
   completed: boolean;
+  carryForward?: boolean;
+  originalDay?: number | null;
 };
 
 type OptimisticTask = PlannerTask & { isOptimistic?: boolean };
 
+// For standard JS Date mapping (Sunday = 0)
 const DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+// For Database originalDay mapping (Monday = 0)
+const ORIGINAL_DAY_NAMES = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
 function getPlannerDays() {
   const today = new Date();
@@ -254,6 +261,14 @@ export function WeeklyPlanner({
 
                       <div className="flex-1 min-w-[90px]">
                         {task.time && <div className="text-xs text-slate-400 mb-1">{task.time}</div>}
+                        
+                        {/* --- NEW CARRY FORWARD BADGE --- */}
+                        {task.carryForward && task.originalDay != null && (
+                          <div className="mb-2 mt-0.5 inline-flex items-center rounded-full border border-amber-500/20 bg-amber-500/10 px-2 py-0.5 text-[10px] font-semibold text-amber-400">
+                            ↪ From {ORIGINAL_DAY_NAMES[task.originalDay]}
+                          </div>
+                        )}
+
                         <div className={cn(
                           "text-[13px] sm:text-sm font-medium leading-tight break-words whitespace-normal",
                           task.completed && "line-through text-slate-400"

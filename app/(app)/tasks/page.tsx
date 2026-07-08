@@ -1,18 +1,24 @@
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { cache } from "react";
-import { Suspense } from "react";
+import { cache, Suspense } from "react";
 
+// Components
 import { PageShell } from "@/components/ui/page-shell";
 import { PageContainer } from "@/components/layout/page-container";
 import { PageHeader } from "@/components/ui/page-header";
 import { TaskHero } from "@/components/tasks/TaskHero";
 import { WeeklyPlanner } from "@/components/dashboard/weekly-planner";
 
-const cachedGetUserTasks = cache(async (email: string) =>
+// Step 7: Import the rollover function
+import { rolloverWeeklyPlan } from "@/lib/planner/rollover-weekly-plan";
+
+// --- Data Fetching (Cached) ---
+
+// Step 10: Updated to query by userId instead of email for optimal querying
+const cachedGetUserTasks = cache(async (userId: string) =>
   prisma.user.findUnique({
-    where: { email },
+    where: { id: userId },
     select: {
       id: true,
       plannerRows: true,
@@ -39,6 +45,7 @@ const cachedWeeklyPlan = cache(async (userId: string) =>
 );
 
 const cachedTodayPlannerProgress = cache(async (userId: string) => {
+  // Day-of-week integer tracking (0 = Mon, 6 = Sun)
   const today = new Date().getDay() === 0 ? 6 : new Date().getDay() - 1;
 
   const tasks = await prisma.weeklyPlan.findMany({
@@ -54,8 +61,7 @@ const cachedTodayPlannerProgress = cache(async (userId: string) => {
   const total = tasks.length;
   const completed = tasks.filter((t) => t.completed).length;
   const pending = total - completed;
-  const percentage =
-    total > 0 ? Math.round((completed / total) * 100) : 0;
+  const percentage = total > 0 ? Math.round((completed / total) * 100) : 0;
 
   return {
     total,
@@ -65,14 +71,23 @@ const cachedTodayPlannerProgress = cache(async (userId: string) => {
   };
 });
 
-export default async function TasksPage() {
-  const session = await auth();
-  if (!session?.user?.email) redirect("/login");
+// --- Page Component ---
 
+export default async function TasksPage() {
+  // Step 8: Simplify auth check using userId
+  const session = await auth();
+  const userId = session?.user?.id;
+  
+  if (!userId) redirect("/login");
+
+  // Step 9: Run rollover task mutation before fetching updated data
+  await rolloverWeeklyPlan(userId);
+
+  // Step 10: Parallelized data fetching completely unified by userId
   const [userWithTasks, plannerTasks, todayProgress] = await Promise.all([
-    cachedGetUserTasks(session.user.email),
-    cachedWeeklyPlan(session.user.id!),
-    cachedTodayPlannerProgress(session.user.id!),
+    cachedGetUserTasks(userId),
+    cachedWeeklyPlan(userId),
+    cachedTodayPlannerProgress(userId),
   ]);
 
   if (!userWithTasks) redirect("/login");
@@ -92,7 +107,11 @@ export default async function TasksPage() {
           percentage={todayProgress.percentage}
         />
         
-        <Suspense fallback={<div className="h-80 rounded-3xl bg-white/[0.03] animate-pulse my-6" />}>
+        <Suspense 
+          fallback={
+            <div className="h-80 rounded-3xl bg-white/[0.03] animate-pulse my-6" />
+          }
+        >
           <WeeklyPlanner 
             plannerTasks={plannerTasks} 
             initialRows={userWithTasks.plannerRows ?? 5} 

@@ -42,10 +42,16 @@ model WeeklyPlan {
   title     String
   time      String?
   completed Boolean  @default(false)
+
+  // NEW
+  carryForward Boolean @default(false)
+  originalDay  Int?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   category  String?
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, day, rowIndex])
 }
