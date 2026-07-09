@@ -43,13 +43,67 @@ export async function evaluatePracticeReward(userId: string) {
 
   if (!milestone) return;
 
-  await addReward(
-    userId,
-    RewardType.PRACTICE,
-    RewardAction.EARN,
-    milestone.points,
-    `${milestone.minutes} Minutes Practice`,
-    `Practiced ${totalMinutes} minutes today.`,
-    `practice-${today.toISOString().slice(0, 10)}`
-  );
+  const sourceId = `practice-${today.toISOString().slice(0, 10)}`;
+  
+  const existingReward = await prisma.rewardLog.findFirst({
+    where: {
+      userId,
+      sourceId,
+    },
+  });
+
+  if (!existingReward) {
+    await addReward(
+      userId,
+      RewardType.PRACTICE,
+      RewardAction.EARN,
+      milestone.points,
+      `${milestone.minutes} Minutes Practice`,
+      `Practiced ${totalMinutes} minutes today.`,
+      sourceId
+    );
+
+    return;
+  }
+
+  // --- Step 3: Upgrade Existing Reward ---
+  // Already rewarded today
+  // Only upgrade if a higher milestone is reached
+  if (existingReward.points >= milestone.points) {
+    return;
+  }
+
+  const difference = milestone.points - existingReward.points;
+
+  await prisma.$transaction(async (tx) => {
+    // Update today's reward log
+    await tx.rewardLog.update({
+      where: {
+        id: existingReward.id,
+      },
+      data: {
+        points: milestone.points,
+        title: `${milestone.minutes} Minutes Practice`,
+        description: `Practiced ${totalMinutes} minutes today.`,
+      },
+    });
+
+    // Increase summary only by the difference
+    await tx.rewardSummary.update({
+      where: {
+        userId,
+      },
+      data: {
+        totalPoints: {
+          increment: difference,
+        },
+        weeklyPoints: {
+          increment: difference,
+        },
+        monthlyPoints: {
+          increment: difference,
+        },
+      },
+    });
+  });
 }

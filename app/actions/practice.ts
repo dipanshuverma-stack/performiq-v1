@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { RevisionStatus } from "@prisma/client";
 import { PracticeSessionSchema } from "@/lib/validations/practice";
+import { evaluatePracticeReward } from "@/lib/rewards/practice";
 import { randomUUID } from "crypto";
 
 export async function savePracticeSession(rawInput: unknown) {
@@ -137,6 +138,9 @@ export async function savePracticeSession(rawInput: unknown) {
 
       return sessionRecord;
     });
+
+    // Award daily practice milestone after database consistency is validated
+    await evaluatePracticeReward(user.id);
 
     revalidatePath("/practice");
     revalidatePath("/practice/history");
