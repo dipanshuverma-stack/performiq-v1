@@ -27,12 +27,19 @@ const cachedDashboardIntelligence = cache(async (email: string) =>
 );
 
 const cachedTodayPlannerTasks = cache(async (userId: string) => {
-  const today = new Date().getDay() === 0 ? 6 : new Date().getDay() - 1;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const tomorrow = new Date(today);
+  tomorrow.setDate(today.getDate() + 1);
 
   return prisma.weeklyPlan.findMany({
     where: {
       userId,
-      day: today,
+      plannedDate: {
+        gte: today,
+        lt: tomorrow,
+      },
     },
     select: {
       id: true,

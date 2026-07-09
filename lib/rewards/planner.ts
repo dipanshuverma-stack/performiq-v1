@@ -32,7 +32,7 @@ async function getAuthenticatedUserId() {
 }
 
 export async function addWeeklyPlanTask(data: {
-  day: number;
+  plannedDate: string;
   rowIndex: number;
   title: string;
   time?: string;
@@ -40,14 +40,14 @@ export async function addWeeklyPlanTask(data: {
   const userId = await getAuthenticatedUserId();
 
   await prisma.weeklyPlan.create({
-    data: {
-      userId,
-      day: data.day,
-      rowIndex: data.rowIndex,
-      title: data.title,
-      time: data.time || null,
-    },
-  });
+  data: {
+    userId,
+    plannedDate: new Date(data.plannedDate),
+    rowIndex: data.rowIndex,
+    title: data.title,
+    time: data.time || null,
+  },
+});
 
   revalidatePath("/dashboard");
   revalidatePath("/tasks");
@@ -89,7 +89,7 @@ export async function updatePlannerRows(rows: number) {
 
 export async function updateTaskPosition(data: {
   id: string;
-  day: number;
+  plannedDate: number;
   rowIndex: number;
 }) {
   const userId = await getAuthenticatedUserId();
@@ -112,7 +112,7 @@ export async function updateTaskPosition(data: {
       id: data.id,
     },
     data: {
-      day: data.day,
+      plannedDate: new Date(data.plannedDate),
       rowIndex: data.rowIndex,
     },
   });
