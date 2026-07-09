@@ -30,30 +30,78 @@ model User {
   studySessions           StudySession[]
   tasks                   Task[]
   topicProgress           TopicProgress[]
+  
+  // NEW REWARD SYSTEM RELATIONS
+  rewardSummary           RewardSummary?
+  rewardLogs              RewardLog[]
 
   @@map("users")
 }
 
-model WeeklyPlan {
-  id        String   @id @default(cuid())
-  userId    String
-  day       Int
-  rowIndex  Int
-  title     String
-  time      String?
-  completed Boolean  @default(false)
+model RewardLog {
+  id          String @id @default(cuid())
 
-  // NEW
-  carryForward Boolean @default(false)
-  originalDay  Int?
+  userId      String
+  user        User @relation(fields:[userId], references:[id], onDelete:Cascade)
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  category  String?
+  rewardType  RewardType
+  action      RewardAction
 
+  title       String
+  description String?
+
+  points      Float
+
+  sourceId    String?
+
+  createdAt   DateTime @default(now())
+
+  @@index([userId])
+  @@index([userId, createdAt])
+  @@index([userId, sourceId])
+}
+
+model RewardSummary {
+  id String @id @default(cuid())
+
+  userId String @unique
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@index([userId, day, rowIndex])
+  totalPoints Float @default(0)
+
+  weeklyPoints Float @default(0)
+  monthlyPoints Float @default(0)
+
+  currentStreak Int @default(0)
+  longestStreak Int @default(0)
+
+  weekStart DateTime?
+  month Int?
+  year Int?
+
+  updatedAt DateTime @updatedAt
+}
+
+model WeeklyPlan {
+  id           String   @id @default(cuid())
+  userId       String
+
+  plannedDate  DateTime
+
+  rowIndex     Int
+
+  title        String
+  time         String?
+
+  completed    Boolean @default(false)
+  carryForward Boolean @default(false)
+
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  category     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model NotificationPreference {
@@ -108,18 +156,18 @@ model VerificationToken {
 }
 
 model ExamProfile {
-  id          String    @id @default(cuid())
-  userId      String    @map("user_id")
+  id          String   @id @default(cuid())
+  userId      String   @map("user_id")
   name        String
-  targetDate  DateTime  @map("target_date")
-  readiness   Float     @default(0)
-  isActive    Boolean   @default(false) @map("is_active")
-  createdAt   DateTime  @default(now()) @map("created_at")
-  updatedAt   DateTime  @updatedAt @map("updated_at")
+  targetDate  DateTime @map("target_date")
+  readiness   Float    @default(0)
+  isActive    Boolean  @default(false) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
   attemptDate DateTime?
   examType    ExamType
-  priority    Int       @default(1)
-  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  priority    Int      @default(1)
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([isActive])
   @@index([userId])
@@ -267,21 +315,21 @@ model MistakeEntry {
 }
 
 model MockSubjectPerformance {
-  id                String             @id @default(cuid())
-  userId            String             @map("user_id")
-  mockId            String             @map("mock_id")
-  totalQuestions    Int                @map("total_questions")
-  attempted         Int
-  score             Float              @db.Real
-  accuracy          Float              @db.Real
-  timeSpent         Int?               @map("time_spent")
-  createdAt         DateTime           @default(now()) @map("created_at")
-  correct           Int                @map("correct_questions")
-  incorrect         Int                @map("incorrect_questions")
-  subject           Subject
-  mockTopicInsights MockTopicInsight[]
-  mockTest          MockTest           @relation(fields: [mockId], references: [id], onDelete: Cascade)
-  user              User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id                 String             @id @default(cuid())
+  userId             String             @map("user_id")
+  mockId             String             @map("mock_id")
+  totalQuestions     Int                @map("total_questions")
+  attempted          Int
+  score              Float              @db.Real
+  accuracy           Float              @db.Real
+  timeSpent          Int?               @map("time_spent")
+  createdAt          DateTime           @default(now()) @map("created_at")
+  correct            Int                @map("correct_questions")
+  incorrect          Int                @map("incorrect_questions")
+  subject            Subject
+  mockTopicInsights  MockTopicInsight[]
+  mockTest           MockTest           @relation(fields: [mockId], references: [id], onDelete: Cascade)
+  user               User               @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([mockId])
   @@index([subject])
@@ -332,11 +380,10 @@ model MockTopicInsight {
   MockSubjectPerformance   MockSubjectPerformance? @relation(fields: [mockSubjectPerformanceId], references: [id])
   user                     User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  // Composite indexes optimized for multi-column lookup patterns
   @@index([userId, type])
   @@index([userId, subject])
   @@index([userId, subject, topic])
-  @@index([mockId]) // Maintained for loading a single mock's detail view
+  @@index([mockId])
 }
 
 model Notification {
@@ -367,6 +414,23 @@ model Revision {
   @@unique([userId, topic])
   @@index([userId, nextRevision])
   @@map("revisions")
+}
+
+// ENUMS
+
+enum RewardType {
+  PLANNER
+  PRACTICE
+  MOCK
+  STREAK
+  WEEKLY_BONUS
+  MONTHLY_BONUS
+}
+
+enum RewardAction {
+  EARN
+  PENALTY
+  BONUS
 }
 
 enum TaskPriority {

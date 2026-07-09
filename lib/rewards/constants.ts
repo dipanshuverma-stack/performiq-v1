@@ -1,0 +1,33 @@
+export const REWARD_POINTS = {
+  // Planner
+  PLANNER_TASK: 5,
+  PLANNER_TASK_MISS: -2.5,
+
+  // Planner Bonuses
+  PLANNER_DAY_COMPLETE: 10,
+  PLANNER_EXTRA_TASK: 2.5,
+
+  // Practice
+  PRACTICE_10: 5,
+  PRACTICE_20: 10,
+  PRACTICE_30: 15,
+  PRACTICE_45: 20,
+  PRACTICE_60: 25,
+  PRACTICE_90: 35,
+  PRACTICE_MISS: -10,
+
+  // Mock
+  MOCK: 30,
+  MOCK_SECOND: 10,
+  MOCK_MISS: -15,
+
+  // Weekly
+  WEEKLY_PERFECT: 100,
+
+  // Streak
+  STREAK_3: 10,
+  STREAK_7: 25,
+  STREAK_14: 50,
+  STREAK_21: 75,
+  STREAK_30: 120,
+} as const;

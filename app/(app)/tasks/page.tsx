@@ -26,37 +26,57 @@ const cachedGetUserTasks = cache(async (userId: string) =>
   })
 );
 
-const cachedWeeklyPlan = cache(async (userId: string) =>
-  prisma.weeklyPlan.findMany({
-    where: { userId },
+const cachedWeeklyPlan = cache(async (userId: string) => {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const end = new Date(today);
+  end.setDate(end.getDate() + 30);
+
+  return prisma.weeklyPlan.findMany({
+    where: {
+      userId,
+      plannedDate: {
+        gte: today,
+        lt: end,
+      },
+    },
     select: {
       id: true,
-      day: true,
+      plannedDate: true,
       rowIndex: true,
       title: true,
       time: true,
       completed: true,
+      carryForward: true,
     },
     orderBy: [
-      { day: "asc" },
+      { plannedDate: "asc" },
       { rowIndex: "asc" },
     ],
-  })
-);
+  });
+});
 
 const cachedTodayPlannerProgress = cache(async (userId: string) => {
   // Day-of-week integer tracking (0 = Mon, 6 = Sun)
-  const today = new Date().getDay() === 0 ? 6 : new Date().getDay() - 1;
+const today = new Date();
+today.setHours(0,0,0,0);
+
+const tomorrow = new Date(today);
+tomorrow.setDate(today.getDate()+1);
 
   const tasks = await prisma.weeklyPlan.findMany({
-    where: {
-      userId,
-      day: today,
+    where:{
+        userId,
+        plannedDate:{
+            gte:today,
+            lt:tomorrow,
+        }
     },
-    select: {
-      completed: true,
-    },
-  });
+    select:{
+        completed:true
+    }
+});
 
   const total = tasks.length;
   const completed = tasks.filter((t) => t.completed).length;

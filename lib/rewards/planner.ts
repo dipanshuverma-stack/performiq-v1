@@ -2,27 +2,39 @@
 
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import { addReward } from "@/lib/rewards/reward-log";
-import { RewardAction, RewardType } from "@prisma/client";
 import { revalidatePath } from "next/cache";
+
+import { addReward } from "@/lib/rewards/reward-log";
+import { REWARD_POINTS } from "@/lib/rewards/constants";
+import { RewardAction, RewardType } from "@prisma/client";
 
 async function getAuthenticatedUserId() {
   const session = await auth();
-  if (!session?.user?.email) throw new Error("Unauthorized");
+
+  if (!session?.user?.email) {
+    throw new Error("Unauthorized");
+  }
 
   const user = await prisma.user.findUnique({
-    where: { email: session.user.email },
-    select: { id: true },
+    where: {
+      email: session.user.email,
+    },
+    select: {
+      id: true,
+    },
   });
 
-  if (!user) throw new Error("User not found");
+  if (!user) {
+    throw new Error("User not found");
+  }
+
   return user.id;
 }
 
-export async function addWeeklyPlanTask(data: { 
-  plannedDate: string; 
-  rowIndex: number; 
-  title: string; 
+export async function addWeeklyPlanTask(data: {
+  day: number;
+  rowIndex: number;
+  title: string;
   time?: string;
 }) {
   const userId = await getAuthenticatedUserId();
@@ -30,10 +42,10 @@ export async function addWeeklyPlanTask(data: {
   await prisma.weeklyPlan.create({
     data: {
       userId,
-      plannedDate: new Date(data.plannedDate),
+      day: data.day,
       rowIndex: data.rowIndex,
       title: data.title,
-      time: data.time ?? null,
+      time: data.time || null,
     },
   });
 
@@ -44,9 +56,11 @@ export async function addWeeklyPlanTask(data: {
 export async function deleteWeeklyPlanTask(id: string) {
   const userId = await getAuthenticatedUserId();
 
-  // deleteMany is safe for this pattern as it doesn't require a unique index
   await prisma.weeklyPlan.deleteMany({
-    where: { id, userId },
+    where: {
+      id,
+      userId,
+    },
   });
 
   revalidatePath("/dashboard");
@@ -55,37 +69,50 @@ export async function deleteWeeklyPlanTask(id: string) {
 
 export async function updatePlannerRows(rows: number) {
   const session = await auth();
-  if (!session?.user?.email) throw new Error("Unauthorized");
 
-  await prisma.user.update({ 
-    where: { email: session.user.email }, 
-    data: { plannerRows: rows } 
+  if (!session?.user?.email) {
+    throw new Error("Unauthorized");
+  }
+
+  await prisma.user.update({
+    where: {
+      email: session.user.email,
+    },
+    data: {
+      plannerRows: rows,
+    },
   });
 
   revalidatePath("/dashboard");
   revalidatePath("/tasks");
 }
 
-export async function updateTaskPosition(data: { 
-  id: string; 
-  plannedDate: string; 
+export async function updateTaskPosition(data: {
+  id: string;
+  day: number;
   rowIndex: number;
 }) {
   const userId = await getAuthenticatedUserId();
 
   const task = await prisma.weeklyPlan.findUnique({
-    where: { id: data.id },
-    select: { userId: true },
+    where: {
+      id: data.id,
+    },
+    select: {
+      userId: true,
+    },
   });
 
-  if (!task || task.userId !== userId) throw new Error("Task not found");
+  if (!task || task.userId !== userId) {
+    throw new Error("Task not found");
+  }
 
   await prisma.weeklyPlan.update({
     where: {
       id: data.id,
     },
-    data: { 
-      plannedDate: new Date(data.plannedDate), 
+    data: {
+      day: data.day,
       rowIndex: data.rowIndex,
     },
   });
@@ -98,7 +125,9 @@ export async function toggleTaskCompletion(id: string) {
   const userId = await getAuthenticatedUserId();
 
   const task = await prisma.weeklyPlan.findUnique({
-    where: { id },
+    where: {
+      id,
+    },
     select: {
       id: true,
       title: true,
@@ -114,18 +143,21 @@ export async function toggleTaskCompletion(id: string) {
   const completed = !task.completed;
 
   await prisma.weeklyPlan.update({
-    where: { id },
+    where: {
+      id,
+    },
     data: {
       completed,
     },
   });
 
+  // Reward only when marking complete
   if (completed) {
     await addReward(
       userId,
       RewardType.PLANNER,
       RewardAction.EARN,
-      5,
+      REWARD_POINTS.PLANNER_TASK,
       "Planner Task Completed",
       task.title,
       task.id
