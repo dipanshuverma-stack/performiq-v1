@@ -49,6 +49,7 @@ const cachedWeeklyPlan = cache(async (userId: string) => {
       time: true,
       completed: true,
       carryForward: true,
+      carryForwardDays: true, // ✅ Fixed: Fetching the missing counter field
     },
     orderBy: [
       { plannedDate: "asc" },
@@ -58,25 +59,24 @@ const cachedWeeklyPlan = cache(async (userId: string) => {
 });
 
 const cachedTodayPlannerProgress = cache(async (userId: string) => {
-  // Day-of-week integer tracking (0 = Mon, 6 = Sun)
-const today = new Date();
-today.setHours(0,0,0,0);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
 
-const tomorrow = new Date(today);
-tomorrow.setDate(today.getDate()+1);
+  const tomorrow = new Date(today);
+  tomorrow.setDate(today.getDate() + 1);
 
   const tasks = await prisma.weeklyPlan.findMany({
-    where:{
-        userId,
-        plannedDate:{
-            gte:today,
-            lt:tomorrow,
-        }
+    where: {
+      userId,
+      plannedDate: {
+        gte: today,
+        lt: tomorrow,
+      },
     },
-    select:{
-        completed:true
-    }
-});
+    select: {
+      completed: true,
+    },
+  });
 
   const total = tasks.length;
   const completed = tasks.filter((t) => t.completed).length;
@@ -97,7 +97,7 @@ export default async function TasksPage() {
   // Step 8: Simplify auth check using userId
   const session = await auth();
   const userId = session?.user?.id;
-  
+
   if (!userId) redirect("/login");
 
   // Step 9: Run rollover task mutation before fetching updated data
@@ -111,6 +111,9 @@ export default async function TasksPage() {
   ]);
 
   if (!userWithTasks) redirect("/login");
+
+  // Temporary Verification Log
+  console.log("Hydrating Planner with Tasks:", JSON.stringify(plannerTasks, null, 2));
 
   return (
     <PageShell>
@@ -126,15 +129,15 @@ export default async function TasksPage() {
           pending={todayProgress.pending}
           percentage={todayProgress.percentage}
         />
-        
-        <Suspense 
+
+        <Suspense
           fallback={
             <div className="h-80 rounded-3xl bg-white/[0.03] animate-pulse my-6" />
           }
         >
-          <WeeklyPlanner 
-            plannerTasks={plannerTasks} 
-            initialRows={userWithTasks.plannerRows ?? 5} 
+          <WeeklyPlanner
+            plannerTasks={plannerTasks}
+            initialRows={userWithTasks.plannerRows ?? 5}
           />
         </Suspense>
       </PageContainer>

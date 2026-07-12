@@ -52,13 +52,13 @@ model RewardLog {
 
   points      Float
 
-  sourceId    String?
+  sourceId    String
 
   createdAt   DateTime @default(now())
 
   @@index([userId])
   @@index([userId, createdAt])
-  @@index([userId, sourceId])
+  @@unique([userId, sourceId])
 }
 
 model RewardSummary {
@@ -83,25 +83,27 @@ model RewardSummary {
 }
 
 model WeeklyPlan {
-  id           String   @id @default(cuid())
-  userId       String
+  id               String   @id @default(cuid())
+  userId           String
 
-  plannedDate  DateTime
+  plannedDate      DateTime
 
-  rowIndex     Int
+  rowIndex         Int
 
-  title        String
-  time         String?
+  title            String
+  time             String?
 
-  completed    Boolean @default(false)
-  carryForward Boolean @default(false)
+  completed        Boolean  @default(false)
 
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  carryForward     Boolean  @default(false)
+  carryForwardDays Int      @default(0)
 
-  category     String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category         String?
+
+  user             User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model NotificationPreference {

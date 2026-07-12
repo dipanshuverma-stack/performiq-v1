@@ -12,6 +12,7 @@ import { DashboardTodaysTasks } from "@/components/dashboard/dashboard-todays-ta
 
 import { getDashboardIntelligence } from "@/lib/analytics/dashboard-intelligence";
 import { BANKING_EXAMS } from "@/lib/exams";
+import { rolloverWeeklyPlan } from "@/lib/planner/rollover-weekly-plan";
 
 const getDaysLeft = (date: Date): number => {
   const today = new Date();
@@ -58,6 +59,7 @@ export default async function DashboardPage() {
   if (!session?.user?.email) redirect("/login");
 
   const email = session.user.email;
+  await rolloverWeeklyPlan(session.user.id!);
 
   // Parallel + Cached critical data
   const [dashboard, todayTasks] = await Promise.all([

@@ -9,48 +9,47 @@ export async function addReward(
   action: RewardAction,
   points: number,
   title: string,
-  description?: string,
-  sourceId?: string
+  description: string | undefined,
+  sourceId: string
 ) {
   // Ignore zero-point rewards
   if (points === 0) return null;
 
   // Ensure summary exists
-  await getRewardSummary(userId);
+  console.time("getRewardSummary");
+  const summary = await getRewardSummary(userId);
+  console.timeEnd("getRewardSummary");
 
-  // Reset week/month automatically if needed
-  await ensureRewardPeriod(userId);
-
-  // Prevent duplicate rewards
-  if (sourceId) {
-    const existing = await prisma.rewardLog.findFirst({
-      where: {
-        userId,
-        sourceId,
-      },
-    });
-
-    if (existing) {
-      return existing;
-    }
-  }
+  // Reset week/month automatically if needed by passing the existing memory reference
+  console.time("ensureRewardPeriod");
+  await ensureRewardPeriod(summary);
+  console.timeEnd("ensureRewardPeriod");
 
   return prisma.$transaction(async (tx) => {
-    // Create reward log
-    const log = await tx.rewardLog.create({
-      data: {
-        userId,
-        rewardType,
-        action,
-        title,
-        description,
-        points,
-        sourceId,
-      },
-    });
+    let log;
+    try {
+      log = await tx.rewardLog.create({
+        data: {
+          userId,
+          rewardType,
+          action,
+          title,
+          description,
+          points,
+          sourceId,
+        },
+      });
+    } catch (error: any) {
+      // Duplicate reward
+      if (error.code === "P2002") {
+        return null;
+      }
+
+      throw error;
+    }
 
     // Update reward summary
-    const summary = await tx.rewardSummary.update({
+    const updatedSummary = await tx.rewardSummary.update({
       where: {
         userId,
       },
@@ -71,7 +70,7 @@ export async function addReward(
 
     return {
       log,
-      summary,
+      summary: updatedSummary,
     };
   });
 }

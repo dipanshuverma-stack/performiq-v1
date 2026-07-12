@@ -44,9 +44,9 @@ export async function getRewardSummary(userId: string) {
  *
  * No cron job required.
  */
-export async function ensureRewardPeriod(userId: string) {
-  const summary = await getRewardSummary(userId);
-
+export async function ensureRewardPeriod(
+  summary: Awaited<ReturnType<typeof getRewardSummary>>
+) {
   const currentWeekStart = getWeekStart();
   const { month, year } = getMonth();
 
@@ -78,7 +78,7 @@ export async function ensureRewardPeriod(userId: string) {
 
   return prisma.rewardSummary.update({
     where: {
-      userId,
+      userId: summary.userId,
     },
     data: updates,
   });

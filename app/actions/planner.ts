@@ -33,7 +33,10 @@ export async function addWeeklyPlanTask(data: {
       plannedDate: new Date(data.plannedDate),
       rowIndex: data.rowIndex,
       title: data.title,
-      time: data.time ?? null,
+      time: data.time || null,
+
+      carryForward: false,
+      carryForwardDays: 0,
     },
   });
 
@@ -81,14 +84,18 @@ export async function updateTaskPosition(data: {
   if (!task || task.userId !== userId) throw new Error("Task not found");
 
   await prisma.weeklyPlan.update({
-    where: {
-      id: data.id,
-    },
-    data: { 
-      plannedDate: new Date(data.plannedDate), 
-      rowIndex: data.rowIndex,
-    },
-  });
+  where: {
+    id: data.id,
+  },
+  data: {
+    plannedDate: new Date(data.plannedDate),
+    rowIndex: data.rowIndex,
+
+    // User intentionally rescheduled the task
+    carryForward: false,
+    carryForwardDays: 0,
+  },
+});
 
   revalidatePath("/dashboard");
   revalidatePath("/tasks");
@@ -114,11 +121,17 @@ export async function toggleTaskCompletion(id: string) {
   const completed = !task.completed;
 
   await prisma.weeklyPlan.update({
-    where: { id },
-    data: {
-      completed,
-    },
-  });
+  where: { id },
+  data: {
+    completed,
+
+    // Completed tasks should never remain overdue
+    ...(completed && {
+      carryForward: false,
+      carryForwardDays: 0,
+    }),
+  },
+});
 
   if (completed) {
     await addReward(
