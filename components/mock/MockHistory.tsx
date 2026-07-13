@@ -1,7 +1,10 @@
 "use client";
 
 import { SmartLink as Link } from "@/components/smart-link";
-import { CalendarDays } from "lucide-react";
+import { Trash2 } from "lucide-react";
+import { deleteMockTest } from "@/app/actions/mock-test";
+import { useRouter } from "next/navigation";
+import { useTransition } from "react";
 
 interface MockHistoryProps {
   mocks: any[];
@@ -10,6 +13,27 @@ interface MockHistoryProps {
 export default function MockHistory({
   mocks,
 }: MockHistoryProps) {
+  const router = useRouter();
+  const [isPending, startTransition] = useTransition();
+
+  const handleDelete = (mockId: string) => {
+    const confirmed = window.confirm(
+      "Delete this mock?\n\nThis action cannot be undone.\n\n• Mock history\n• Subject performance\n• Topic insights\n• Reward points\n\nwill all be permanently removed."
+    );
+
+    if (!confirmed) return;
+
+    startTransition(async () => {
+      try {
+        await deleteMockTest(mockId);
+        router.refresh();
+      } catch (error) {
+        console.error(error);
+        alert("Failed to delete mock.");
+      }
+    });
+  };
+
   return (
     <section className="space-y-6">
       {/* Section Header */}
@@ -104,12 +128,34 @@ export default function MockHistory({
                 </div>
 
                 {/* Action */}
-                <div className="mt-6 flex justify-end">
+                <div className="mt-6 flex items-center justify-between">
+                  <button
+                    onClick={() => handleDelete(mock.id)}
+                    disabled={isPending}
+                    className="
+                      opacity-0
+                      group-hover:opacity-100
+                      transition-opacity
+                      text-rose-400
+                      hover:text-rose-300
+                      disabled:pointer-events-none
+                      disabled:opacity-40
+                    "
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+
                   <Link
                     href={`/mocks/${mock.id}`}
                     className="
-                      text-sm font-semibold text-indigo-400 hover:text-indigo-300 
-                      transition-colors flex items-center gap-1
+                      text-sm
+                      font-semibold
+                      text-indigo-400
+                      hover:text-indigo-300
+                      transition-colors
+                      flex
+                      items-center
+                      gap-1
                     "
                   >
                     View Detailed Report →

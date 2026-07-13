@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/prisma";
-import { RewardAction, RewardType } from "@prisma/client";
-
-import { getRewardSummary, ensureRewardPeriod } from "./summary";
+import { RewardAction, RewardType, Prisma } from "@prisma/client";
+import { getWeekStart } from "./week";
+import { getMonth } from "./month";
 
 export async function addReward(
   userId: string,
@@ -15,40 +15,87 @@ export async function addReward(
   // Ignore zero-point rewards
   if (points === 0) return null;
 
-  // Ensure summary exists
-  console.time("getRewardSummary");
-  const summary = await getRewardSummary(userId);
-  console.timeEnd("getRewardSummary");
-
-  // Reset week/month automatically if needed by passing the existing memory reference
-  console.time("ensureRewardPeriod");
-  await ensureRewardPeriod(summary);
-  console.timeEnd("ensureRewardPeriod");
-
   return prisma.$transaction(async (tx) => {
-    let log;
-    try {
-      log = await tx.rewardLog.create({
+    // 1. Find or create the target summary row
+    let summary = await tx.rewardSummary.findUnique({
+      where: {
+        userId,
+      },
+    });
+
+    if (!summary) {
+      summary = await tx.rewardSummary.create({
         data: {
           userId,
-          rewardType,
-          action,
-          title,
-          description,
-          points,
-          sourceId,
+          totalPoints: 0,
+          weeklyPoints: 0,
+          monthlyPoints: 0,
+          currentStreak: 0,
+          longestStreak: 0,
+          weekStart: getWeekStart(),
+          ...getMonth(),
         },
       });
-    } catch (error: any) {
-      // Duplicate reward
-      if (error.code === "P2002") {
-        return null;
-      }
-
-      throw error;
     }
 
-    // Update reward summary
+    // 2. Perform execution period evaluations natively inside the transaction
+    const currentWeekStart = getWeekStart();
+    const { month, year } = getMonth();
+    const updates: Prisma.RewardSummaryUpdateInput = {};
+
+    if (
+      !summary.weekStart ||
+      summary.weekStart.getTime() !== currentWeekStart.getTime()
+    ) {
+      updates.weeklyPoints = 0;
+      updates.weekStart = currentWeekStart;
+    }
+
+    if (
+      summary.month !== month ||
+      summary.year !== year
+    ) {
+      updates.monthlyPoints = 0;
+      updates.month = month;
+      updates.year = year;
+    }
+
+    if (Object.keys(updates).length > 0) {
+      summary = await tx.rewardSummary.update({
+        where: {
+          userId,
+        },
+        data: updates,
+      });
+    }
+
+    // 3. Explicit pre-check to prevent duplicate logs clean without an exception block
+    const existing = await tx.rewardLog.findUnique({
+      where: {
+        userId_sourceId: {
+          userId,
+          sourceId,
+        },
+      },
+    });
+
+    if (existing) {
+      return null;
+    }
+
+    const log = await tx.rewardLog.create({
+      data: {
+        userId,
+        rewardType,
+        action,
+        title,
+        description,
+        points,
+        sourceId,
+      },
+    });
+
+    // 4. Update the actual incremental point gains
     const updatedSummary = await tx.rewardSummary.update({
       where: {
         userId,
@@ -57,11 +104,9 @@ export async function addReward(
         totalPoints: {
           increment: points,
         },
-
         weeklyPoints: {
           increment: points,
         },
-
         monthlyPoints: {
           increment: points,
         },

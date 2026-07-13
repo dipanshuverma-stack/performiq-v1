@@ -4,11 +4,21 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { ExamType, MockType, Prisma } from "@prisma/client";
+// Combined Prisma enum imports per step 2.1
+import {
+  ExamType,
+  MockType,
+  Prisma,
+  RewardAction,
+  RewardType,
+} from "@prisma/client";
 import { createId } from "@paralleldrive/cuid2"; 
 import { SUBJECT_MAP } from "@/lib/mock/subject-map";
 import { saveTopicInsights } from "@/lib/mock/save-topic-insights";
 import { rebuildTopicProgress } from "@/lib/mock/rebuild-topic-progress";
+import { addReward } from "@/lib/rewards/reward-log";
+import { REWARD_POINTS } from "@/lib/rewards/constants";
+import { removeReward } from "@/lib/rewards/remove-reward";
 
 const MockTestSchema = z.object({
   exam: z.string().min(1),
@@ -130,6 +140,19 @@ export async function createMockTest(formData: FormData) {
   });
   console.timeEnd("transaction");
 
+  // Step 2.2 — Award reward right after transaction block completes
+  console.time("reward");
+  await addReward(
+    userId,
+    RewardType.MOCK,
+    RewardAction.EARN,
+    REWARD_POINTS.MOCK_COMPLETION,
+    "Mock Completed",
+    data.title || `${data.exam} Mock`,
+    mockId
+  );
+  console.timeEnd("reward");
+
   console.time("rebuildWeak");
   await rebuildTopicProgress(userId, weakTopics, "WEAK");
   console.timeEnd("rebuildWeak");
@@ -145,3 +168,37 @@ export async function createMockTest(formData: FormData) {
 
   console.timeEnd("createMockTest");
 }
+
+export async function deleteMockTest(mockId: string) {
+  const session = await auth();
+
+  const userId = session?.user?.id;
+
+  if (!userId) {
+    throw new Error("Unauthorized");
+  }
+
+  const mock = await prisma.mockTest.findUnique({
+    where: {
+      id: mockId,
+    },
+    select: {
+      id: true,
+      userId: true,
+    },
+  });
+
+  if (!mock || mock.userId !== userId) {
+    throw new Error("Mock not found");
+  }
+
+  await removeReward(mock.id);
+
+  await prisma.mockTest.delete({
+    where: {
+      id: mock.id,
+    },
+  });
+}
+revalidatePath("/mocks");
+revalidatePath("/dashboard");

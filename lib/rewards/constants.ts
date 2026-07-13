@@ -17,7 +17,7 @@ export const REWARD_POINTS = {
   PRACTICE_MISS: -10,
 
   // Mock
-  MOCK: 30,
+  MOCK_COMPLETION: 30,
   MOCK_SECOND: 10,
   MOCK_MISS: -15,
 
