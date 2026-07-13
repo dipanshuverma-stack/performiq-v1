@@ -3,6 +3,8 @@
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { addReward } from "@/lib/rewards/reward-log";
+import { REWARD_POINTS } from "@/lib/rewards/constants";
+import { updateStreak } from "@/lib/rewards/streak";
 import { RewardAction, RewardType } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 
@@ -84,18 +86,18 @@ export async function updateTaskPosition(data: {
   if (!task || task.userId !== userId) throw new Error("Task not found");
 
   await prisma.weeklyPlan.update({
-  where: {
-    id: data.id,
-  },
-  data: {
-    plannedDate: new Date(data.plannedDate),
-    rowIndex: data.rowIndex,
+    where: {
+      id: data.id,
+    },
+    data: {
+      plannedDate: new Date(data.plannedDate),
+      rowIndex: data.rowIndex,
 
-    // User intentionally rescheduled the task
-    carryForward: false,
-    carryForwardDays: 0,
-  },
-});
+      // User intentionally rescheduled the task
+      carryForward: false,
+      carryForwardDays: 0,
+    },
+  });
 
   revalidatePath("/dashboard");
   revalidatePath("/tasks");
@@ -121,28 +123,30 @@ export async function toggleTaskCompletion(id: string) {
   const completed = !task.completed;
 
   await prisma.weeklyPlan.update({
-  where: { id },
-  data: {
-    completed,
+    where: { id },
+    data: {
+      completed,
 
-    // Completed tasks should never remain overdue
-    ...(completed && {
-      carryForward: false,
-      carryForwardDays: 0,
-    }),
-  },
-});
+      // Completed tasks should never remain overdue
+      ...(completed && {
+        carryForward: false,
+        carryForwardDays: 0,
+      }),
+    },
+  });
 
   if (completed) {
     await addReward(
       userId,
       RewardType.PLANNER,
       RewardAction.EARN,
-      5,
+      REWARD_POINTS.PLANNER_TASK,
       "Planner Task Completed",
       task.title,
       task.id
     );
+
+    await updateStreak(userId);
   }
 
   revalidatePath("/dashboard");

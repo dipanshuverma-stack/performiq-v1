@@ -19,6 +19,7 @@ import { rebuildTopicProgress } from "@/lib/mock/rebuild-topic-progress";
 import { addReward } from "@/lib/rewards/reward-log";
 import { REWARD_POINTS } from "@/lib/rewards/constants";
 import { removeReward } from "@/lib/rewards/remove-reward";
+import { updateStreak } from "@/lib/rewards/streak";
 
 const MockTestSchema = z.object({
   exam: z.string().min(1),
@@ -151,6 +152,9 @@ export async function createMockTest(formData: FormData) {
     data.title || `${data.exam} Mock`,
     mockId
   );
+  
+  // Step 7 — Call updateStreak() from Mock completion
+  await updateStreak(userId);
   console.timeEnd("reward");
 
   console.time("rebuildWeak");
@@ -199,6 +203,7 @@ export async function deleteMockTest(mockId: string) {
       id: mock.id,
     },
   });
+
+  revalidatePath("/mocks");
+  revalidatePath("/dashboard");
 }
-revalidatePath("/mocks");
-revalidatePath("/dashboard");

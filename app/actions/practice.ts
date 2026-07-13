@@ -7,6 +7,7 @@ import { RevisionStatus, RewardAction, RewardType } from "@prisma/client";
 import { PracticeSessionSchema } from "@/lib/validations/practice";
 import { getPracticeRewardPoints } from "@/lib/rewards/practice";
 import { addReward } from "@/lib/rewards/reward-log";
+import { updateStreak } from "@/lib/rewards/streak";
 import { randomUUID } from "crypto";
 
 export async function savePracticeSession(rawInput: unknown) {
@@ -130,6 +131,7 @@ export async function savePracticeSession(rawInput: unknown) {
     const rewardPoints = getPracticeRewardPoints(durationSeconds);
     if (rewardPoints > 0) {
       console.time("Reward");
+
       await addReward(
         user.id,
         RewardType.PRACTICE,
@@ -139,6 +141,9 @@ export async function savePracticeSession(rawInput: unknown) {
         topic,
         recordedSession.id
       );
+
+      await updateStreak(user.id);
+
       console.timeEnd("Reward");
     }
 

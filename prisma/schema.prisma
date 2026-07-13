@@ -75,6 +75,8 @@ model RewardSummary {
   currentStreak Int @default(0)
   longestStreak Int @default(0)
 
+  lastActivityDate DateTime?
+
   weekStart DateTime?
   month Int?
   year Int?
