@@ -15,6 +15,8 @@ model User {
   image                   String?
   plannerRows             Int                      @default(5)
   mockTopicInsights       MockTopicInsight[]
+  rewardLogs              RewardLog[]
+  rewardSummary           RewardSummary?
   weeklyPlans             WeeklyPlan[]
   accounts                Account[]
   examProfiles            ExamProfile[]
@@ -30,82 +32,59 @@ model User {
   studySessions           StudySession[]
   tasks                   Task[]
   topicProgress           TopicProgress[]
-  
-  // NEW REWARD SYSTEM RELATIONS
-  rewardSummary           RewardSummary?
-  rewardLogs              RewardLog[]
 
   @@map("users")
 }
 
 model RewardLog {
-  id          String @id @default(cuid())
-
+  id          String       @id @default(cuid())
   userId      String
-  user        User @relation(fields:[userId], references:[id], onDelete:Cascade)
-
   rewardType  RewardType
   action      RewardAction
-
   title       String
   description String?
-
   points      Float
-
-  sourceId    String
-
-  createdAt   DateTime @default(now())
+  createdAt   DateTime     @default(now())
+  sourceId    String?
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([userId, createdAt])
-  @@unique([userId, sourceId])
+  @@index([userId, sourceId])
 }
 
 model RewardSummary {
-  id String @id @default(cuid())
-
-  userId String @unique
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  totalPoints Float @default(0)
-
-  weeklyPoints Float @default(0)
-  monthlyPoints Float @default(0)
-
-  currentStreak Int @default(0)
-  longestStreak Int @default(0)
+  id               String    @id @default(cuid())
+  userId           String    @unique
+  totalPoints      Float     @default(0)
+  weeklyPoints     Float     @default(0)
+  monthlyPoints    Float     @default(0)
+  currentStreak    Int       @default(0)
+  longestStreak    Int       @default(0)
 
   lastActivityDate DateTime?
 
-  weekStart DateTime?
-  month Int?
-  year Int?
-
-  updatedAt DateTime @updatedAt
+  updatedAt        DateTime  @updatedAt
+  month            Int?
+  weekStart        DateTime?
+  year             Int?
+  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model WeeklyPlan {
   id               String   @id @default(cuid())
   userId           String
-
-  plannedDate      DateTime
-
   rowIndex         Int
-
   title            String
   time             String?
-
   completed        Boolean  @default(false)
-
-  carryForward     Boolean  @default(false)
-  carryForwardDays Int      @default(0)
-
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
-
   category         String?
-
-  user             User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  carryForward     Boolean  @default(false)
+  plannedDate      DateTime
+  carryForwardDays Int      @default(0)
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model NotificationPreference {
@@ -160,18 +139,18 @@ model VerificationToken {
 }
 
 model ExamProfile {
-  id          String   @id @default(cuid())
-  userId      String   @map("user_id")
+  id          String    @id @default(cuid())
+  userId      String    @map("user_id")
   name        String
-  targetDate  DateTime @map("target_date")
-  readiness   Float    @default(0)
-  isActive    Boolean  @default(false) @map("is_active")
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
+  targetDate  DateTime  @map("target_date")
+  readiness   Float     @default(0)
+  isActive    Boolean   @default(false) @map("is_active")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
   attemptDate DateTime?
   examType    ExamType
-  priority    Int      @default(1)
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  priority    Int       @default(1)
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([isActive])
   @@index([userId])
@@ -319,21 +298,21 @@ model MistakeEntry {
 }
 
 model MockSubjectPerformance {
-  id                 String             @id @default(cuid())
-  userId             String             @map("user_id")
-  mockId             String             @map("mock_id")
-  totalQuestions     Int                @map("total_questions")
-  attempted          Int
-  score              Float              @db.Real
-  accuracy           Float              @db.Real
-  timeSpent          Int?               @map("time_spent")
-  createdAt          DateTime           @default(now()) @map("created_at")
-  correct            Int                @map("correct_questions")
-  incorrect          Int                @map("incorrect_questions")
-  subject            Subject
-  mockTopicInsights  MockTopicInsight[]
-  mockTest           MockTest           @relation(fields: [mockId], references: [id], onDelete: Cascade)
-  user               User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id                String             @id @default(cuid())
+  userId            String             @map("user_id")
+  mockId            String             @map("mock_id")
+  totalQuestions    Int                @map("total_questions")
+  attempted         Int
+  score             Float              @db.Real
+  accuracy          Float              @db.Real
+  timeSpent         Int?               @map("time_spent")
+  createdAt         DateTime           @default(now()) @map("created_at")
+  correct           Int                @map("correct_questions")
+  incorrect         Int                @map("incorrect_questions")
+  subject           Subject
+  mockTopicInsights MockTopicInsight[]
+  mockTest          MockTest           @relation(fields: [mockId], references: [id], onDelete: Cascade)
+  user              User               @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([mockId])
   @@index([subject])
@@ -419,8 +398,6 @@ model Revision {
   @@index([userId, nextRevision])
   @@map("revisions")
 }
-
-// ENUMS
 
 enum RewardType {
   PLANNER
