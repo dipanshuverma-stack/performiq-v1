@@ -20,6 +20,7 @@ import { addReward } from "@/lib/rewards/reward-log";
 import { REWARD_POINTS } from "@/lib/rewards/constants";
 import { removeReward } from "@/lib/rewards/remove-reward";
 import { updateStreak } from "@/lib/rewards/streak";
+import { evaluateAchievementEvent } from "@/lib/achievements/evaluator";
 
 const MockTestSchema = z.object({
   exam: z.string().min(1),
@@ -156,6 +157,9 @@ export async function createMockTest(formData: FormData) {
   // Step 7 — Call updateStreak() from Mock completion
   await updateStreak(userId);
   console.timeEnd("reward");
+
+  // Evaluate dynamic achievement checks for this user context
+  await evaluateAchievementEvent(userId, "mock_completed");
 
   console.time("rebuildWeak");
   await rebuildTopicProgress(userId, weakTopics, "WEAK");

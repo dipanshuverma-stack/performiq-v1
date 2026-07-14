@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { addReward } from "./reward-log";
 import { REWARD_POINTS } from "./constants";
 import { RewardAction, RewardType } from "@prisma/client";
+import { evaluateAchievementEvent } from "@/lib/achievements/evaluator";
 
 export async function updateStreak(userId: string) {
   const summary = await prisma.rewardSummary.findUnique({
@@ -116,11 +117,16 @@ export async function updateStreak(userId: string) {
         break;
     }
 
+    await evaluateAchievementEvent(
+      userId,
+      "streak_updated"
+    );
+
     return updated;
   }
 
   // Case 3 — Start (or restart) the streak
-  return prisma.rewardSummary.update({
+  const updatedSummary = await prisma.rewardSummary.update({
     where: {
       userId,
     },
@@ -133,4 +139,11 @@ export async function updateStreak(userId: string) {
       lastActivityDate: today,
     },
   });
+
+  await evaluateAchievementEvent(
+    userId,
+    "streak_updated"
+  );
+
+  return updatedSummary;
 }

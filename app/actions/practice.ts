@@ -8,6 +8,7 @@ import { PracticeSessionSchema } from "@/lib/validations/practice";
 import { getPracticeRewardPoints } from "@/lib/rewards/practice";
 import { addReward } from "@/lib/rewards/reward-log";
 import { updateStreak } from "@/lib/rewards/streak";
+import { evaluateAchievementEvent } from "@/lib/achievements/evaluator";
 import { randomUUID } from "crypto";
 
 export async function savePracticeSession(rawInput: unknown) {
@@ -146,6 +147,9 @@ export async function savePracticeSession(rawInput: unknown) {
 
       console.timeEnd("Reward");
     }
+
+    // Evaluate dynamic achievement checks for this user context
+    await evaluateAchievementEvent(user.id, "practice_completed");
 
     console.time("Revalidate");
     revalidatePath("/practice");

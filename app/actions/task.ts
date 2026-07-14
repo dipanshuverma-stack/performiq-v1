@@ -3,6 +3,7 @@
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
+import { evaluateAchievementEvent } from "@/lib/achievements/evaluator";
 
 async function getAuthenticatedUserId() {
   const session = await auth();
@@ -48,10 +49,20 @@ export async function toggleTask(taskId: string) {
     throw new Error("Task not found or unauthorized");
   }
 
+  const newCompletedState = !task.completed;
+
   await prisma.task.update({
     where: { id: taskId },
-    data: { completed: !task.completed },
+    data: { completed: newCompletedState },
   });
+
+  // Check achievements explicitly when a task transitions into a completed state
+  if (newCompletedState) {
+    await evaluateAchievementEvent(
+      userId,
+      "planner_completed"
+    );
+  }
 
   revalidatePath("/tasks");
   revalidatePath("/dashboard");

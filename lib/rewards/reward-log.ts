@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { RewardAction, RewardType, Prisma } from "@prisma/client";
 import { getWeekStart } from "./week";
 import { getMonth } from "./month";
+import { evaluateAchievementEvent } from "@/lib/achievements/evaluator";
 
 export async function addReward(
   userId: string,
@@ -15,7 +16,7 @@ export async function addReward(
   // Ignore zero-point rewards
   if (points === 0) return null;
 
-  return prisma.$transaction(async (tx) => {
+  const result = await prisma.$transaction(async (tx) => {
     // 1. Find or create the target summary row
     let summary = await tx.rewardSummary.findUnique({
       where: {
@@ -118,4 +119,13 @@ export async function addReward(
       summary: updatedSummary,
     };
   });
+
+  if (result) {
+    await evaluateAchievementEvent(
+      userId,
+      "reward_updated"
+    );
+  }
+
+  return result;
 }

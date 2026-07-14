@@ -32,8 +32,50 @@ model User {
   studySessions           StudySession[]
   tasks                   Task[]
   topicProgress           TopicProgress[]
+  achievements            UserAchievement[]
 
   @@map("users")
+}
+
+model Achievement {
+  id           String   @id @default(cuid())
+
+  key          String   @unique
+
+  title        String
+  description  String
+
+  icon         String
+
+  category     AchievementCategory
+
+  rarity       AchievementRarity @default(COMMON)
+
+  rewardPoints Int      @default(0)
+  xp           Int      @default(0)
+
+  hidden       Boolean  @default(false)
+
+  sortOrder    Int      @default(0)
+
+  createdAt    DateTime @default(now())
+
+  users UserAchievement[]
+}
+
+model UserAchievement {
+  id            String   @id @default(cuid())
+  userId        String   @map("user_id")
+  achievementId String   @map("achievement_id")
+  unlockedAt    DateTime @default(now()) @map("unlocked_at")
+
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  achievement Achievement @relation(fields: [achievementId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, achievementId])
+  @@index([userId])
+  @@index([achievementId])
+  @@map("user_achievements")
 }
 
 model RewardLog {
@@ -48,6 +90,7 @@ model RewardLog {
   sourceId    String?
   user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@unique([userId, sourceId])
   @@index([userId])
   @@index([userId, createdAt])
   @@index([userId, sourceId])
@@ -61,9 +104,7 @@ model RewardSummary {
   monthlyPoints    Float     @default(0)
   currentStreak    Int       @default(0)
   longestStreak    Int       @default(0)
-
   lastActivityDate DateTime?
-
   updatedAt        DateTime  @updatedAt
   month            Int?
   weekStart        DateTime?
@@ -485,4 +526,21 @@ enum TopicInsightType {
   WEAK
   STRONG
   SKIPPED
+}
+
+enum AchievementCategory {
+  PLANNER
+  PRACTICE
+  MOCK
+  STREAK
+  REWARD
+  REVISION
+  SPECIAL
+}
+
+enum AchievementRarity {
+  COMMON
+  RARE
+  EPIC
+  LEGENDARY
 }

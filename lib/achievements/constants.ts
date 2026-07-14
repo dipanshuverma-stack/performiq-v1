@@ -1,0 +1,30 @@
+export const ACHIEVEMENT_KEYS = {
+  // Planner
+  FIRST_TASK: "FIRST_TASK",
+  PLANNER_25: "PLANNER_25",
+  PLANNER_100: "PLANNER_100",
+
+  // Practice
+  FIRST_PRACTICE: "FIRST_PRACTICE",
+  PRACTICE_10: "PRACTICE_10",
+  PRACTICE_50: "PRACTICE_50",
+  PRACTICE_100: "PRACTICE_100",
+
+  // Mock
+  FIRST_MOCK: "FIRST_MOCK",
+  MOCK_10: "MOCK_10",
+  MOCK_50: "MOCK_50",
+
+  // Rewards
+  REWARD_100: "REWARD_100",
+  REWARD_500: "REWARD_500",
+  REWARD_1000: "REWARD_1000",
+
+  // Streak
+  STREAK_3: "STREAK_3",
+  STREAK_7: "STREAK_7",
+  STREAK_30: "STREAK_30",
+} as const;
+
+export type AchievementKey =
+  (typeof ACHIEVEMENT_KEYS)[keyof typeof ACHIEVEMENT_KEYS];
