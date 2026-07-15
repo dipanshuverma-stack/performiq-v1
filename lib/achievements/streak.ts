@@ -1,8 +1,12 @@
 import { prisma } from "@/lib/prisma";
 import { ACHIEVEMENT_KEYS } from "./constants";
-import { unlockAchievement } from "./unlock";
+import { unlockAchievement, type UnlockResult } from "./unlock";
 
-export async function checkStreakAchievements(userId: string) {
+export async function checkStreakAchievements(
+  userId: string
+): Promise<UnlockResult[]> {
+  const unlocked: UnlockResult[] = [];
+
   const summary = await prisma.rewardSummary.findUnique({
     where: {
       userId,
@@ -12,17 +16,39 @@ export async function checkStreakAchievements(userId: string) {
     },
   });
 
-  if (!summary) return;
+  if (!summary) {
+    return unlocked;
+  }
 
   if (summary.currentStreak >= 3) {
-    await unlockAchievement(userId, ACHIEVEMENT_KEYS.STREAK_3);
+    const result = await unlockAchievement(
+      userId,
+      ACHIEVEMENT_KEYS.STREAK_3
+    );
+    if (result) {
+      unlocked.push(result);
+    }
   }
 
   if (summary.currentStreak >= 7) {
-    await unlockAchievement(userId, ACHIEVEMENT_KEYS.STREAK_7);
+    const result = await unlockAchievement(
+      userId,
+      ACHIEVEMENT_KEYS.STREAK_7
+    );
+    if (result) {
+      unlocked.push(result);
+    }
   }
 
   if (summary.currentStreak >= 30) {
-    await unlockAchievement(userId, ACHIEVEMENT_KEYS.STREAK_30);
+    const result = await unlockAchievement(
+      userId,
+      ACHIEVEMENT_KEYS.STREAK_30
+    );
+    if (result) {
+      unlocked.push(result);
+    }
   }
+
+  return unlocked;
 }

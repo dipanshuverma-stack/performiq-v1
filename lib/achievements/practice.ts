@@ -1,8 +1,12 @@
 import { prisma } from "@/lib/prisma";
 import { ACHIEVEMENT_KEYS } from "./constants";
-import { unlockAchievement } from "./unlock";
+import { unlockAchievement, type UnlockResult } from "./unlock";
 
-export async function checkPracticeAchievements(userId: string) {
+export async function checkPracticeAchievements(
+  userId: string
+): Promise<UnlockResult[]> {
+  const unlocked: UnlockResult[] = [];
+
   const practiceCount = await prisma.practiceSession.count({
     where: {
       userId,
@@ -10,18 +14,44 @@ export async function checkPracticeAchievements(userId: string) {
   });
 
   if (practiceCount >= 1) {
-    await unlockAchievement(userId, ACHIEVEMENT_KEYS.FIRST_PRACTICE);
+    const result = await unlockAchievement(
+      userId,
+      ACHIEVEMENT_KEYS.FIRST_PRACTICE
+    );
+    if (result) {
+      unlocked.push(result);
+    }
   }
 
   if (practiceCount >= 10) {
-    await unlockAchievement(userId, ACHIEVEMENT_KEYS.PRACTICE_10);
+    const result = await unlockAchievement(
+      userId,
+      ACHIEVEMENT_KEYS.PRACTICE_10
+    );
+    if (result) {
+      unlocked.push(result);
+    }
   }
 
   if (practiceCount >= 50) {
-    await unlockAchievement(userId, ACHIEVEMENT_KEYS.PRACTICE_50);
+    const result = await unlockAchievement(
+      userId,
+      ACHIEVEMENT_KEYS.PRACTICE_50
+    );
+    if (result) {
+      unlocked.push(result);
+    }
   }
 
   if (practiceCount >= 100) {
-    await unlockAchievement(userId, ACHIEVEMENT_KEYS.PRACTICE_100);
+    const result = await unlockAchievement(
+      userId,
+      ACHIEVEMENT_KEYS.PRACTICE_100
+    );
+    if (result) {
+      unlocked.push(result);
+    }
   }
+
+  return unlocked;
 }

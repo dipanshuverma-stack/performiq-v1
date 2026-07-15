@@ -3,6 +3,7 @@ import { addReward } from "./reward-log";
 import { REWARD_POINTS } from "./constants";
 import { RewardAction, RewardType } from "@prisma/client";
 import { evaluateAchievementEvent } from "@/lib/achievements/evaluator";
+import { getPlannerToday } from "../planner/planner-date";
 
 export async function updateStreak(userId: string) {
   const summary = await prisma.rewardSummary.findUnique({
@@ -15,8 +16,7 @@ export async function updateStreak(userId: string) {
     throw new Error("Reward summary not found");
   }
 
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  const today = getPlannerToday();
 
   const lastActivity = summary.lastActivityDate
     ? new Date(summary.lastActivityDate)

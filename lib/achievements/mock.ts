@@ -1,8 +1,12 @@
 import { prisma } from "@/lib/prisma";
 import { ACHIEVEMENT_KEYS } from "./constants";
-import { unlockAchievement } from "./unlock";
+import { unlockAchievement, type UnlockResult } from "./unlock";
 
-export async function checkMockAchievements(userId: string) {
+export async function checkMockAchievements(
+  userId: string
+): Promise<UnlockResult[]> {
+  const unlocked: UnlockResult[] = [];
+
   const mockCount = await prisma.mockTest.count({
     where: {
       userId,
@@ -10,14 +14,34 @@ export async function checkMockAchievements(userId: string) {
   });
 
   if (mockCount >= 1) {
-    await unlockAchievement(userId, ACHIEVEMENT_KEYS.FIRST_MOCK);
+    const result = await unlockAchievement(
+      userId,
+      ACHIEVEMENT_KEYS.FIRST_MOCK
+    );
+    if (result) {
+      unlocked.push(result);
+    }
   }
 
   if (mockCount >= 10) {
-    await unlockAchievement(userId, ACHIEVEMENT_KEYS.MOCK_10);
+    const result = await unlockAchievement(
+      userId,
+      ACHIEVEMENT_KEYS.MOCK_10
+    );
+    if (result) {
+      unlocked.push(result);
+    }
   }
 
   if (mockCount >= 50) {
-    await unlockAchievement(userId, ACHIEVEMENT_KEYS.MOCK_50);
+    const result = await unlockAchievement(
+      userId,
+      ACHIEVEMENT_KEYS.MOCK_50
+    );
+    if (result) {
+      unlocked.push(result);
+    }
   }
+
+  return unlocked;
 }

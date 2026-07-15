@@ -1,5 +1,6 @@
 import { cache } from "react";
 import { prisma } from "@/lib/prisma";
+import { getPlannerToday } from "../planner/planner-date";
 
 export interface RevisionIntelligence {
   total: number;
@@ -9,8 +10,7 @@ export interface RevisionIntelligence {
 }
 
 const cachedGetRevisionIntelligence = cache(async (userId: string): Promise<RevisionIntelligence> => {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  const today = getPlannerToday();
 
   const revisions = await prisma.revision.findMany({
     where: { userId },

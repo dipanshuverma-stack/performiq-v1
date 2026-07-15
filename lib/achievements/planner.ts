@@ -1,8 +1,12 @@
 import { prisma } from "@/lib/prisma";
 import { ACHIEVEMENT_KEYS } from "./constants";
-import { unlockAchievement } from "./unlock";
+import { unlockAchievement, type UnlockResult } from "./unlock";
 
-export async function checkPlannerAchievements(userId: string) {
+export async function checkPlannerAchievements(
+  userId: string
+): Promise<UnlockResult[]> {
+  const unlocked: UnlockResult[] = [];
+
   const completedTasks = await prisma.task.count({
     where: {
       userId,
@@ -11,14 +15,34 @@ export async function checkPlannerAchievements(userId: string) {
   });
 
   if (completedTasks >= 1) {
-    await unlockAchievement(userId, ACHIEVEMENT_KEYS.FIRST_TASK);
+    const result = await unlockAchievement(
+      userId,
+      ACHIEVEMENT_KEYS.FIRST_TASK
+    );
+    if (result) {
+      unlocked.push(result);
+    }
   }
 
   if (completedTasks >= 25) {
-    await unlockAchievement(userId, ACHIEVEMENT_KEYS.PLANNER_25);
+    const result = await unlockAchievement(
+      userId,
+      ACHIEVEMENT_KEYS.PLANNER_25
+    );
+    if (result) {
+      unlocked.push(result);
+    }
   }
 
   if (completedTasks >= 100) {
-    await unlockAchievement(userId, ACHIEVEMENT_KEYS.PLANNER_100);
+    const result = await unlockAchievement(
+      userId,
+      ACHIEVEMENT_KEYS.PLANNER_100
+    );
+    if (result) {
+      unlocked.push(result);
+    }
   }
+
+  return unlocked;
 }

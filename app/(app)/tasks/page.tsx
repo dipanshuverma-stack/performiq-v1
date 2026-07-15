@@ -8,14 +8,15 @@ import { PageShell } from "@/components/ui/page-shell";
 import { PageContainer } from "@/components/layout/page-container";
 import { PageHeader } from "@/components/ui/page-header";
 import { TaskHero } from "@/components/tasks/TaskHero";
+import { OverdueTasksCard } from "@/components/tasks/OverdueTasksCard";
 import { WeeklyPlanner } from "@/components/dashboard/weekly-planner";
 
 // Step 7: Import the rollover function
 import { rolloverWeeklyPlan } from "@/lib/planner/rollover-weekly-plan";
+import { getPlannerToday } from "@/lib/planner/planner-date";
 
 // --- Data Fetching (Cached) ---
 
-// Step 10: Updated to query by userId instead of email for optimal querying
 const cachedGetUserTasks = cache(async (userId: string) =>
   prisma.user.findUnique({
     where: { id: userId },
@@ -27,8 +28,7 @@ const cachedGetUserTasks = cache(async (userId: string) =>
 );
 
 const cachedWeeklyPlan = cache(async (userId: string) => {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  const today = getPlannerToday();
 
   const end = new Date(today);
   end.setDate(end.getDate() + 30);
@@ -49,7 +49,7 @@ const cachedWeeklyPlan = cache(async (userId: string) => {
       time: true,
       completed: true,
       carryForward: true,
-      carryForwardDays: true, // ✅ Fixed: Fetching the missing counter field
+      carryForwardDays: true,
     },
     orderBy: [
       { plannedDate: "asc" },
@@ -58,9 +58,33 @@ const cachedWeeklyPlan = cache(async (userId: string) => {
   });
 });
 
+const cachedOverdueTasks = cache(async (userId: string) => {
+  const today = getPlannerToday();
+
+  return prisma.weeklyPlan.findMany({
+    where: {
+      userId,
+      completed: false,
+      plannedDate: {
+        lt: today,
+      },
+    },
+    orderBy: {
+      plannedDate: "desc",
+    },
+    select: {
+      id: true,
+      plannedDate: true,
+      rowIndex: true,
+      title: true,
+      time: true,
+      completed: true,
+    },
+  });
+});
+
 const cachedTodayPlannerProgress = cache(async (userId: string) => {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  const today = getPlannerToday();
 
   const tomorrow = new Date(today);
   tomorrow.setDate(today.getDate() + 1);
@@ -94,26 +118,26 @@ const cachedTodayPlannerProgress = cache(async (userId: string) => {
 // --- Page Component ---
 
 export default async function TasksPage() {
-  // Step 8: Simplify auth check using userId
   const session = await auth();
   const userId = session?.user?.id;
 
   if (!userId) redirect("/login");
 
-  // Step 9: Run rollover task mutation before fetching updated data
   await rolloverWeeklyPlan(userId);
 
-  // Step 10: Parallelized data fetching completely unified by userId
-  const [userWithTasks, plannerTasks, todayProgress] = await Promise.all([
+  const [
+    userWithTasks, 
+    plannerTasks, 
+    overdueTasks, 
+    todayProgress
+  ] = await Promise.all([
     cachedGetUserTasks(userId),
     cachedWeeklyPlan(userId),
+    cachedOverdueTasks(userId),
     cachedTodayPlannerProgress(userId),
   ]);
 
   if (!userWithTasks) redirect("/login");
-
-  // Temporary Verification Log
-  console.log("Hydrating Planner with Tasks:", JSON.stringify(plannerTasks, null, 2));
 
   return (
     <PageShell>
@@ -129,6 +153,8 @@ export default async function TasksPage() {
           pending={todayProgress.pending}
           percentage={todayProgress.percentage}
         />
+
+        <OverdueTasksCard tasks={overdueTasks} />
 
         <Suspense
           fallback={

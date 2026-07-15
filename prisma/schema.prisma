@@ -7,9 +7,17 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum RepeatType {
+  NONE
+  DAILY
+  ALTERNATE
+  EVERY_THREE_DAYS
+  CUSTOM
+}
+
 model User {
-  id                      String                   @id @default(cuid())
-  email                   String?                  @unique
+  id                      String                  @id @default(cuid())
+  email                   String?                 @unique
   name                    String?
   emailVerified           DateTime?                @map("email_verified")
   image                   String?
@@ -38,39 +46,28 @@ model User {
 }
 
 model Achievement {
-  id           String   @id @default(cuid())
-
-  key          String   @unique
-
+  id           String              @id @default(cuid())
+  key          String              @unique
   title        String
   description  String
-
   icon         String
-
   category     AchievementCategory
-
-  rarity       AchievementRarity @default(COMMON)
-
-  rewardPoints Int      @default(0)
-  xp           Int      @default(0)
-
-  hidden       Boolean  @default(false)
-
-  sortOrder    Int      @default(0)
-
-  createdAt    DateTime @default(now())
-
-  users UserAchievement[]
+  rarity       AchievementRarity   @default(COMMON)
+  rewardPoints Int                 @default(0)
+  xp           Int                 @default(0)
+  hidden       Boolean             @default(false)
+  sortOrder    Int                 @default(0)
+  createdAt    DateTime            @default(now())
+  users        UserAchievement[]
 }
 
 model UserAchievement {
-  id            String   @id @default(cuid())
-  userId        String   @map("user_id")
-  achievementId String   @map("achievement_id")
-  unlockedAt    DateTime @default(now()) @map("unlocked_at")
-
-  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  achievement Achievement @relation(fields: [achievementId], references: [id], onDelete: Cascade)
+  id            String      @id @default(cuid())
+  userId        String      @map("user_id")
+  achievementId String      @map("achievement_id")
+  unlockedAt    DateTime    @default(now()) @map("unlocked_at")
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  achievement   Achievement @relation(fields: [achievementId], references: [id], onDelete: Cascade)
 
   @@unique([userId, achievementId])
   @@index([userId])
@@ -113,19 +110,21 @@ model RewardSummary {
 }
 
 model WeeklyPlan {
-  id               String   @id @default(cuid())
+  id               String     @id @default(cuid())
   userId           String
   rowIndex         Int
   title            String
   time             String?
-  completed        Boolean  @default(false)
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  repeatType       RepeatType @default(NONE)
+  repeatWeekdays   String[]   @default([])
+  completed        Boolean    @default(false)
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @updatedAt
   category         String?
-  carryForward     Boolean  @default(false)
+  carryForward     Boolean    @default(false)
   plannedDate      DateTime
-  carryForwardDays Int      @default(0)
-  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  carryForwardDays Int        @default(0)
+  user             User       @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model NotificationPreference {
@@ -281,7 +280,7 @@ model PracticeSession {
   confidenceScore    Int?           @map("confidence_score")
   notes              String?
   createdAt          DateTime       @default(now()) @map("created_at")
-  updatedAt          DateTime       @updatedAt @map("updated_at")
+  updatedAt          DateTime @updatedAt @map("updated_at")  
   correctQuestions   Int            @map("correct_questions")
   incorrectQuestions Int            @map("incorrect_questions")
   subject            Subject
@@ -304,7 +303,7 @@ model Mistake {
   notes       String?
   resolved    Boolean     @default(false)
   createdAt   DateTime    @default(now()) @map("created_at")
-  updatedAt   DateTime    @updatedAt @map("updated_at")
+  updatedAt   DateTime    @map("updated_at")
   mistakeType MistakeType @map("mistake_type")
   subject     Subject
   user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)

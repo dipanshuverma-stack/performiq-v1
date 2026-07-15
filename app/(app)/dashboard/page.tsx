@@ -13,10 +13,10 @@ import { DashboardTodaysTasks } from "@/components/dashboard/dashboard-todays-ta
 import { getDashboardIntelligence } from "@/lib/analytics/dashboard-intelligence";
 import { BANKING_EXAMS } from "@/lib/exams";
 import { rolloverWeeklyPlan } from "@/lib/planner/rollover-weekly-plan";
+import { getPlannerToday } from "@/lib/planner/planner-date";
 
 const getDaysLeft = (date: Date): number => {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  const today = getPlannerToday();
   const target = new Date(date);
   target.setHours(0, 0, 0, 0);
   const diff = target.getTime() - today.getTime();
@@ -28,8 +28,7 @@ const cachedDashboardIntelligence = cache(async (email: string) =>
 );
 
 const cachedTodayPlannerTasks = cache(async (userId: string) => {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  const today = getPlannerToday();
 
   const tomorrow = new Date(today);
   tomorrow.setDate(today.getDate() + 1);

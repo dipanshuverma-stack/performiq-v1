@@ -1,5 +1,6 @@
 import { cache } from "react";
 import { prisma } from "@/lib/prisma";
+import { getPlannerToday } from "../planner/planner-date";
 
 export interface PracticeConsistency {
   currentStreak: number;
@@ -50,8 +51,7 @@ const cachedGetPracticeConsistency = cache(async (userId: string): Promise<Pract
 
   // Calculate current streak (from today backwards)
   let currentStreak = 0;
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  const today = getPlannerToday();
   const daySet = new Set(uniqueDates);
 
   while (true) {

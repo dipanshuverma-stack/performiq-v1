@@ -3,6 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import { cache } from "react";
 import Link from "next/link";
+import { getPlannerToday } from "@/lib/planner/planner-date";
+
 
 // Pre-computed exam data with days left
 const getUpcomingExams = () => {
@@ -13,8 +15,7 @@ const getUpcomingExams = () => {
     { name: "IBPS PO MAINS", date: "2026-10-12" },
   ];
 
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  const today = getPlannerToday();
 
   return exams
     .map((exam) => {

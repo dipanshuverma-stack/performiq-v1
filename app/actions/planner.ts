@@ -5,8 +5,9 @@ import { prisma } from "@/lib/prisma";
 import { addReward } from "@/lib/rewards/reward-log";
 import { REWARD_POINTS } from "@/lib/rewards/constants";
 import { updateStreak } from "@/lib/rewards/streak";
-import { RewardAction, RewardType } from "@prisma/client";
+import { RewardAction, RewardType, RepeatType } from "@prisma/client";
 import { revalidatePath } from "next/cache";
+import { generatePlannerDates } from "@/lib/planner/generate-planner-dates";
 
 async function getAuthenticatedUserId() {
   const session = await auth();
@@ -26,21 +27,34 @@ export async function addWeeklyPlanTask(data: {
   rowIndex: number; 
   title: string; 
   time?: string;
+  repeatType?: "NONE" | "DAILY" | "ALTERNATE" | "EVERY_THREE_DAYS" | "CUSTOM";
+  repeatWeekdays?: string[];
 }) {
   const userId = await getAuthenticatedUserId();
 
-  await prisma.weeklyPlan.create({
-    data: {
-      userId,
-      plannedDate: new Date(data.plannedDate),
-      rowIndex: data.rowIndex,
-      title: data.title,
-      time: data.time || null,
-
-      carryForward: false,
-      carryForwardDays: 0,
-    },
+  const dates = generatePlannerDates({
+    startDate: new Date(data.plannedDate),
+    repeatType: data.repeatType ?? "NONE",
+    repeatWeekdays: data.repeatWeekdays ?? [],
   });
+
+  const operations = dates.map((date) =>
+    prisma.weeklyPlan.create({
+      data: {
+        userId,
+        plannedDate: date,
+        rowIndex: data.rowIndex,
+        title: data.title,
+        time: data.time || null,
+        repeatType: (data.repeatType as RepeatType) ?? "NONE",
+        repeatWeekdays: data.repeatWeekdays ?? [],
+        carryForward: false,
+        carryForwardDays: 0,
+      },
+    })
+  );
+
+  await prisma.$transaction(operations);
 
   revalidatePath("/dashboard");
   revalidatePath("/tasks");
