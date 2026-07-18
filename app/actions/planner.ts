@@ -5,9 +5,12 @@ import { prisma } from "@/lib/prisma";
 import { addReward } from "@/lib/rewards/reward-log";
 import { REWARD_POINTS } from "@/lib/rewards/constants";
 import { updateStreak } from "@/lib/rewards/streak";
+import { evaluateAchievementEvent } from "@/lib/achievements/evaluator";
+import { type UnlockResult } from "@/lib/achievements/unlock";
 import { RewardAction, RewardType, RepeatType } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { generatePlannerDates } from "@/lib/planner/generate-planner-dates";
+import { parsePlannerDate } from "@/lib/planner/planner-date";
 
 async function getAuthenticatedUserId() {
   const session = await auth();
@@ -29,46 +32,44 @@ export async function addWeeklyPlanTask(data: {
   time?: string;
   repeatType?: "NONE" | "DAILY" | "ALTERNATE" | "EVERY_THREE_DAYS" | "CUSTOM";
   repeatWeekdays?: string[];
+  occurrences?: number;
 }) {
   const userId = await getAuthenticatedUserId();
 
   const dates = generatePlannerDates({
-    startDate: new Date(data.plannedDate),
+    startDate: parsePlannerDate(data.plannedDate),
     repeatType: data.repeatType ?? "NONE",
     repeatWeekdays: data.repeatWeekdays ?? [],
+    occurrences: data.occurrences,
   });
 
-  const operations = dates.map((date) =>
-    prisma.weeklyPlan.create({
-      data: {
-        userId,
-        plannedDate: date,
-        rowIndex: data.rowIndex,
-        title: data.title,
-        time: data.time || null,
-        repeatType: (data.repeatType as RepeatType) ?? "NONE",
-        repeatWeekdays: data.repeatWeekdays ?? [],
-        carryForward: false,
-        carryForwardDays: 0,
-      },
-    })
-  );
+  if (dates.length === 0) return;
 
-  await prisma.$transaction(operations);
+  // Optimized: Batched compilation via high-efficiency database bulk inserts
+  await prisma.weeklyPlan.createMany({
+    data: dates.map((date) => ({
+      userId,
+      plannedDate: date,
+      rowIndex: data.rowIndex,
+      title: data.title,
+      time: data.time || null,
+      repeatType: (data.repeatType as RepeatType) ?? "NONE",
+      repeatWeekdays: data.repeatWeekdays ?? [],
+      carryForward: false,
+      carryForwardDays: 0,
+    })),
+  });
 
-  revalidatePath("/dashboard");
   revalidatePath("/tasks");
 }
 
 export async function deleteWeeklyPlanTask(id: string) {
   const userId = await getAuthenticatedUserId();
 
-  // deleteMany is safe for this pattern as it doesn't require a unique index
   await prisma.weeklyPlan.deleteMany({
     where: { id, userId },
   });
 
-  revalidatePath("/dashboard");
   revalidatePath("/tasks");
 }
 
@@ -81,7 +82,6 @@ export async function updatePlannerRows(rows: number) {
     data: { plannerRows: rows } 
   });
 
-  revalidatePath("/dashboard");
   revalidatePath("/tasks");
 }
 
@@ -104,16 +104,13 @@ export async function updateTaskPosition(data: {
       id: data.id,
     },
     data: {
-      plannedDate: new Date(data.plannedDate),
+      plannedDate: parsePlannerDate(data.plannedDate),
       rowIndex: data.rowIndex,
-
-      // User intentionally rescheduled the task
       carryForward: false,
       carryForwardDays: 0,
     },
   });
 
-  revalidatePath("/dashboard");
   revalidatePath("/tasks");
 }
 
@@ -140,8 +137,6 @@ export async function toggleTaskCompletion(id: string) {
     where: { id },
     data: {
       completed,
-
-      // Completed tasks should never remain overdue
       ...(completed && {
         carryForward: false,
         carryForwardDays: 0,
@@ -149,20 +144,43 @@ export async function toggleTaskCompletion(id: string) {
     },
   });
 
-  if (completed) {
-    await addReward(
-      userId,
-      RewardType.PLANNER,
-      RewardAction.EARN,
-      REWARD_POINTS.PLANNER_TASK,
-      "Planner Task Completed",
-      task.title,
-      task.id
-    );
+  let unlockedAchievements: UnlockResult[] = [];
 
-    await updateStreak(userId);
+  if (completed) {
+    // Optimization: Parallelize core transactions concurrently 
+    await Promise.all([
+      addReward(
+        userId,
+        RewardType.PLANNER,
+        RewardAction.EARN,
+        REWARD_POINTS.PLANNER_TASK,
+        "Planner Task Completed",
+        task.title,
+        task.id
+      ),
+      updateStreak(userId),
+    ]);
+
+    // Gather dependent achievement metrics concurrently post-update
+    const [plannerAchievements, rewardAchievements, streakAchievements] = await Promise.all([
+      evaluateAchievementEvent(userId, "planner_completed"),
+      evaluateAchievementEvent(userId, "reward_updated"),
+      evaluateAchievementEvent(userId, "streak_updated"),
+    ]);
+
+    unlockedAchievements = [
+      ...plannerAchievements,
+      ...rewardAchievements,
+      ...streakAchievements,
+    ];
   }
 
+  // Dual synchronous revalidations kept clean to calculate dashboard progress correctly
   revalidatePath("/dashboard");
   revalidatePath("/tasks");
+
+  return {
+    success: true,
+    unlockedAchievements,
+  };
 }

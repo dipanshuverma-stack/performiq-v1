@@ -57,12 +57,7 @@ export async function toggleTask(taskId: string) {
   });
 
   // Check achievements explicitly when a task transitions into a completed state
-  if (newCompletedState) {
-    await evaluateAchievementEvent(
-      userId,
-      "planner_completed"
-    );
-  }
+
 
   revalidatePath("/tasks");
   revalidatePath("/dashboard");

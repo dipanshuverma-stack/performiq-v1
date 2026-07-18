@@ -11,7 +11,24 @@ import { updateStreak } from "@/lib/rewards/streak";
 import { evaluateAchievementEvent } from "@/lib/achievements/evaluator";
 import { randomUUID } from "crypto";
 
-export async function savePracticeSession(rawInput: unknown) {
+// Import clean, explicit types for safety
+import { type UnlockResult } from "@/lib/achievements/unlock";
+
+export type SavePracticeSessionResult =
+  | {
+      success: true;
+      data: Awaited<ReturnType<typeof prisma.practiceSession.create>>;
+      unlockedAchievements: UnlockResult[];
+    }
+  | {
+      success: false;
+      error: string;
+      details?: unknown;
+    };
+
+export async function savePracticeSession(
+  rawInput: unknown
+): Promise<SavePracticeSessionResult> {
   const start = performance.now();
 
   const session = await auth();
@@ -148,8 +165,28 @@ export async function savePracticeSession(rawInput: unknown) {
       console.timeEnd("Reward");
     }
 
-    // Evaluate dynamic achievement checks for this user context
-    await evaluateAchievementEvent(user.id, "practice_completed");
+    // Always evaluate achievements and construct our results
+    const practiceAchievements: UnlockResult[] = await evaluateAchievementEvent(
+      user.id,
+      "practice_completed"
+    );
+
+    // Completely type-safe updates with no 'any' fallbacks
+    const rewardAchievements: UnlockResult[] =
+      rewardPoints > 0
+        ? await evaluateAchievementEvent(user.id, "reward_updated")
+        : [];
+
+    const streakAchievements: UnlockResult[] =
+      rewardPoints > 0
+        ? await evaluateAchievementEvent(user.id, "streak_updated")
+        : [];
+
+    const unlockedAchievements = [
+      ...practiceAchievements,
+      ...rewardAchievements,
+      ...streakAchievements,
+    ];
 
     console.time("Revalidate");
     revalidatePath("/practice");
@@ -163,7 +200,11 @@ export async function savePracticeSession(rawInput: unknown) {
       "ms"
     );
 
-    return { success: true, data: recordedSession };
+    return { 
+      success: true, 
+      data: recordedSession,
+      unlockedAchievements,
+    };
   } catch (error) {
     console.error("[CRITICAL_SAVE_SESSION_FAILURE]:", error);
 

@@ -9,10 +9,19 @@ interface GeneratePlannerDatesOptions {
   startDate: Date;
   repeatType: RepeatType;
   repeatWeekdays: string[];
+  occurrences?: number;
 }
 
+function cloneDate(date: Date): Date {
+  return new Date(date.getTime());
+}
+
+/**
+ * Calculates the final microsecond of the current week (Sunday).
+ * Used to isolate recurring task generation boundaries.
+ */
 function getEndOfWeek(date: Date): Date {
-  const end = new Date(date);
+  const end = cloneDate(date);
 
   // Sunday = 0 ... Saturday = 6
   const daysUntilSunday = 7 - end.getDay() - 1;
@@ -21,10 +30,6 @@ function getEndOfWeek(date: Date): Date {
   end.setHours(23, 59, 59, 999);
 
   return end;
-}
-
-function cloneDate(date: Date): Date {
-  return new Date(date.getTime());
 }
 
 const WEEKDAY_MAP: Record<string, number> = {
@@ -37,6 +42,9 @@ const WEEKDAY_MAP: Record<string, number> = {
   SAT: 6,
 };
 
+// Protect server memory and database from overflow/infinite loops
+const MAX_OCCURRENCES = 30;
+
 export function generatePlannerDates(
   options: GeneratePlannerDatesOptions
 ): Date[] {
@@ -44,9 +52,22 @@ export function generatePlannerDates(
     startDate,
     repeatType,
     repeatWeekdays,
+    occurrences,
   } = options;
 
   const endOfWeek = getEndOfWeek(startDate);
+  
+  // Constrain occurrences to the UI max boundary if provided
+  const safeOccurrences = occurrences !== undefined 
+    ? Math.min(occurrences, MAX_OCCURRENCES) 
+    : undefined;
+
+  const shouldStop = (dates: Date[], current: Date) => {
+    if (safeOccurrences !== undefined) {
+      return dates.length >= safeOccurrences;
+    }
+    return current > endOfWeek;
+  };
 
   switch (repeatType) {
     case "NONE":
@@ -56,7 +77,7 @@ export function generatePlannerDates(
       const dates: Date[] = [];
       const current = cloneDate(startDate);
 
-      while (current <= endOfWeek) {
+      while (!shouldStop(dates, current)) {
         dates.push(cloneDate(current));
         current.setDate(current.getDate() + 1);
       }
@@ -68,7 +89,7 @@ export function generatePlannerDates(
       const dates: Date[] = [];
       const current = cloneDate(startDate);
 
-      while (current <= endOfWeek) {
+      while (!shouldStop(dates, current)) {
         dates.push(cloneDate(current));
         current.setDate(current.getDate() + 2);
       }
@@ -80,7 +101,7 @@ export function generatePlannerDates(
       const dates: Date[] = [];
       const current = cloneDate(startDate);
 
-      while (current <= endOfWeek) {
+      while (!shouldStop(dates, current)) {
         dates.push(cloneDate(current));
         current.setDate(current.getDate() + 3);
       }
@@ -95,7 +116,12 @@ export function generatePlannerDates(
       );
       const current = cloneDate(startDate);
 
-      while (current <= endOfWeek) {
+      // Guard check: Avoid infinite loop if occurrences are requested but no weekdays are matched
+      if (safeOccurrences !== undefined && selectedDays.size === 0) {
+        return [];
+      }
+
+      while (!shouldStop(dates, current)) {
         if (selectedDays.has(current.getDay())) {
           dates.push(cloneDate(current));
         }

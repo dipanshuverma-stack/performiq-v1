@@ -3,13 +3,19 @@
 import { useState, useEffect } from "react";
 import { PlannerModalState, RepeatType } from "@/lib/planner/types";
 import { REPEAT_OPTIONS, WEEKDAYS } from "@/lib/planner/constants";
-import { generateRepeatPreview } from "@/lib/planner/utils";
+import { generatePlannerDates } from "@/lib/planner/generate-planner-dates";
 import { cn } from "@/lib/utils";
 
 interface PlannerTaskModalProps {
   state: PlannerModalState;
   onClose: () => void;
-  onSave: (payload: { title: string; time: string; repeatType: RepeatType; repeatWeekdays: string[] }) => void;
+  onSave: (payload: { 
+    title: string; 
+    time: string; 
+    repeatType: RepeatType; 
+    repeatWeekdays: string[];
+    occurrences?: number;
+  }) => void;
   isPending: boolean;
 }
 
@@ -18,6 +24,7 @@ export function PlannerTaskModal({ state, onClose, onSave, isPending }: PlannerT
   const [time, setTime] = useState("");
   const [repeatType, setRepeatType] = useState<RepeatType>("NONE");
   const [repeatWeekdays, setRepeatWeekdays] = useState<string[]>([]);
+  const [occurrences, setOccurrences] = useState<number | "">("");
 
   useEffect(() => {
     if (state?.mode === "edit") {
@@ -28,6 +35,7 @@ export function PlannerTaskModal({ state, onClose, onSave, isPending }: PlannerT
       setTime("");
       setRepeatType("NONE");
       setRepeatWeekdays([]);
+      setOccurrences("");
     }
   }, [state]);
 
@@ -35,11 +43,22 @@ export function PlannerTaskModal({ state, onClose, onSave, isPending }: PlannerT
 
   const handleSave = () => {
     if (!title.trim()) return;
-    onSave({ title: title.trim(), time: time.trim(), repeatType, repeatWeekdays });
+    onSave({ 
+      title: title.trim(), 
+      time: time.trim(), 
+      repeatType, 
+      repeatWeekdays,
+      occurrences: occurrences === "" ? undefined : occurrences
+    });
   };
 
   const previewDates = state.mode === "create" 
-    ? generateRepeatPreview(state.date, repeatType, repeatWeekdays) 
+    ? generatePlannerDates({
+        startDate: state.date,
+        repeatType,
+        repeatWeekdays,
+        occurrences: occurrences === "" ? undefined : occurrences,
+      }) 
     : [];
 
   const headlineText = state.mode === "edit" ? "Edit Task" : "Add New Task";
@@ -86,6 +105,32 @@ export function PlannerTaskModal({ state, onClose, onSave, isPending }: PlannerT
                 ))}
               </div>
 
+              {repeatType !== "NONE" && (
+                <div className="mt-4">
+                  <label className="mb-2 block text-sm font-medium text-slate-300">
+                    Occurrences
+                  </label>
+                  <select
+                    value={occurrences}
+                    onChange={(e) => setOccurrences(e.target.value === "" ? "" : Number(e.target.value))}
+                    className="w-full rounded-xl bg-white/[0.03] border border-white/[0.08] px-4 py-3 text-white focus:outline-none focus:border-blue-500"
+                  >
+                    <option value="" className="bg-[#0E121B]">
+                      Default (Until Sunday)
+                    </option>
+                    {Array.from({ length: 30 }, (_, i) => (
+                      <option
+                        key={i + 1}
+                        value={i + 1}
+                        className="bg-[#0E121B]"
+                      >
+                        {i + 1} {i === 0 ? "Occurrence" : "Occurrences"}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
               {repeatType !== "NONE" && previewDates.length > 0 && (
                 <div className="mt-3 rounded-xl bg-indigo-500/5 border border-indigo-500/10 p-3">
                   <div className="text-[11px] font-semibold text-indigo-400/80 uppercase tracking-wider mb-1.5">Generates tasks on:</div>
@@ -95,7 +140,7 @@ export function PlannerTaskModal({ state, onClose, onSave, isPending }: PlannerT
                         {d.toLocaleDateString("en-GB", { day: "2-digit", month: "short" })}
                       </span>
                     ))}
-                    {repeatType === "DAILY" && <span className="text-slate-500 text-[11px] self-center ml-0.5">and 25 more days...</span>}
+                    {repeatType === "DAILY" && occurrences === "" && <span className="text-slate-500 text-[11px] self-center ml-0.5">and 25 more days...</span>}
                   </div>
                 </div>
               )}

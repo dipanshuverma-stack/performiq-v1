@@ -17,6 +17,9 @@ import { ReviewPanel } from "./panels/ReviewPanel";
 import { RecentSessionsPanel } from "./panels/RecentSessionsPanel";
 import { GlassCard } from "@/components/ui/glass-card";
 
+import AchievementUnlockDialog from "@/components/achievements/achievement-unlock-dialog";
+import { type UnlockResult } from "@/lib/achievements/unlock";
+
 type CombinedSessionSnapshot = {
   status: "finished";
   elapsedMs: number;
@@ -39,6 +42,9 @@ export function PracticeDashboard({ recentSessions: initialSessions }: PracticeD
   const [difficulty, setDifficulty] = useState<PracticeDifficulty>("MIXED");
   const [sessionNotes, setSessionNotes] = useState<string>("");
   const [savedSnapshotCache, setSavedSnapshotCache] = useState<CombinedSessionSnapshot | null>(null);
+
+  const [showAchievementDialog, setShowAchievementDialog] = useState(false);
+  const [unlockedAchievements, setUnlockedAchievements] = useState<UnlockResult[]>([]);
 
   const handleStartTransition = () => setPhase("running");
 
@@ -84,28 +90,36 @@ export function PracticeDashboard({ recentSessions: initialSessions }: PracticeD
 
     try {
       const response = await savePracticeSession(validationPayload);
-      if (response.success && response.data) {
+      
+      if (response.success) {
         setRecentSessions((prev) =>
           prev.map((item) =>
             item.id === optimisticRecord.id
               ? {
-                  id: response.data!.id,
-                  subject: response.data!.subject,
-                  topic: response.data!.topic,
-                  durationSeconds: response.data!.durationSeconds,
-                  accuracy: response.data!.accuracy,
-                  createdAt: new Date(response.data!.createdAt),
-                  attemptsCount: response.data!.totalQuestions,
+                  id: response.data.id,
+                  subject: response.data.subject,
+                  topic: response.data.topic,
+                  durationSeconds: response.data.durationSeconds,
+                  accuracy: response.data.accuracy,
+                  createdAt: new Date(response.data.createdAt),
+                  attemptsCount: response.data.totalQuestions,
                 }
               : item
           )
         );
+
+        if (response.unlockedAchievements.length > 0) {
+          setUnlockedAchievements(response.unlockedAchievements);
+          setShowAchievementDialog(true);
+        }
+
         setSavedSnapshotCache(null);
         setPhase("success");
-      } else {
-        setRecentSessions((prev) => prev.filter((item) => item.id !== optimisticRecord.id));
-        setErrorBanner(response.error ?? "Failed to save practice session.");
+        return;
       }
+
+      setRecentSessions((prev) => prev.filter((item) => item.id !== optimisticRecord.id));
+      setErrorBanner(response.error ?? "Failed to save practice session.");
     } catch {
       setRecentSessions((prev) => prev.filter((item) => item.id !== optimisticRecord.id));
       setErrorBanner("Unexpected error while saving practice session.");
@@ -157,7 +171,7 @@ export function PracticeDashboard({ recentSessions: initialSessions }: PracticeD
       )}
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-6">
-        {/* Main Setup Area - Wider on mobile */}
+        {/* Main Setup Area */}
         <div className="lg:col-span-8 space-y-6">
           {errorBanner && (
             <div className="bg-destructive/10 border border-destructive/30 p-4 rounded-xl text-sm text-destructive">
@@ -231,18 +245,28 @@ export function PracticeDashboard({ recentSessions: initialSessions }: PracticeD
           )}
         </div>
 
-        {/* Recent Sessions - Stack below on mobile */}
+        {/* Recent Sessions */}
         {phase === "setup" && (
           <div className="lg:col-span-4">
             <RecentSessionsPanel recentSessions={recentSessions} />
           </div>
         )}
       </div>
+
+      {/* Achievement Unlock Dialog */}
+      <AchievementUnlockDialog
+        open={showAchievementDialog}
+        achievements={unlockedAchievements}
+        onClose={() => {
+          setShowAchievementDialog(false);
+          setUnlockedAchievements([]);
+        }}
+      />
     </div>
   );
 }
 
-// ActiveWorkspaceWrapper (unchanged)
+// ActiveWorkspaceWrapper
 interface ActiveWorkspaceWrapperProps {
   topic: string;
   subject: Subject;

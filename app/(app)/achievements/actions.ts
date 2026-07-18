@@ -43,6 +43,20 @@ export async function getAchievements() {
     (a) => a.users.length > 0
   ).length;
 
+  const unlockedAchievements = achievements.filter(
+    (a) => a.users.length > 0
+  );
+
+  const totalRewardPoints = unlockedAchievements.reduce(
+    (sum, achievement) => sum + (achievement.rewardPoints ?? 0),
+    0
+  );
+
+  const totalXp = unlockedAchievements.reduce(
+    (sum, achievement) => sum + (achievement.xp ?? 0),
+    0
+  );
+
   return {
     achievements,
 
@@ -56,6 +70,8 @@ export async function getAchievements() {
           : Math.round(
               (unlocked / achievements.length) * 100
             ),
+      rewardPoints: totalRewardPoints,
+      xp: totalXp,
     },
   };
 }

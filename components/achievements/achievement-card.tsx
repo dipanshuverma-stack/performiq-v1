@@ -115,22 +115,34 @@ export default function AchievementCard({
         </div>
 
         {unlocked ? (
-          <span
-            className={`
-              rounded-full
-              px-3
-              py-1
-              text-[10px]
-              font-semibold
-              uppercase
-              tracking-widest
-              ${rarity.badge}
-            `}
-          >
-            {achievement.rarity}
-          </span>
+          <div className="flex flex-col items-end gap-2">
+            <span
+              className={`
+                rounded-full
+                px-3
+                py-1
+                text-[10px]
+                font-semibold
+                uppercase
+                tracking-widest
+                ${rarity.badge}
+              `}
+            >
+              {achievement.rarity}
+            </span>
+
+            <span className="rounded-full bg-emerald-500/10 px-2 py-1 text-[10px] font-medium text-emerald-400">
+              Unlocked
+            </span>
+          </div>
         ) : (
-          <Lock className="h-5 w-5 text-muted-foreground" />
+          <div className="flex flex-col items-end gap-2">
+            <Lock className="h-5 w-5 text-slate-500" />
+
+            <span className="rounded-full bg-slate-500/10 px-2 py-1 text-[10px] font-medium text-slate-400">
+              Locked
+            </span>
+          </div>
         )}
       </div>
 

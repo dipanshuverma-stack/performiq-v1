@@ -9,7 +9,10 @@ interface PlannerTaskCardProps {
   task: OptimisticTask;
   onToggleComplete: (id: string, currentStatus: boolean) => void;
   onDelete: (id: string) => void;
-  onDragStart: (e: React.DragEvent, task: OptimisticTask) => void;
+  onDragStart: (
+    e: React.DragEvent<HTMLDivElement>,
+    task: OptimisticTask
+  ) => void;
 }
 
 export function PlannerTaskCard({

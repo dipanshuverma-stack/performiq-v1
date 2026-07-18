@@ -16,7 +16,9 @@ import SubjectPerformanceSection from "@/components/mock/SubjectPerformanceSecti
 import SubjectPerformanceCard from "@/components/mock/SubjectPerformanceCard";
 import TopicSelector from "@/components/mock/TopicSelector";
 import SubmitMockButton from "@/components/mock/SubmitMockButton";
-import MockSaveSuccess from "@/components/mock/MockSaveSuccess"; // <-- Import new component
+import MockSaveSuccess from "@/components/mock/MockSaveSuccess";
+import AchievementUnlockDialog from "@/components/achievements/achievement-unlock-dialog";
+import { type UnlockResult } from "@/lib/achievements/unlock";
 import { EXAMS } from "@/lib/exams";
 import { SUBJECT_MAP } from "@/lib/mock/subject-map";
 import { Subject } from "@prisma/client";
@@ -28,6 +30,8 @@ export default function MockForm() {
   // --- 1. State Management ---
   const [saving, setSaving] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [showAchievementDialog, setShowAchievementDialog] = useState(false);
+  const [unlockedAchievements, setUnlockedAchievements] = useState<UnlockResult[]>([]);
   
   const [mockType, setMockType] = useState("");
   const [exam, setExam] = useState("");
@@ -97,7 +101,6 @@ export default function MockForm() {
     setStrongTopics(defaultTopics);
     setSubjectStats(defaultStats);
     
-    // Using native form reset to clear un-controlled fields like notes/title
     formRef.current?.reset(); 
     
     setShowSuccess(false);
@@ -125,8 +128,13 @@ export default function MockForm() {
         const formData = new FormData(formRef.current);
 
         try {
-          await createMockTest(formData);
+          const result = await createMockTest(formData);
           
+          if (result.unlockedAchievements.length > 0) {
+            setUnlockedAchievements(result.unlockedAchievements);
+            setShowAchievementDialog(true);
+          }
+
           formRef.current?.scrollIntoView({
             behavior: "smooth",
             block: "start",
@@ -151,7 +159,7 @@ export default function MockForm() {
             onViewMocks={() => {
              router.refresh();
              router.push("/mocks");
-           }}
+            }}
           />
         </div>
       ) : (
@@ -362,6 +370,15 @@ export default function MockForm() {
           <SubmitMockButton disabled={!isFormValid || saving} />
         </>
       )}
+
+      <AchievementUnlockDialog
+        open={showAchievementDialog}
+        achievements={unlockedAchievements}
+        onClose={() => {
+          setShowAchievementDialog(false);
+          setUnlockedAchievements([]);
+        }}
+      />
     </form>
   );
 }

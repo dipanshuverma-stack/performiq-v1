@@ -20,33 +20,19 @@ export async function checkStreakAchievements(
     return unlocked;
   }
 
-  if (summary.currentStreak >= 3) {
-    const result = await unlockAchievement(
-      userId,
-      ACHIEVEMENT_KEYS.STREAK_3
-    );
-    if (result) {
-      unlocked.push(result);
-    }
-  }
+  const thresholds = [
+    { streak: 3, key: ACHIEVEMENT_KEYS.STREAK_3 },
+    { streak: 7, key: ACHIEVEMENT_KEYS.STREAK_7 },
+    { streak: 30, key: ACHIEVEMENT_KEYS.STREAK_30 },
+  ];
 
-  if (summary.currentStreak >= 7) {
-    const result = await unlockAchievement(
-      userId,
-      ACHIEVEMENT_KEYS.STREAK_7
-    );
-    if (result) {
-      unlocked.push(result);
-    }
-  }
+  for (const threshold of thresholds) {
+    if (summary.currentStreak >= threshold.streak) {
+      const result = await unlockAchievement(userId, threshold.key);
 
-  if (summary.currentStreak >= 30) {
-    const result = await unlockAchievement(
-      userId,
-      ACHIEVEMENT_KEYS.STREAK_30
-    );
-    if (result) {
-      unlocked.push(result);
+      if (result) {
+        unlocked.push(result);
+      }
     }
   }
 

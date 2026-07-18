@@ -13,43 +13,22 @@ export async function checkPracticeAchievements(
     },
   });
 
-  if (practiceCount >= 1) {
-    const result = await unlockAchievement(
-      userId,
-      ACHIEVEMENT_KEYS.FIRST_PRACTICE
-    );
-    if (result) {
-      unlocked.push(result);
-    }
-  }
+  const practiceThresholds = [
+    { count: 1, key: ACHIEVEMENT_KEYS.FIRST_PRACTICE },
+    { count: 10, key: ACHIEVEMENT_KEYS.PRACTICE_10 },
+    { count: 25, key: ACHIEVEMENT_KEYS.PRACTICE_25 },
+    { count: 50, key: ACHIEVEMENT_KEYS.PRACTICE_50 },
+    { count: 100, key: ACHIEVEMENT_KEYS.PRACTICE_100 },
+    { count: 250, key: ACHIEVEMENT_KEYS.PRACTICE_250 },
+    { count: 500, key: ACHIEVEMENT_KEYS.PRACTICE_500 },
+  ];
 
-  if (practiceCount >= 10) {
-    const result = await unlockAchievement(
-      userId,
-      ACHIEVEMENT_KEYS.PRACTICE_10
-    );
-    if (result) {
-      unlocked.push(result);
-    }
-  }
-
-  if (practiceCount >= 50) {
-    const result = await unlockAchievement(
-      userId,
-      ACHIEVEMENT_KEYS.PRACTICE_50
-    );
-    if (result) {
-      unlocked.push(result);
-    }
-  }
-
-  if (practiceCount >= 100) {
-    const result = await unlockAchievement(
-      userId,
-      ACHIEVEMENT_KEYS.PRACTICE_100
-    );
-    if (result) {
-      unlocked.push(result);
+  for (const threshold of practiceThresholds) {
+    if (practiceCount >= threshold.count) {
+      const result = await unlockAchievement(userId, threshold.key);
+      if (result) {
+        unlocked.push(result);
+      }
     }
   }
 

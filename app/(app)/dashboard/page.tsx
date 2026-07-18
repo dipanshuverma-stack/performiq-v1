@@ -36,10 +36,18 @@ const cachedTodayPlannerTasks = cache(async (userId: string) => {
   return prisma.weeklyPlan.findMany({
     where: {
       userId,
-      plannedDate: {
-        gte: today,
-        lt: tomorrow,
-      },
+      completed: false,
+      OR: [
+        {
+          plannedDate: {
+            gte: today,
+            lt: tomorrow,
+          },
+        },
+        {
+          carryForward: true,
+        },
+      ],
     },
     select: {
       id: true,

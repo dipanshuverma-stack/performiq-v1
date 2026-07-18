@@ -6,10 +6,13 @@ import { addWeeklyPlanTask, deleteWeeklyPlanTask, updatePlannerRows, toggleTaskC
 import { cn } from "@/lib/utils";
 import { PlannerTask, OptimisticTask, PlannerModalState, RepeatType } from "@/lib/planner/types";
 import { formatDateKey, getPlannerDays } from "@/lib/planner/utils";
+import { plannerDateKey } from "@/lib/planner/planner-date";
 import { usePlannerDragDrop } from "@/hooks/use-planner-drag-drop";
 import { PlannerTaskCard } from "./planner-task-card";
 import { PlannerEmptyCell } from "./planner-empty-cell";
 import { PlannerTaskModal } from "./planner-task-modal";
+import AchievementUnlockDialog from "@/components/achievements/achievement-unlock-dialog";
+import { type UnlockResult } from "@/lib/achievements/unlock";
 
 export function WeeklyPlanner({
   plannerTasks: initialTasks,
@@ -20,6 +23,8 @@ export function WeeklyPlanner({
 }) {
   const [rows, setRows] = useState(initialRows);
   const [modalState, setModalState] = useState<PlannerModalState>(null);
+  const [showAchievementDialog, setShowAchievementDialog] = useState(false);
+  const [unlockedAchievements, setUnlockedAchievements] = useState<UnlockResult[]>([]);
 
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -81,7 +86,13 @@ export function WeeklyPlanner({
     });
   };
 
-  const handleSaveModal = (payload: { title: string; time: string; repeatType: RepeatType; repeatWeekdays: string[] }) => {
+  const handleSaveModal = (payload: { 
+    title: string; 
+    time: string; 
+    repeatType: RepeatType; 
+    repeatWeekdays: string[];
+    occurrences?: number;
+  }) => {
     if (!modalState || modalState.mode !== "create") return;
     
     const newTask: OptimisticTask = {
@@ -100,14 +111,14 @@ export function WeeklyPlanner({
       setModalState(null);
       try {
         await addWeeklyPlanTask({
-          plannedDate: modalState.date.toISOString(),
+          plannedDate: plannerDateKey(modalState.date),
           rowIndex: modalState.row,
           title: newTask.title,
           time: newTask.time || undefined,
           repeatType: payload.repeatType,
           repeatWeekdays: payload.repeatWeekdays,
+          occurrences: payload.occurrences,
         });
-        router.refresh();
       } catch {
         router.refresh();
       }
@@ -130,12 +141,17 @@ export function WeeklyPlanner({
     startTransition(async () => {
       setOptimisticTasks({ type: "TOGGLE", payload: { id: taskId, completed: newCompleted } });
       try {
-        await toggleTaskCompletion(taskId);
+        const result = await toggleTaskCompletion(taskId);
+        if (result.unlockedAchievements.length > 0) {
+          setUnlockedAchievements(result.unlockedAchievements);
+          setShowAchievementDialog(true);
+        }
       } catch {
         router.refresh();
       }
     });
   }, [setOptimisticTasks, router]);
+
 
   return (
     <div className="rounded-3xl border border-white/[0.08] bg-[#0E121B] p-3 sm:p-6">
@@ -229,12 +245,20 @@ export function WeeklyPlanner({
         </div>
       </div>
 
-      {/* Task Operational Lifecycle Modal */}
       <PlannerTaskModal 
         state={modalState}
         onClose={() => setModalState(null)}
         onSave={handleSaveModal}
         isPending={isPending}
+      />
+
+      <AchievementUnlockDialog
+        open={showAchievementDialog}
+        achievements={unlockedAchievements}
+        onClose={() => {
+          setShowAchievementDialog(false);
+          setUnlockedAchievements([]);
+        }}
       />
     </div>
   );

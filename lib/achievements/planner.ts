@@ -7,40 +7,31 @@ export async function checkPlannerAchievements(
 ): Promise<UnlockResult[]> {
   const unlocked: UnlockResult[] = [];
 
-  const completedTasks = await prisma.task.count({
+  // Querying the active WeeklyPlan model for completed planner items
+  const completedTasks = await prisma.weeklyPlan.count({
     where: {
       userId,
       completed: true,
     },
   });
 
-  if (completedTasks >= 1) {
-    const result = await unlockAchievement(
-      userId,
-      ACHIEVEMENT_KEYS.FIRST_TASK
-    );
-    if (result) {
-      unlocked.push(result);
-    }
-  }
+  // Array map representing each completion threshold and its corresponding key
+  const thresholds = [
+    { count: 1, key: ACHIEVEMENT_KEYS.FIRST_TASK },
+    { count: 10, key: ACHIEVEMENT_KEYS.PLANNER_10 },
+    { count: 25, key: ACHIEVEMENT_KEYS.PLANNER_25 },
+    { count: 50, key: ACHIEVEMENT_KEYS.PLANNER_50 },
+    { count: 100, key: ACHIEVEMENT_KEYS.PLANNER_100 },
+    { count: 250, key: ACHIEVEMENT_KEYS.PLANNER_250 },
+    { count: 500, key: ACHIEVEMENT_KEYS.PLANNER_500 },
+  ];
 
-  if (completedTasks >= 25) {
-    const result = await unlockAchievement(
-      userId,
-      ACHIEVEMENT_KEYS.PLANNER_25
-    );
-    if (result) {
-      unlocked.push(result);
-    }
-  }
-
-  if (completedTasks >= 100) {
-    const result = await unlockAchievement(
-      userId,
-      ACHIEVEMENT_KEYS.PLANNER_100
-    );
-    if (result) {
-      unlocked.push(result);
+  for (const threshold of thresholds) {
+    if (completedTasks >= threshold.count) {
+      const result = await unlockAchievement(userId, threshold.key);
+      if (result) {
+        unlocked.push(result);
+      }
     }
   }
 

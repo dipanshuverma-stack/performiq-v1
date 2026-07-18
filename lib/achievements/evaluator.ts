@@ -6,6 +6,8 @@ import {
   checkStreakAchievements,
 } from ".";
 
+import { type UnlockResult } from "./unlock";
+
 export type AchievementEvent =
   | "practice_completed"
   | "mock_completed"
@@ -17,25 +19,29 @@ export async function evaluateAchievementEvent(
   userId: string,
   event: AchievementEvent
 ) {
+  let unlocked: UnlockResult[] = [];
+
   switch (event) {
     case "practice_completed":
-      await checkPracticeAchievements(userId);
+      unlocked = await checkPracticeAchievements(userId);
       break;
 
     case "mock_completed":
-      await checkMockAchievements(userId);
+      unlocked = await checkMockAchievements(userId);
       break;
 
     case "planner_completed":
-      await checkPlannerAchievements(userId);
+      unlocked = await checkPlannerAchievements(userId);
       break;
 
     case "reward_updated":
-      await checkRewardAchievements(userId);
+      unlocked = await checkRewardAchievements(userId);
       break;
 
     case "streak_updated":
-      await checkStreakAchievements(userId);
+      unlocked = await checkStreakAchievements(userId);
       break;
   }
+
+  return unlocked;
 }

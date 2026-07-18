@@ -13,33 +13,20 @@ export async function checkMockAchievements(
     },
   });
 
-  if (mockCount >= 1) {
-    const result = await unlockAchievement(
-      userId,
-      ACHIEVEMENT_KEYS.FIRST_MOCK
-    );
-    if (result) {
-      unlocked.push(result);
-    }
-  }
+  const thresholds = [
+    { count: 1, key: ACHIEVEMENT_KEYS.FIRST_MOCK },
+    { count: 10, key: ACHIEVEMENT_KEYS.MOCK_10 },
+    { count: 25, key: ACHIEVEMENT_KEYS.MOCK_25 },
+    { count: 50, key: ACHIEVEMENT_KEYS.MOCK_50 },
+  ];
 
-  if (mockCount >= 10) {
-    const result = await unlockAchievement(
-      userId,
-      ACHIEVEMENT_KEYS.MOCK_10
-    );
-    if (result) {
-      unlocked.push(result);
-    }
-  }
+  for (const threshold of thresholds) {
+    if (mockCount >= threshold.count) {
+      const result = await unlockAchievement(userId, threshold.key);
 
-  if (mockCount >= 50) {
-    const result = await unlockAchievement(
-      userId,
-      ACHIEVEMENT_KEYS.MOCK_50
-    );
-    if (result) {
-      unlocked.push(result);
+      if (result) {
+        unlocked.push(result);
+      }
     }
   }
 

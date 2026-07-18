@@ -1,19 +1,30 @@
 import { RepeatType, PlannerDay } from "./types";
+import { getPlannerToday, plannerDateKey } from "./planner-date";
 
+// Normalizes a generic date string or Date object safely to a standard key string
 export function formatDateKey(date: Date | string): string {
   const d = new Date(date);
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
 export function getPlannerDays(): PlannerDay[] {
-  const today = new Date();
+  const today = getPlannerToday();
+  const todayKey = plannerDateKey(today); // Lock client and server under the same key comparison engine
+
   return Array.from({ length: 30 }, (_, index) => {
     const date = new Date(today);
     date.setDate(today.getDate() + index);
+    
     let label = date.toLocaleDateString("en-GB", { weekday: "short" });
     if (index === 0) label = "Today";
     if (index === 1) label = "Tomorrow";
-    return { label, date, isToday: index === 0 };
+    
+    return { 
+      label, 
+      date, 
+      // Verify exact matching using the structural key format rather than local machine hours
+      isToday: plannerDateKey(date) === todayKey 
+    };
   });
 }
 

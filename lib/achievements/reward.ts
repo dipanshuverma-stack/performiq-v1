@@ -17,33 +17,19 @@ export async function checkRewardAchievements(
     return unlocked;
   }
 
-  if (summary.totalPoints >= 100) {
-    const result = await unlockAchievement(
-      userId,
-      ACHIEVEMENT_KEYS.REWARD_100
-    );
-    if (result) {
-      unlocked.push(result);
-    }
-  }
+  const thresholds = [
+    { points: 100, key: ACHIEVEMENT_KEYS.REWARD_100 },
+    { points: 500, key: ACHIEVEMENT_KEYS.REWARD_500 },
+    { points: 1000, key: ACHIEVEMENT_KEYS.REWARD_1000 },
+  ];
 
-  if (summary.totalPoints >= 500) {
-    const result = await unlockAchievement(
-      userId,
-      ACHIEVEMENT_KEYS.REWARD_500
-    );
-    if (result) {
-      unlocked.push(result);
-    }
-  }
+  for (const threshold of thresholds) {
+    if (summary.totalPoints >= threshold.points) {
+      const result = await unlockAchievement(userId, threshold.key);
 
-  if (summary.totalPoints >= 1000) {
-    const result = await unlockAchievement(
-      userId,
-      ACHIEVEMENT_KEYS.REWARD_1000
-    );
-    if (result) {
-      unlocked.push(result);
+      if (result) {
+        unlocked.push(result);
+      }
     }
   }
 

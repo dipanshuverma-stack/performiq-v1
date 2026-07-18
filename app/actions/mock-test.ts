@@ -21,6 +21,7 @@ import { REWARD_POINTS } from "@/lib/rewards/constants";
 import { removeReward } from "@/lib/rewards/remove-reward";
 import { updateStreak } from "@/lib/rewards/streak";
 import { evaluateAchievementEvent } from "@/lib/achievements/evaluator";
+import { type UnlockResult } from "@/lib/achievements/unlock";
 
 const MockTestSchema = z.object({
   exam: z.string().min(1),
@@ -158,8 +159,25 @@ export async function createMockTest(formData: FormData) {
   await updateStreak(userId);
   console.timeEnd("reward");
 
-  // Evaluate dynamic achievement checks for this user context
-  await evaluateAchievementEvent(userId, "mock_completed");
+  // Evaluate all affected achievement categories
+  const mockAchievements = await evaluateAchievementEvent(
+    userId,
+    "mock_completed"
+  );
+  const rewardAchievements = await evaluateAchievementEvent(
+    userId,
+    "reward_updated"
+  );
+  const streakAchievements = await evaluateAchievementEvent(
+    userId,
+    "streak_updated"
+  );
+
+  const unlockedAchievements: UnlockResult[] = [
+    ...mockAchievements,
+    ...rewardAchievements,
+    ...streakAchievements,
+  ];
 
   console.time("rebuildWeak");
   await rebuildTopicProgress(userId, weakTopics, "WEAK");
@@ -175,6 +193,12 @@ export async function createMockTest(formData: FormData) {
   console.timeEnd("revalidate");
 
   console.timeEnd("createMockTest");
+
+  return {
+    success: true,
+    mockId,
+    unlockedAchievements,
+  };
 }
 
 export async function deleteMockTest(mockId: string) {

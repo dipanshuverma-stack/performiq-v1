@@ -1,8 +1,8 @@
 import {
   Trophy,
-  Lock,
   CheckCircle2,
   TrendingUp,
+  Award,
 } from "lucide-react";
 
 interface AchievementOverviewProps {
@@ -11,6 +11,8 @@ interface AchievementOverviewProps {
     unlocked: number;
     locked: number;
     completion: number;
+    rewardPoints: number;
+    xp: number;
   };
 }
 
@@ -22,9 +24,9 @@ export default function AchievementOverview({
       title: "Total",
       value: stats.total,
       icon: Trophy,
-      color: "text-amber-400",
-      bg: "bg-amber-500/10",
-      border: "border-amber-500/20",
+      color: "text-blue-400",
+      bg: "bg-blue-500/10",
+      border: "border-blue-500/20",
     },
     {
       title: "Unlocked",
@@ -35,12 +37,12 @@ export default function AchievementOverview({
       border: "border-emerald-500/20",
     },
     {
-      title: "Locked",
-      value: stats.locked,
-      icon: Lock,
-      color: "text-slate-400",
-      bg: "bg-slate-500/10",
-      border: "border-slate-500/20",
+      title: "Reward Points",
+      value: stats.rewardPoints,
+      icon: Award,
+      color: "text-amber-400",
+      bg: "bg-amber-500/10",
+      border: "border-amber-500/20",
     },
     {
       title: "Completion",
@@ -50,10 +52,18 @@ export default function AchievementOverview({
       bg: "bg-cyan-500/10",
       border: "border-cyan-500/20",
     },
+    {
+      title: "XP",
+      value: stats.xp,
+      icon: Trophy, // Replaced with Lucide icon fitting active leveling
+      color: "text-violet-400",
+      bg: "bg-violet-500/10",
+      border: "border-violet-500/20",
+    },
   ];
 
   return (
-    <section className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
+    <section className="grid gap-5 md:grid-cols-2 xl:grid-cols-5">
       {cards.map((card) => {
         const Icon = card.icon;
 
