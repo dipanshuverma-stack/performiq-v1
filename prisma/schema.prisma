@@ -16,8 +16,8 @@ enum RepeatType {
 }
 
 model User {
-  id                      String                  @id @default(cuid())
-  email                   String?                 @unique
+  id                      String                   @id @default(cuid())
+  email                   String?                  @unique
   name                    String?
   emailVerified           DateTime?                @map("email_verified")
   image                   String?
@@ -25,6 +25,8 @@ model User {
   mockTopicInsights       MockTopicInsight[]
   rewardLogs              RewardLog[]
   rewardSummary           RewardSummary?
+  wallet                  Wallet?
+  walletTransactions      WalletTransaction[]
   weeklyPlans             WeeklyPlan[]
   accounts                Account[]
   examProfiles            ExamProfile[]
@@ -107,6 +109,37 @@ model RewardSummary {
   weekStart        DateTime?
   year             Int?
   user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Wallet {
+  id          String              @id @default(cuid())
+  userId      String              @unique
+  balance     Float               @default(0)
+  totalEarned Float               @default(0)
+  totalSpent  Float               @default(0)
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+  user        User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions WalletTransaction[]
+}
+
+model WalletTransaction {
+  id           String                @id @default(cuid())
+  walletId     String
+  userId       String
+  type         WalletTransactionType
+  source       WalletSource
+  amount       Float
+  balanceAfter Float
+  title        String
+  description  String?
+  createdAt    DateTime              @default(now())
+  wallet       Wallet                @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  user         User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([walletId])
+  @@index([userId])
+  @@index([createdAt(sort: Desc)])
 }
 
 model WeeklyPlan {
@@ -280,7 +313,7 @@ model PracticeSession {
   confidenceScore    Int?           @map("confidence_score")
   notes              String?
   createdAt          DateTime       @default(now()) @map("created_at")
-  updatedAt          DateTime @updatedAt @map("updated_at")  
+  updatedAt          DateTime       @updatedAt @map("updated_at")  
   correctQuestions   Int            @map("correct_questions")
   incorrectQuestions Int            @map("incorrect_questions")
   subject            Subject
@@ -317,7 +350,7 @@ model Mistake {
 model MistakeEntry {
   id          String     @id @default(cuid())
   userId      String     @map("user_id")
-  topic       String
+  topic       String     @map("topic")
   createdAt   DateTime   @default(now()) @map("created_at")
   explanation String?
   mockTestId  String?    @map("mock_test_id")
@@ -452,6 +485,22 @@ enum RewardAction {
   EARN
   PENALTY
   BONUS
+}
+
+enum WalletTransactionType {
+  CREDIT
+  DEBIT
+}
+
+enum WalletSource {
+  PRACTICE
+  MOCK
+  PLANNER
+  STREAK
+  ACHIEVEMENT
+  BONUS
+  MANUAL_ADD
+  MANUAL_REMOVE
 }
 
 enum TaskPriority {

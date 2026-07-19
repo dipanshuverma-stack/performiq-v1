@@ -147,27 +147,36 @@ export async function toggleTaskCompletion(id: string) {
   let unlockedAchievements: UnlockResult[] = [];
 
   if (completed) {
-    // Optimization: Parallelize core transactions concurrently 
-    await Promise.all([
-      addReward(
-        userId,
-        RewardType.PLANNER,
-        RewardAction.EARN,
-        REWARD_POINTS.PLANNER_TASK,
-        "Planner Task Completed",
-        task.title,
-        task.id
-      ),
-      updateStreak(userId),
-    ]);
+    // Fix 1: Execute core updates sequentially to eliminate lock contention on RewardSummary
+    await addReward(
+      userId,
+      RewardType.PLANNER,
+      RewardAction.EARN,
+      REWARD_POINTS.PLANNER_TASK,
+      "Planner Task Completed",
+      task.title,
+      task.id
+    );
 
-    // Gather dependent achievement metrics concurrently post-update
-    const [plannerAchievements, rewardAchievements, streakAchievements] = await Promise.all([
-      evaluateAchievementEvent(userId, "planner_completed"),
-      evaluateAchievementEvent(userId, "reward_updated"),
-      evaluateAchievementEvent(userId, "streak_updated"),
-    ]);
+    await updateStreak(userId);
 
+    // Step 4.1: Evaluate achievement events completely sequentially 
+    const plannerAchievements = await evaluateAchievementEvent(
+      userId,
+      "planner_completed"
+    );
+
+    const rewardAchievements = await evaluateAchievementEvent(
+      userId,
+      "reward_updated"
+    );
+
+    const streakAchievements = await evaluateAchievementEvent(
+      userId,
+      "streak_updated"
+    );
+
+    // Step 4.2: Merge results elegantly
     unlockedAchievements = [
       ...plannerAchievements,
       ...rewardAchievements,

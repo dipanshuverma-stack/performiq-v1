@@ -1,7 +1,6 @@
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { Suspense } from "react";
 import { cache } from "react";
 
 import { PageShell } from "@/components/ui/page-shell";
@@ -23,8 +22,8 @@ const getDaysLeft = (date: Date): number => {
   return Math.ceil(diff / (1000 * 60 * 60 * 24));
 };
 
-const cachedDashboardIntelligence = cache(async (email: string) => 
-  getDashboardIntelligence(email)
+const cachedDashboardIntelligence = cache(async (userId: string) => 
+  getDashboardIntelligence(userId)
 );
 
 const cachedTodayPlannerTasks = cache(async (userId: string) => {
@@ -63,15 +62,14 @@ const cachedTodayPlannerTasks = cache(async (userId: string) => {
 
 export default async function DashboardPage() {
   const session = await auth();
-  if (!session?.user?.email) redirect("/login");
+  if (!session?.user?.id) redirect("/login");
 
-  const email = session.user.email;
-  await rolloverWeeklyPlan(session.user.id!);
+  const userId = session.user.id;
+  await rolloverWeeklyPlan(userId);
 
-  // Parallel + Cached critical data
   const [dashboard, todayTasks] = await Promise.all([
-    cachedDashboardIntelligence(email),
-    cachedTodayPlannerTasks(session.user.id!),
+    cachedDashboardIntelligence(userId),
+    cachedTodayPlannerTasks(userId),
   ]);
 
   const activeExam = BANKING_EXAMS.find((e) => e.active) || BANKING_EXAMS[0];
@@ -84,22 +82,24 @@ export default async function DashboardPage() {
         userName={session.user.name ?? "Aspirant"}
         focusTopic={dashboard.nextFocusTopic}
         priorityTopicsCount={dashboard.priorities.length}
-        revisionsDue={dashboard.revisionsDue}
         activeExam={activeExam.name}
         daysLeft={daysLeft}
+        currentXP={dashboard.currentXP}
+        consistencyGoal={dashboard.consistencyGoal}
+        isConsistencyCompleted={dashboard.consistencyCompleted}
+        isFullPowerCompleted={dashboard.fullPowerCompleted}
+        nextAction={dashboard.nextAction}
       />
 
+      {/* Actionable Today's Mission layout block */}
+      <DashboardTodaysTasks tasks={todayTasks} />
+
+      {/* Baseline performance snapshot */}
       <DashboardKPIGrid
         accuracy={dashboard.averageAccuracy}
         avgMockScore={dashboard.averageMockScore}
-        revisionCompletion={dashboard.revisionCompletion}
         consistencyStreak={dashboard.currentStreak}
       />
-
-      {/* Today's Tasks */}
-      <DashboardTodaysTasks tasks={todayTasks} />
-
-      {/* Focus + Priorities Sections Currently Commented Out */}
     </PageShell>
   );
 }

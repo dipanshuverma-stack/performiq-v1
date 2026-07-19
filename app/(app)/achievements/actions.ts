@@ -75,3 +75,43 @@ export async function getAchievements() {
     },
   };
 }
+
+export async function getPreparationJourney() {
+  const session = await auth();
+
+  if (!session?.user?.email) {
+    return [];
+  }
+
+  const user = await prisma.user.findUnique({
+    where: {
+      email: session.user.email,
+    },
+    select: {
+      id: true,
+    },
+  });
+
+  if (!user) {
+    return [];
+  }
+
+  return prisma.rewardLog.findMany({
+    where: {
+      userId: user.id,
+      action: "EARN",
+    },
+    orderBy: {
+      createdAt: "desc",
+    },
+    take: 20,
+    select: {
+      id: true,
+      rewardType: true,
+      title: true,
+      description: true,
+      points: true,
+      createdAt: true,
+    },
+  });
+}

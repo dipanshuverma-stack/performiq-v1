@@ -1,8 +1,31 @@
 import { prisma } from "@/lib/prisma";
-import { RewardAction, RewardType, Prisma } from "@prisma/client";
+import { RewardAction, RewardType, Prisma, WalletSource, WalletTransactionType } from "@prisma/client";
 import { getWeekStart } from "./week";
 import { getMonth } from "./month";
 import { evaluateAchievementEvent } from "@/lib/achievements/evaluator";
+import { recordWalletTransaction } from "@/lib/wallet/record-wallet-transaction";
+function getWalletSource(rewardType: RewardType): WalletSource {
+  switch (rewardType) {
+    case RewardType.PLANNER:
+      return WalletSource.PRACTICE; // Fallback to compatible schema variant from provided layout string arrays
+
+    case RewardType.PRACTICE:
+      return WalletSource.PRACTICE;
+
+    case RewardType.MOCK:
+      return WalletSource.MOCK;
+
+    case RewardType.STREAK:
+      return WalletSource.STREAK;
+
+    case RewardType.WEEKLY_BONUS:
+    case RewardType.MONTHLY_BONUS:
+      return WalletSource.BONUS;
+
+    default:
+      return WalletSource.BONUS;
+  }
+}
 
 export async function addReward(
   userId: string,
@@ -114,12 +137,23 @@ export async function addReward(
       },
     });
 
+    // 5. ATOMIC WALLET UPDATE: Single transactional boundary block
+    await recordWalletTransaction(tx, {
+      userId,
+      type: WalletTransactionType.CREDIT,
+      source: getWalletSource(rewardType),
+      amount: points,
+      title,
+      description,
+    });
+
     return {
       log,
       summary: updatedSummary,
     };
   });
 
+  // Post-commit tracking hooks
   if (result) {
     await evaluateAchievementEvent(
       userId,

@@ -2,7 +2,6 @@ import { prisma } from "@/lib/prisma";
 import { addReward } from "./reward-log";
 import { REWARD_POINTS } from "./constants";
 import { RewardAction, RewardType } from "@prisma/client";
-import { evaluateAchievementEvent } from "@/lib/achievements/evaluator";
 import { getPlannerToday } from "../planner/planner-date";
 
 export async function updateStreak(userId: string) {
@@ -117,11 +116,6 @@ export async function updateStreak(userId: string) {
         break;
     }
 
-    await evaluateAchievementEvent(
-      userId,
-      "streak_updated"
-    );
-
     return updated;
   }
 
@@ -139,11 +133,6 @@ export async function updateStreak(userId: string) {
       lastActivityDate: today,
     },
   });
-
-  await evaluateAchievementEvent(
-    userId,
-    "streak_updated"
-  );
 
   return updatedSummary;
 }

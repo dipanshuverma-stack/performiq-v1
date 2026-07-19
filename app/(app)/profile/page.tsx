@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { cache } from "react";
 import Link from "next/link";
 import { getPlannerToday } from "@/lib/planner/planner-date";
-
+import { Trophy, Wallet2 } from "lucide-react";
 
 // Pre-computed exam data with days left
 const getUpcomingExams = () => {
@@ -41,6 +41,12 @@ export default async function ProfilePage() {
 
   const user = await cachedGetUser(session.user.email);
   if (!user) redirect("/login");
+
+  // Fetch running balance details for the account overview card grid
+  const wallet = await prisma.wallet.findUnique({
+    where: { userId: user.id },
+    select: { balance: true },
+  });
 
   const sortedExams = getUpcomingExams();
   const featuredExam = sortedExams[0];
@@ -103,6 +109,42 @@ export default async function ProfilePage() {
           <div className="mb-3 text-3xl">⚙️</div>
           <h3 className="font-semibold text-lg group-hover:text-blue-400 transition-colors">Settings</h3>
           <p className="mt-1 text-sm text-muted-foreground">Account preferences</p>
+        </Link>
+      </div>
+
+      {/* Synchronized Account Rewards Grid Matrix */}
+      <div className="grid gap-4 md:grid-cols-2">
+        <Link
+          href="/achievements"
+          className="flex items-center justify-between rounded-3xl border border-white/[0.08] bg-[#0E121B] p-6 hover:border-blue-500/40 transition-all group"
+        >
+          <div>
+            <h3 className="font-semibold text-xl text-white group-hover:text-blue-400 transition-colors">
+              Achievements
+            </h3>
+            <p className="mt-1.5 text-sm text-muted-foreground">
+              View milestones and unlocked badges
+            </p>
+          </div>
+          <Trophy className="h-6 w-6 text-amber-400 shrink-0" />
+        </Link>
+
+        <Link
+          href="/wallet"
+          className="flex items-center justify-between rounded-3xl border border-white/[0.08] bg-[#0E121B] p-6 hover:border-emerald-500/40 transition-all group"
+        >
+          <div>
+            <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+              Reward Wallet
+            </p>
+            <h3 className="mt-2 text-2xl font-black text-emerald-400 tracking-tight">
+              ₹{(wallet?.balance ?? 0).toLocaleString("en-IN")}
+            </h3>
+            <p className="mt-1 text-sm text-muted-foreground">
+              View wallet & transaction history
+            </p>
+          </div>
+          <Wallet2 className="h-6 w-6 text-emerald-400 shrink-0" />
         </Link>
       </div>
 
