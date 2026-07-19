@@ -7,7 +7,6 @@ export interface RecordWalletTransactionInput {
   amount: number;
   title: string;
   description?: string;
-  referenceId?: string;
 }
 
 export async function recordWalletTransaction(
@@ -19,7 +18,6 @@ export async function recordWalletTransaction(
     amount,
     title,
     description,
-    referenceId,
   }: RecordWalletTransactionInput
 ) {
   if (amount <= 0) {
@@ -30,21 +28,11 @@ export async function recordWalletTransaction(
     throw new Error("Transaction title is required.");
   }
 
-  // Idempotency check: Prevent duplicate processing if referenceId is provided
-  if (referenceId) {
-    const existingTx = await tx.walletTransaction.findFirst({
-      where: { userId, referenceId },
-    });
-    if (existingTx) {
-      throw new Error(`Transaction with referenceId '${referenceId}' has already been processed.`);
-    }
-  }
-
   const isCredit = type === WalletTransactionType.CREDIT;
   const directionalAmount = isCredit ? amount : -amount;
   const sanitizedDescription = description?.trim() || undefined;
 
-  // Find or create user wallet
+  // Find or create wallet
   let wallet = await tx.wallet.findUnique({
     where: { userId },
   });
@@ -60,12 +48,12 @@ export async function recordWalletTransaction(
     });
   }
 
-  // Enforce zero-floor guard bound on debits
+  // Prevent negative balance
   if (!isCredit && wallet.balance < amount) {
     throw new Error("Insufficient wallet balance to perform this operation.");
   }
 
-  // Atomic state compilation
+  // Update wallet
   wallet = await tx.wallet.update({
     where: { userId },
     data: {
@@ -73,12 +61,20 @@ export async function recordWalletTransaction(
         increment: directionalAmount,
       },
       ...(isCredit
-        ? { totalEarned: { increment: amount } }
-        : { totalSpent: { increment: amount } }),
+        ? {
+            totalEarned: {
+              increment: amount,
+            },
+          }
+        : {
+            totalSpent: {
+              increment: amount,
+            },
+          }),
     },
   });
 
-  // Write immutable historical ledger entry
+  // Ledger entry
   const transaction = await tx.walletTransaction.create({
     data: {
       walletId: wallet.id,
@@ -89,7 +85,6 @@ export async function recordWalletTransaction(
       balanceAfter: wallet.balance,
       title: title.trim(),
       description: sanitizedDescription,
-      referenceId: referenceId?.trim() || undefined,
     },
   });
 

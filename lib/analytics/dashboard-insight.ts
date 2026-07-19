@@ -2,11 +2,11 @@ import type { DashboardIntelligence } from "./dashboard-intelligence";
 
 /**
  * Generates contextual tactical insight for the dashboard.
- * Pure, fast, and safe with optional chaining.
+ * Pure, fast, and safe with structural nesting checks.
  */
 export function getDashboardInsight(intelligence: DashboardIntelligence) {
-  // Early returns in priority order (most important first)
-  if (intelligence.readiness?.readiness < 70) {
+  // 1. Primary overall preparation check
+  if ((intelligence.readiness?.readiness ?? 100) < 70) {
     return {
       type: "warning" as const,
       title: "Focus on Readiness",
@@ -14,7 +14,8 @@ export function getDashboardInsight(intelligence: DashboardIntelligence) {
     };
   }
 
-  if (intelligence.speedScore < 70) {
+  // 2. Secondary structural pacing metrics evaluation
+  if ((intelligence.readiness?.speedScore ?? 100) < 70) {
     return {
       type: "speed" as const,
       title: "Increase Your Speed",
@@ -22,6 +23,7 @@ export function getDashboardInsight(intelligence: DashboardIntelligence) {
     };
   }
 
+  // 3. Consistency tracking
   if (intelligence.currentStreak === 0) {
     return {
       type: "streak" as const,
@@ -30,7 +32,8 @@ export function getDashboardInsight(intelligence: DashboardIntelligence) {
     };
   }
 
-  if (intelligence.priorities?.length > 0) {
+  // 4. Targeted topic adjustments
+  if (intelligence.priorities && intelligence.priorities.length > 0) {
     return {
       type: "revision" as const,
       title: "Priority Revision",
@@ -38,6 +41,7 @@ export function getDashboardInsight(intelligence: DashboardIntelligence) {
     };
   }
 
+  // Default optimal status match
   return {
     type: "success" as const,
     title: "Great Progress",
