@@ -3,8 +3,8 @@ import { GlassCard } from "@/components/ui/glass-card";
 type ActiveExamCardProps = {
   activeExam: {
     name: string;
-    examType: string;
-    readiness: number;
+    stage: string;
+    customStage: string | null;
     targetDate: Date;
   } | null;
   daysRemaining: number | null;
@@ -26,7 +26,9 @@ export function ActiveExamCard({
           </h2>
           {activeExam && (
             <p className="mt-1 text-sm text-muted-foreground">
-              {activeExam.examType}
+              {activeExam.stage === "CUSTOM"
+                ? activeExam.customStage
+                : activeExam.stage}
             </p>
           )}
         </div>
@@ -35,16 +37,7 @@ export function ActiveExamCard({
           <>
             <div className="border-t border-white/[0.08]" />
 
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-              <div>
-                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                  Readiness
-                </p>
-                <p className="mt-1 text-xl font-bold text-blue-400">
-                  {activeExam.readiness.toFixed(1)}%
-                </p>
-              </div>
-
+            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
               <div>
                 <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                   Days Left

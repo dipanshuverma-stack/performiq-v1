@@ -4,7 +4,8 @@ import { prisma } from "@/lib/prisma";
 export interface ActiveExam {
   id: string;
   name: string;
-  examType: string;
+  stage: string;
+  customStage: string | null;
   isActive: boolean;
   targetDate: Date;
   readiness: number;
@@ -20,7 +21,8 @@ const cachedGetActiveExam = cache(async (userId: string) => {
     select: {
       id: true,
       name: true,
-      examType: true,
+      stage: true,
+      customStage: true,
       isActive: true,
       targetDate: true,
       readiness: true,

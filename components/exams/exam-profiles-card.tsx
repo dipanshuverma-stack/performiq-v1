@@ -5,7 +5,8 @@ type ExamProfilesCardProps = {
   examProfiles: {
     id: string;
     name: string;
-    examType: string;
+    stage: string;
+    customStage: string | null;
     targetDate: Date;
     isActive: boolean;
   }[];
@@ -34,7 +35,11 @@ export function ExamProfilesCard({ examProfiles }: ExamProfilesCardProps) {
               >
                 <div className="space-y-1">
                   <h3 className="font-semibold text-white">{exam.name}</h3>
-                  <p className="text-sm text-muted-foreground">{exam.examType}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {exam.stage === "CUSTOM"
+                      ? exam.customStage
+                      : exam.stage}
+                  </p>
                   <p className="text-xs text-muted-foreground/80">
                     Target Date:{" "}
                     {exam.targetDate.toLocaleDateString("en-GB", {

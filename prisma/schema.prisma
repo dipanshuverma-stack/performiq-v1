@@ -513,6 +513,11 @@ enum WalletSource {
   MANUAL_REMOVE
 }
 
+enum SectionType {
+  PRELIMS
+  MAINS
+}
+
 enum TaskPriority {
   LOW
   MEDIUM

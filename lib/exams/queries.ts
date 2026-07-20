@@ -10,7 +10,8 @@ export const getExamProfiles = cache(async (email: string) => {
         select: {
           id: true,
           name: true,
-          examType: true,
+          stage: true,
+          customStage: true,
           isActive: true,
           targetDate: true,
           readiness: true,

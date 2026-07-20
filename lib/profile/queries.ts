@@ -50,7 +50,8 @@ export const getProfileOverview = cache(async (email: string) => {
       ? {
           id: activeExam.id,
           name: activeExam.name,
-          examType: activeExam.examType,
+          stage: activeExam.stage,
+          customStage: activeExam.customStage,
           readiness: activeExam.readiness,
           targetDate: activeExam.targetDate,
           daysLeft,
