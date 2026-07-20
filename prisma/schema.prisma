@@ -112,14 +112,14 @@ model RewardSummary {
 }
 
 model Wallet {
-  id          String              @id @default(cuid())
-  userId      String              @unique
-  balance     Float               @default(0)
-  totalEarned Float               @default(0)
-  totalSpent  Float               @default(0)
-  createdAt   DateTime            @default(now())
-  updatedAt   DateTime            @updatedAt
-  user        User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id           String              @id @default(cuid())
+  userId       String              @unique
+  balance      Float               @default(0)
+  totalEarned  Float               @default(0)
+  totalSpent   Float               @default(0)
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
+  user         User                @relation(fields: [userId], references: [id], onDelete: Cascade)
   transactions WalletTransaction[]
 }
 
@@ -212,21 +212,31 @@ model VerificationToken {
 }
 
 model ExamProfile {
-  id          String    @id @default(cuid())
-  userId      String    @map("user_id")
-  name        String
-  targetDate  DateTime  @map("target_date")
-  readiness   Float     @default(0)
-  isActive    Boolean   @default(false) @map("is_active")
-  createdAt   DateTime  @default(now()) @map("created_at")
-  updatedAt   DateTime  @updatedAt @map("updated_at")
-  attemptDate DateTime?
-  examType    ExamType
-  priority    Int       @default(1)
-  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id     String @id @default(cuid())
+  userId String @map("user_id")
 
-  @@index([isActive])
+  name String
+
+  stage ExamStage
+
+  customStage String?
+
+  targetDate DateTime @map("target_date")
+
+  readiness Float   @default(0)
+  isActive  Boolean @default(false) @map("is_active")
+
+  priority Int @default(1)
+
+  attemptDate DateTime?
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   @@index([userId])
+  @@index([isActive])
   @@index([priority])
   @@map("exam_profiles")
 }
@@ -313,7 +323,7 @@ model PracticeSession {
   confidenceScore    Int?           @map("confidence_score")
   notes              String?
   createdAt          DateTime       @default(now()) @map("created_at")
-  updatedAt          DateTime       @updatedAt @map("updated_at")  
+  updatedAt          DateTime       @updatedAt @map("updated_at")
   correctQuestions   Int            @map("correct_questions")
   incorrectQuestions Int            @map("incorrect_questions")
   subject            Subject
@@ -552,22 +562,23 @@ enum Subject {
   COMPUTER_AWARENESS
 }
 
-enum SectionType {
-  PRELIMS
-  MAINS
-}
-
 enum ExamType {
-  IBPS_PO
-  IBPS_CLERK
   SBI_PO
   SBI_CLERK
+  IBPS_PO
+  IBPS_CLERK
   RRB_PO
   RRB_CLERK
   RBI_ASSISTANT
   RBI_GRADE_B
   NABARD
   LIC_AAO
+}
+
+enum ExamStage {
+  PRELIMS
+  MAINS
+  CUSTOM
 }
 
 enum TopicInsightType {
